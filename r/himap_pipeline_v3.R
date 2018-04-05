@@ -10,21 +10,16 @@ suppressPackageStartupMessages(library(igraph))
 suppressPackageStartupMessages(library(pso))
 suppressPackageStartupMessages(library(ShortRead))
 suppressPackageStartupMessages(library(stringr))
-suppressPackageStartupMessages(library(Rcpp))
-suppressPackageStartupMessages(library(parallel))
-
 
 # Load HiMAP functions
-himap_path = '/Users/igor/cloud/research/microbiome/himap'
-sourceCpp(file.path(himap_path, 'src/mergepairs.cpp'))
+himap_path = '/data1/igor/himap'
 source(file.path(himap_path, 'r/mergepairs.R'))
 sourceCpp(file.path(himap_path, 'src/hamming.cpp'))
 sourceCpp(file.path(himap_path, 'src/fastq_retrieve.cpp'))
-# sourceCpp(file.path(himap_path, 'src/fitting_alignment_v2.cpp'))
+sourceCpp(file.path(himap_path, 'src/fitting_alignment_v2.cpp'))
 source(file.path(himap_path, 'r-lib/blast_vs_fasta.R'))
 source(file.path(himap_path, 'r-lib/spp_shorten.R'))
 source(file.path(himap_path, 'r/read_fastx.R'))
-# source(file.path(himap_path, 'r/taxonomy.R'))
 
 #
 # s1 r11 ++ r12 -
@@ -178,8 +173,8 @@ add_consensus = function (dada_res, derep, fq_tri, fq_fil, truncLen,
 
 blast_out_to_best_cp = function (
    blast_output, ref_cp, aln_params=c(5L, -4L, -8L, -6L),
-   blast_out_fmt='qseqid sseqid qlen length qstart qend sstart send slen qseq sseq',
-   verbose=T, ncpu=detectCores()-1, variant_sep='-'
+   blast_out_fmt='qseqid sseqid qlen length qstart qend sstart send qseq sseq',
+   verbose=T, ncpu=detectCores()-1
   )
 {
 
@@ -194,10 +189,10 @@ blast_out_to_best_cp = function (
 
   # For local alignments that are one-off at each end, reduce the score using
   # a mismatch penalty. (We deliberately use indel score that is very similar.)
-  blast_out.dt[qstart >= 2 & sstart >= 2, score := score-aln_params[2]]
-  blast_out.dt[qstart >= 2 & sstart >= 2, mismatch := mismatch+1L]
-  blast_out.dt[qend <= qlen-1 & send < slen, score := score-aln_params[2]]
-  blast_out.dt[qend <= qlen-1 & send < slen, mismatch := mismatch+1L]
+  blast_out.dt[qstart >= 2, score := score-aln_params[2]]
+  blast_out.dt[qstart >= 2, mismatch := mismatch+1L]
+  blast_out.dt[qend <= qlen-1, score := score-aln_params[2]]
+  blast_out.dt[qend <= qlen-1, mismatch := mismatch+1L]
 
   # Filter out alignments with large gaps at beginning or the end
   # blast_out.dt = blast_out.dt[qstart <= 2 & qend >= qlen-1]
@@ -228,7 +223,7 @@ blast_out_to_best_cp = function (
 
   # Sort by strain_id, then by
   cp.dt = cp.dt[order(strain_id, variant_id)]
-  if (verbose) cat('OK.\n')
+
   # Merge with blast hits
   # First do perfect matches
 
@@ -236,38 +231,25 @@ blast_out_to_best_cp = function (
   # including the overhangs, which do not exactly match the lengths of sequenced regions. Here we just generate
   # new variant_id that pools together all sequences that are different in the extended region but the same
   # in the reduced region that was sequenced (and new variant_id is taken as just the first in the list).
-  # blast_best.dt = blast_best.dt[, {
-  #   vids = unique(variant_id)
-  #   merge(.SD, cp.dt[variant_id %in% vids, .(variant_id, strain, copy_number)], all.x=T, by='variant_id')
-  # }, by=qseqid]
-
+  blast_best.dt = blast_best.dt[, {
+    vids = unique(variant_id)
+    merge(.SD, cp.dt[variant_id %in% vids, .(variant_id, strain, copy_number)], all.x=T, by='variant_id')
+  }, by=qseqid]
   # blast_best.dt[, variant_id := variant_id[1], by=qseqid]
 
   # Find variant ids from the database that all map to the same shorter sequence in the data and pool together
   # those variant ids into a new one.
-  # Find DIFFERENT qseqids with exact same qstart qend
-  # blast_best2.dt = blast_best.dt[, , by=.(qseqid, strain)]
-  if (verbose) cat('merge: ')
-  blast_best.dt = merge(blast_best.dt, cp.dt[, .(variant_id, strain, copy_number)],
-                        by='variant_id', allow.cartesian=T)
-  if (verbose) cat('OK. Fix overhang differences:')
-  hang_diff_qseqids = blast_best.dt[pctsim==100, 1, by=qseqid][, unique(qseqid)]
-  for (q in hang_diff_qseqids) {
-    vids = blast_best.dt[pctsim==100 & qseqid==q, sort(unique(variant_id))]
-    blast_best.dt[pctsim==100 & qseqid==q, variant_id := paste(vids, collapse=variant_sep)]
-    cp.dt[variant_id %in% vids, variant_id := paste(vids, collapse=variant_sep)]
+  variant_id_groups = list()
+  for (q in blast_best.dt[, unique(qseqid)]) {
+    variant_id_groups[[q]] = blast_best.dt[qseqid==q, unique(variant_id)]
+    # First, for exact strain hits add the copy numbers
+    cp.dt[variant_id %in% blast_best.dt[qseqid==q, unique(variant_id)], variant_id := variant_id[1]]
+    blast_best.dt[qseqid==q, variant_id := variant_id[1]]
   }
-  if (verbose) cat('.')
-  blast_best.dt[pctsim==100, copy_number := sum(copy_number), by=.(variant_id, strain)]
-  blast_best.dt = unique(blast_best.dt)
 
-  if (verbose) cat('.')
   # Add up copy numbers for strain that differ in the undetected overhang
   cp.dt[, copy_number := sum(copy_number), by=.(variant_id, strain_id)]
   cp.dt = unique(cp.dt)
-  if (verbose) cat('OK. ')
-
-
   # Recalculate rrn_uniq after re-numerating variant_ids (b/c the slightly shorter sequence now has the same
   # or smaller number of variants)
   cp.dt[, rrn_uniq := length(unique(variant_id)), by=strain_id]
@@ -312,7 +294,8 @@ ab_mat_to_dt = function (ab_tab_nochim, fq_prefix_split='_') {
 
 pcr_primer_filter = function (fq_in, fq_out, pr_fwd='CCTACGGGNGGCWGCAG',
                               pr_rev='GGATTAGATACCCBDGTAGTCC',
-                              pr_fwd_maxoff=10, pr_rev_maxoff=10, return_noprimer=T,
+                              pr_fwd_maxoff=10,
+                              pr_rev_maxoff=10,
                               multithread=T, ncpu=detectCores()-1, max_mismatch=2) {
   # fq_in = input fastq file
   # fq_out = output fastq file (without primers)
@@ -328,10 +311,10 @@ pcr_primer_filter = function (fq_in, fq_out, pr_fwd='CCTACGGGNGGCWGCAG',
   in_fq = sfastq_reader(fq_in)
   # max_mismatch = 2
 
-  seq = in_fq[['seqs']][1]
+  seq = in_fq[['seq']][1]
   qual = in_fq[['qual']][1]
 
-  fastq_trimmer = function (meta, seq, qual, return_noprimer=return_noprimer) {
+  fastq_trimmer = function (meta, seq, qual) {
 
     # Search for forward primer
     aln = C_nwalign(pr_fwd, seq, match=1, mismatch=-1, indel=-1)
@@ -369,11 +352,9 @@ pcr_primer_filter = function (fq_in, fq_out, pr_fwd='CCTACGGGNGGCWGCAG',
     if (pr_fwd_found) start = pr_fwd_right
     if (pr_rev_found) end = pr_rev_left
 
-    #if ((pr_fwd_found & pr_rev_found) | return_noprimer) {
-      return(list('meta' = meta,
-                  'seqs' = str_sub(seq, start=start, end=end),
-                  'qual' = str_sub(qual, start=start, end=end)))
-    #}
+    return(list('meta' = meta,
+                'seq' = str_sub(seq, start=start, end=end),
+                'qual' = str_sub(qual, start=start, end=end)))
   }
 
   # Apply fastq_trimmer() to each sequence in this file
@@ -389,7 +370,6 @@ pcr_primer_trimmer = Vectorize(pcr_primer_filter, vectorize.args=c('fq_in', 'fq_
 
 
 
-
 # OSU binning and abundance estimation
 blast_cp_to_osu_dt = function (
   blast_best.dt, cp.dt, ab_tab_nochim_m.dt,
@@ -401,8 +381,8 @@ blast_cp_to_osu_dt = function (
   # First generate a BLAST best results table with just alignment pctsim
   blast_reduced.dt = unique(blast_best.dt[, .(variant_id, qseqid, pctsim)])[order(qseqid)]
   blast_reduced.dt[, variant_id_new := variant_id[1], by=qseqid]
-  # blast_reduced.dt = merge(blast_reduced.dt, ab_tab_nochim_m.dt[, .(qseqid, raw_count, sample_id)],
-  #                          by='qseqid', all.x=T)
+  blast_reduced.dt = merge(blast_reduced.dt, ab_tab_nochim_m.dt[, .(qseqid, raw_count)],
+                           by='qseqid', all.x=T)
   blast_reduced.dt = blast_reduced.dt[, .SD[pctsim==max(pctsim)][1], by=variant_id]
 
   # Generate a separate reference table
@@ -423,43 +403,10 @@ blast_cp_to_osu_dt = function (
 
   if (verbose) cat('OK. Melt table: ')
   sample_ids = ab_tab_nochim_m.dt[, unique(sample_id)]
-
-  # Optimized osu_data_m2.dt
-  osu_data2.dt = copy(osu_data.dt)
-  osu_data2.dt = osu_data.dt[,
-   transpose(
-      strsplit(strsplit(spectrum, ',', fixed=T)[[1]], ':', fixed=T)),
-   by=.(osu_id, strain, no_strains_in_osu, no_variants)]
-  names(osu_data2.dt)[5:6] = c('copy_number', 'variant_id')
-
-  # Parse copy number and variant id from spectrum string
-  osu_data2.dt = osu_data2.dt[,
-   .(variant_id = transpose(
-      strsplit(strsplit(spectrum, ',', fixed=T)[[1]], ':', fixed=T))[[2]]),
-   by=.(osu_id, strain, no_strains_in_osu, no_variants, copy_number)]
-
-  # Add BLAST alignment information to each variant_id
-  osu_data3.dt = merge(
-     osu_data2.dt,
-     blast_reduced.dt[pctsim >= pctsim_min, .(variant_id, qseqid, pctsim)],
-     by='variant_id', all.x=T)
-
-  # Remove strain annotation here
-  osu_data4.dt = copy(osu_data3.dt)
-  osu_data4.dt[, strain := NULL]
-  osu_data4.dt = unique(osu_data4.dt)
-
-  # Add abundance information
-  osu_data5.dt = merge(
-     osu_data4.dt,
-     ab_tab_nochim_m.dt,
-     by='qseqid', all.x=T
-  )
-
   osu_data_m.dt = rbindlist(mclapply(sample_ids, function (s) {
     # Melt OSU data spectrum
     osu_data.dt[, { # For each OSU id
-      # cat('osu_id: ', osu_id, ', group: ', .GRP, '\n')
+      cat('osu_id: ', osu_id, ', group: ', .GRP, '\n')
       # Extract variant IDs and respective copy numbers from spectrum string
       cp_vid = strsplit(strsplit(spectrum, ',')[[1]], ':')
       cp = as.integer(sapply(cp_vid, `[`, 1))
@@ -487,7 +434,7 @@ blast_cp_to_osu_dt = function (
   return(osu_data_m.dt)
 }
 
-pctsim_range_old = function (p) {
+pctsim_range = function (p) {
   up = unique(p)
   if (length(up) == 1) return(as.character(up))
   else {
@@ -495,18 +442,12 @@ pctsim_range_old = function (p) {
   }
 }
 
-pctsim_range = function (p) {
-  return(max(p, na.rm=T))
-}
-
-
-print_strains = function (strains, raw=T) {
+print_strains = function (strains) {
   # Input: vector of strains
   # Prints a single string with reduced list of strains
   # such that any non-_bacterium or _sp. strain is shown
   # on a species level.
-  if (raw) return(paste(strains, collapse=','))
-
+  
   # Also add strains for species that occur only once!!
   if (length(strains)==1) return(strains)
   else {
@@ -540,16 +481,23 @@ print_strains = function (strains, raw=T) {
 
 osu_cp_to_all_abs = function (osu_data_m.dt, cp.dt, blast_best.dt, ab_tab_nochim_m.dt,
                               pctsim_min=100, ncpu=detectCores()-1, verbose=T, seed=42,
-                              osu_offset=1000000L, raw=T) {
+                              osu_offset=1000000L) {
 
   if (verbose) cat('Preparing blast tables...')
   var_count.dt = unique(osu_data_m.dt[, .(variant_id, raw_count, sample_id)])
   common_variant_ids = var_count.dt[, if (all(raw_count > 0)) .SD, by=variant_id][, unique(variant_id)]
+  #blast_reduced.dt = unique(blast_best.dt[, .(variant_id, qseqid, pctsim)])[order(qseqid)]
+  #blast_reduced.dt[, variant_id_new := variant_id[1], by=qseqid]
+  #blast_nonosu.dt = copy(blast_reduced.dt)
+  # Generate species names string for 
   blast_best2.dt = blast_best.dt[
-    pctsim < pctsim_min,
-    .(pctsim=pctsim_range(pctsim), species=print_strains(strain, raw=raw)), by=qseqid]
+    pctsim < pctsim_min, 
+    .(pctsim=pctsim_range(pctsim), species=print_strains(strain)), by=qseqid]
+  #blast_reduced.dt = merge(blast_reduced.dt, ab_tab_nochim_m.dt[, .(qseqid, raw_count)],
+  #                         by='qseqid', all.x=T)
+  #blast_reduced.dt = blast_reduced.dt[, .SD[pctsim==max(pctsim) & raw_count==max(raw_count)][1], by=variant_id]
   if (verbose) cat('OK.\n')
-
+  
   # Optimization function
   H = function(x) as.numeric(x>0)
   f = function (x, A, B, x0) {
@@ -560,7 +508,23 @@ osu_cp_to_all_abs = function (osu_data_m.dt, cp.dt, blast_best.dt, ab_tab_nochim
 
   osu_data_m_single.dt = unique(osu_data_m.dt[, if (length(unique(variant_id)) == 1) .SD, by=osu_id][raw_count > 0, .(osu_id, variant_id, copy_number)])
 
-  osu_sp.dt = cp.dt[, .(species = print_strains(strain, raw=raw)), by=osu_id]
+  osu_sp.dt = cp.dt[, .(species = print_strains(strain)), by=osu_id]
+   # osu_sp.dt = cp.dt[, .(species = {
+   #    genuses = gsub('^([^_]+)_.*', '\\1', unique(strain))
+   #    species = gsub('^[^_]+_([^_]+)[_]?.*', '\\1', unique(strain))
+   #    na_species_indexes = species %in% c('sp.', 'bacterium')
+   #    gsp = paste(genuses, species, sep='_')
+   #    gsp[na_species_indexes] = strain[na_species_indexes]
+   #    gsp_t = as.table(sort(table(gsp), decreasing=T))
+   #    if (length(unique(strain))==1) unique(strain)
+   #    else {
+   #       gsub(
+   #         '_[1]', '',
+   #         paste(dimnames(gsp_t)[[1]], '_[', as.character(gsp_t), ']', sep='', collapse=','),
+   #         fixed=T)
+   #    }
+   # }), by=.(osu_id)]
+
 
   sample_ids = ab_tab_nochim_m.dt[, unique(sample_id)]
   all_abs.dt = rbindlist(mclapply(sample_ids, function (s) {
@@ -644,7 +608,7 @@ osu_cp_to_all_abs = function (osu_data_m.dt, cp.dt, blast_best.dt, ab_tab_nochim
           # variant_ids = c(variant_ids, osu_data_m_single.dt[variant_id %in% variant_ids][, osu_id])
           Ar2 = Ar[variant_ids, osu_ids]
           Br2 = Br[variant_ids]
-
+          
           x = as.matrix(dcast(osu_data_m_single.dt[variant_id %in% variant_ids], variant_id ~ as.character(osu_id), value.var='copy_number')[, -1])
           rownames(x) = osu_data_m_single.dt[variant_id %in% variant_ids, variant_id]
           x[is.na(x)] = 0
@@ -654,14 +618,14 @@ osu_cp_to_all_abs = function (osu_data_m.dt, cp.dt, blast_best.dt, ab_tab_nochim
           Ar3 = as.matrix(Ar3.dt[, -1])
           Ar3 = Ar3[, order(as.integer(colnames(Ar3)))]
           rownames(Ar3) = Ar3.dt[, rn]
-
+          
           Br3 = as.matrix(B[rownames(Ar3),])
           osu_ab3.dt = merge(osu_ab.dt, data.table(osu_id=as.integer(colnames(Ar3))), by='osu_id', all.y=T)
           osu_ab3.dt[is.na(osu_count), osu_count := 0L]
           # setorder(osu_ab3.dt, osu_id)
-
+          
           x0 = osu_ab3.dt[, osu_count]
-
+          
           x0_w = rep(0.3, length(x0))
           ar3 = copy(Ar3)
           for (r in 1:nrow(Ar3)) ar3[r,] = ar3[r,] / Br3[r]
@@ -679,7 +643,7 @@ osu_cp_to_all_abs = function (osu_data_m.dt, cp.dt, blast_best.dt, ab_tab_nochim
                  pso$value)
           })
           res = tmp[which.min(sapply(tmp, function (x) x[[2]]))]
-
+          
           osu_ab3.dt[, osu_count := as.integer(res[[1]][[1]])]
           osu_ab2.dt = merge(osu_ab2.dt[!(osu_id %in% colnames(Ar3))], osu_ab3.dt, all=T, by=names(osu_ab3.dt))
         }
@@ -687,33 +651,69 @@ osu_cp_to_all_abs = function (osu_data_m.dt, cp.dt, blast_best.dt, ab_tab_nochim
 
       osu_ab2.dt = osu_ab2.dt[osu_count > 0]
 
+      # Generate a list of unique species for each osu id
+      # osu_sp.dt = cp.dt[, .(species = paste(unique(species), collapse=',')), by=osu_id]
+
       # Join table to OSU abundances
       osu_ab4.dt = merge(osu_ab2.dt, osu_sp.dt, by='osu_id',
                         all.x=T)
       setorder(osu_ab4.dt, -osu_count)
 
-
+      
       ab_tab2.dt = merge(
-        ab_tab_nochim_m.dt[sample_id==s],
+        ab_tab_nochim_m.dt,
         blast_best2.dt,
         by='qseqid'
       )
+      # ab_tab2.dt = merge(ab_tab_nochim_m.dt,
+      #                   blast_nonosu.dt[pctsim < pctsim_min],
+      #                   by='qseqid')[sample_id==s & raw_count>0]
+      # 
+      cat('Checkpoint 1.')
       ab_tab2.dt[, osu_id := osu_offset+qseqid]
+      # ab_tab2.dt[, variant_id := variant_id_new]
+      # ab_tab2.dt[, c('qseqid', 'variant_id_new') := NULL]
+      cat('Checkpoint 1.1')
+      # blast_best2.dt = blast_best.dt[variant_id %in% ab_tab2.dt[, variant_id]]
+      # Generate species names
+      # blast_var_sp.dt = blast_best2.dt[, .(species = {
+      #    genuses = gsub('^([^_]+)_.*', '\\1', strain)
+      #    species = gsub('^[^_]+_([^_]+)[_]?.*', '\\1', strain)
+      #    na_species_indexes = species %in% c('sp.', 'bacterium')
+      #    gsp = paste(genuses, species, sep='_')
+      #    gsp[na_species_indexes] = strain[na_species_indexes]
+      #    gsp_t = as.table(sort(table(gsp), decreasing=T))
+      #    gsub('_[1]', '',
+      #         paste(dimnames(gsp_t)[[1]], '_[', as.character(gsp_t), ']', sep='', collapse=','),
+      #         fixed=T)
+      # }), by=.(qseqid, variant_id)]
+      # blast_best2.dt = merge(blast_best2.dt, blast_var_sp.dt, by=c('variant_id', 'qseqid'),
+      #                        all.x=T)
+
+      # ab_tab2.dt = merge(ab_tab2.dt, blast_best2.dt[, .(species = paste(unique(species), collapse=',')), by=variant_id],
+      #                    by='variant_id')
+      cat('Checkpoint 1.2')
       ab_tab2.dt[, osu_count := raw_count]
       ab_tab2.dt[, c('raw_count', 'qseqid') := NULL]
+      # ab_tab2.dt[, variant_id := NULL]
+      cat('Checkpoint 1.5')
       osu_ab5.dt = merge(osu_ab4.dt,
-                        unique(osu_data_m.dt[, .(osu_id, pctsim=pctsim_range(pctsim))]),
+                        unique(osu_data_m.dt[, .(osu_id, pctsim=as.character(round(max(pctsim, na.rm=T), 2)))]),
                         by='osu_id')
 
+      # Check if sample_id column is in the osu table
+      # if (!('sample_id' %in% names(osu_ab5.dt))) osu_ab5.dt[, sample_id := s]
+      cat('Checkpoint 2.\n')
       # Merge OSU analysis with low sim sequences
       all_ab.dt = merge(osu_ab5.dt, ab_tab2.dt, by=intersect(names(osu_ab5.dt), names(ab_tab2.dt)),
                         all=T)
+      cat('Checkpoint 3.\n')
       # Recalculate abundances
       all_ab.dt[, sample_id := s]
       setcolorder(all_ab.dt, c('sample_id', 'osu_id', 'osu_count', 'species',
                                'pctsim'))
       # all_ab.dt[order(-pctsim)]
-      all_ab.dt[osu_count>0]
+      all_ab.dt
   }, mc.cores=ncpu))
   return(unique(all_abs.dt))
 }

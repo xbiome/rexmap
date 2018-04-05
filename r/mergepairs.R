@@ -1,7 +1,4 @@
-suppressPackageStartupMessages(library(ShortRead))
-suppressPackageStartupMessages(library(Rcpp))
-suppressPackageStartupMessages(library(parallel))
-sourceCpp('/Users/igor/cloud/research/microbiome/himap/src/mergepairs.cpp')
+# suppressPackageStartupMessages(library(ShortRead))
 
 # Merge pairs wrapper
 
