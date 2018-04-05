@@ -21,8 +21,8 @@ source(file.path(himap_path, 'r/mergepairs.R'))
 sourceCpp(file.path(himap_path, 'src/hamming.cpp'))
 sourceCpp(file.path(himap_path, 'src/fastq_retrieve.cpp'))
 # sourceCpp(file.path(himap_path, 'src/fitting_alignment_v2.cpp'))
-source(file.path(himap_path, 'r-lib/blast_vs_fasta.R'))
-source(file.path(himap_path, 'r-lib/spp_shorten.R'))
+source(file.path(himap_path, 'r/blast_vs_fasta.R'))
+# source(file.path(himap_path, 'r/spp_shorten.R'))
 source(file.path(himap_path, 'r/read_fastx.R'))
 # source(file.path(himap_path, 'r/taxonomy.R'))
 
@@ -154,16 +154,7 @@ add_consensus = function (dada_res, derep, fq_tri, fq_fil, truncLen,
     }, mc.cores=ncpu))
     pid_to_seq = pid_to_seq[order(as.integer(names(pid_to_seq)))]
     if (verbose) cat('OK. Update...')
-    # for (i in 1:length(x)) { # for each partition i in sample s_id
-    #   metas = fq_fil_data[['meta']][x[i][[1]]+1]
-    #   mer_seqs = fq_mer_data[['seqs']][which(fq_mer_data[['meta']] %in% metas)]
-    #   # Select only the right hanging part
-    #   mer_seqs_right = str_sub(mer_seqs, start=truncLen+1)
-    #   pid_to_seq[i] = gsub('[-]{1,}.*', '', consensus_sequence(mer_seqs_right))
-    #   # if (grepl('-', pid_to_seq[i])) print(i)
-    # }
-    # sid_to_pid_to_seq[s_id] = pid_to_seq
-    # Concatenate left consensus, dada2 middle partition sequence and right consensus
+    # Concatenate dada2 middle partition sequence and right consensus
     dada_res[[s_id]]$sequence = paste(dada_res[[s_id]]$sequence,
                                      pid_to_seq,
                                      sep='')
@@ -432,12 +423,6 @@ blast_cp_to_osu_dt = function (
    by=.(osu_id, strain, no_strains_in_osu, no_variants)]
   names(osu_data2.dt)[5:6] = c('copy_number', 'variant_id')
 
-  # Parse copy number and variant id from spectrum string
-  osu_data2.dt = osu_data2.dt[,
-   .(variant_id = transpose(
-      strsplit(strsplit(spectrum, ',', fixed=T)[[1]], ':', fixed=T))[[2]]),
-   by=.(osu_id, strain, no_strains_in_osu, no_variants, copy_number)]
-
   # Add BLAST alignment information to each variant_id
   osu_data3.dt = merge(
      osu_data2.dt,
@@ -449,42 +434,51 @@ blast_cp_to_osu_dt = function (
   osu_data4.dt[, strain := NULL]
   osu_data4.dt = unique(osu_data4.dt)
 
+  # Fill in zeros for some OSUs where we have some, but not all variants
+  sample_ids = ab_tab_nochim_m.dt[, unique(sample_id)]
+  ab_tab_nochim_m_fill.dt = rbindlist(list(
+     ab_tab_nochim_m.dt,
+     data.table(sample_id=sample_ids, raw_count=0, qseqid=NA)))
+
   # Add abundance information
   osu_data5.dt = merge(
      osu_data4.dt,
-     ab_tab_nochim_m.dt,
+     ab_tab_nochim_m_fill.dt,
      by='qseqid', all.x=T
   )
 
-  osu_data_m.dt = rbindlist(mclapply(sample_ids, function (s) {
-    # Melt OSU data spectrum
-    osu_data.dt[, { # For each OSU id
-      # cat('osu_id: ', osu_id, ', group: ', .GRP, '\n')
-      # Extract variant IDs and respective copy numbers from spectrum string
-      cp_vid = strsplit(strsplit(spectrum, ',')[[1]], ':')
-      cp = as.integer(sapply(cp_vid, `[`, 1))
-      vid = sapply(cp_vid, `[`, 2)
-      # For each variant id, extract dada2_seqid
-      did = unname(sapply(vid, function (v) {
-        blast_reduced.dt[variant_id==v & pctsim >= pctsim_min, if (.N==0) NA else qseqid]
-      }))
-      pctsims = unname(sapply(vid, function (v) {
-        blast_reduced.dt[variant_id==v & pctsim >= pctsim_min , if (.N==0) NA else pctsim]
-      }))
-      raw_c = unname(sapply(did, function (i) {
-        if (is.na(i)) {
-          0L
-        }
-        else {
-          ab_tab_nochim_m.dt[qseqid==i & sample_id==s, as.integer(raw_count)]
-        }
-      }))
-      .(copy_number=cp, variant_id=vid, raw_count=raw_c, sample_id=s,
-        pctsim=as.double(pctsims), no_strains_in_osu=unique(no_strains_in_osu))
-    }, by=osu_id]
-  }, mc.cores=ncpu))
+  osu_data5.dt = osu_data5.dt[, .(osu_id, copy_number, variant_id, raw_count, sample_id, pctsim, no_strains_in_osu)]
+  osu_data5.dt = osu_data5.dt[order(sample_id, osu_id, variant_id)]
+
+  # osu_data_m.dt = rbindlist(mclapply(sample_ids, function (s) {
+  #   # Melt OSU data spectrum
+  #   osu_data.dt[, { # For each OSU id
+  #     # cat('osu_id: ', osu_id, ', group: ', .GRP, '\n')
+  #     # Extract variant IDs and respective copy numbers from spectrum string
+  #     cp_vid = strsplit(strsplit(spectrum, ',')[[1]], ':')
+  #     cp = as.integer(sapply(cp_vid, `[`, 1))
+  #     vid = sapply(cp_vid, `[`, 2)
+  #     # For each variant id, extract dada2_seqid
+  #     did = unname(sapply(vid, function (v) {
+  #       blast_reduced.dt[variant_id==v & pctsim >= pctsim_min, if (.N==0) NA else qseqid]
+  #     }))
+  #     pctsims = unname(sapply(vid, function (v) {
+  #       blast_reduced.dt[variant_id==v & pctsim >= pctsim_min , if (.N==0) NA else pctsim]
+  #     }))
+  #     raw_c = unname(sapply(did, function (i) {
+  #       if (is.na(i)) {
+  #         0L
+  #       }
+  #       else {
+  #         ab_tab_nochim_m.dt[qseqid==i & sample_id==s, as.integer(raw_count)]
+  #       }
+  #     }))
+  #     .(copy_number=cp, variant_id=vid, raw_count=raw_c, sample_id=s,
+  #       pctsim=as.double(pctsims), no_strains_in_osu=unique(no_strains_in_osu))
+  #   }, by=osu_id]
+  # }, mc.cores=ncpu))
   if (verbose) cat(' OK.')
-  return(osu_data_m.dt)
+  return(osu_data5.dt[, .(osu_id, copy_number, variant_id, raw_count, sample_id, pctsim, no_strains_in_osu)])
 }
 
 pctsim_range_old = function (p) {
