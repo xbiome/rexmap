@@ -26,17 +26,6 @@ source(file.path(himap_path, 'r/blast_vs_fasta.R'))
 source(file.path(himap_path, 'r/read_fastx.R'))
 # source(file.path(himap_path, 'r/taxonomy.R'))
 
-#
-# s1 r11 ++ r12 -
-# s2 r21 =
-# s3 r31 x
-#
-# ++-=x   5 total, s1->3, s2->1, s3->1
-#
-
-
-# Processing parameters
-
 # Minimum BLAST alignment length
 blast_aln_len = 200
 
