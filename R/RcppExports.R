@@ -29,10 +29,6 @@ nwalign_endsfree_test <- function(s1, s2, q1, q2, match = 5L, mismatch = -2L) {
     .Call('_himap_nwalign_endsfree_test', PACKAGE = 'himap', s1, s2, q1, q2, match, mismatch)
 }
 
-C_mergepairs2 <- function(s1, s2, q1, q2, posterior_match_file, posterior_mismatch_file, match, mismatch, gap_p, min_pct_sim, min_aln_len) {
-    .Call('_himap_C_mergepairs2', PACKAGE = 'himap', s1, s2, q1, q2, posterior_match_file, posterior_mismatch_file, match, mismatch, gap_p, min_pct_sim, min_aln_len)
-}
-
 C_mergepairs <- function(s1, s2, q1, q2, posterior_match_file, posterior_mismatch_file, match, mismatch, gap_p, min_pct_sim, min_aln_len) {
     .Call('_himap_C_mergepairs', PACKAGE = 'himap', s1, s2, q1, q2, posterior_match_file, posterior_mismatch_file, match, mismatch, gap_p, min_pct_sim, min_aln_len)
 }

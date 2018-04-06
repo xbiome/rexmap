@@ -8,7 +8,8 @@
 # Default options
 himap_opts = new.env()
 assign('himap_path', '', env=himap_opts)
-assign()
+# FUll current path is obtained by:
+# assign()
 # BLAST blast() output format
 assign('blast_out_fmt',
        'qseqid sseqid qlen length qstart qend sstart send slen qseq sseq',

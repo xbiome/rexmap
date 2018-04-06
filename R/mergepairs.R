@@ -38,24 +38,29 @@ himap_merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_pct_sim=0.75, min_aln_
 
   # Load reads using ShortRead::FastqStreamer
   m('Loading FASTQ reads...')
-  f_fwd = FastqStreamer(fq_fwd)
-  f_rev = FastqStreamer(fq_rev)
+  f_fwd = ShortRead::FastqStreamer(fq_fwd)
+  f_rev = ShortRead::FastqStreamer(fq_rev)
   # Go through each read entry, do alignment
-  r_fwd = yield(f_fwd)
+  r_fwd = ShortRead::yield(f_fwd)
   if (length(r_fwd) == 0) break
   if (rc_reverse) {
-    r_rev = reverseComplement(yield(f_rev))
+    r_rev = ShortRead::reverseComplement(ShortRead::yield(f_rev))
   } else {
-    r_rev = yield(f_rev)
+    r_rev = ShortRead::yield(f_rev)
   }
 
   # Process chunk
-  read_fwd = as.character(sread(r_fwd))
-  read_rev = as.character(sread(r_rev))
-  qual_fwd = as.character(quality(quality(r_fwd)))
-  qual_rev = as.character(quality(quality(r_rev)))
-  ids = gsub('^([^ ]+) .*', '\\1', as.character(id(r_fwd)))
+  read_fwd = as.character(ShortRead::sread(r_fwd))
+  read_rev = as.character(ShortRead::sread(r_rev))
+  qual_fwd = as.character(Biostrings::quality(Biostrings::quality(r_fwd)))
+  qual_rev = as.character(Biostrings::quality(Biostrings::quality(r_rev)))
+  ids = gsub('^([^ ]+) .*', '\\1', as.character(ShortRead::id(r_fwd)))
   m(' OK.\n')
+
+  m(head(read_fwd))
+  m(head(qual_fwd))
+  m(head(read_rev))
+  m(head(qual_rev))
 
   # Apply mergepairs
   m('Merging pairs...')
@@ -76,9 +81,9 @@ himap_merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_pct_sim=0.75, min_aln_
   rm(read_fwd, read_rev, qual_fwd, qual_rev, f_fwd, f_rev, r_fwd, r_rev)
   m('Writing output files...')
   merged_sread = ShortReadQ(
-    sread = DNAStringSet(unname(merged_list[1, merged_aln_filter])),
-    quality = BStringSet(unname(merged_list[2, merged_aln_filter])),
-    id = BStringSet(ids[merged_aln_filter])
+    sread = ShortRead::DNAStringSet(unname(merged_list[1, merged_aln_filter])),
+    quality = ShortRead::BStringSet(unname(merged_list[2, merged_aln_filter])),
+    id = ShortRead::BStringSet(ids[merged_aln_filter])
   )
 
   # Generate statistics for filtered-out reads
@@ -99,8 +104,9 @@ himap_merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_pct_sim=0.75, min_aln_
   m(' OK.\n')
   if (timing) {
     end_time = Sys.time()
-    m('Finished in ', round(as.numeric(end_time-start_time)/60), ' m ',
-      round(as.numeric(end_time-start_time)%%60, 1), ' s.\n')
+    diff_time = difftime(end_time - start_time, units='secds')
+    m('Finished in ', round(as.numeric(diff_time)/60), ' m ',
+      round(as.numeric(diff_time)%%60, 1), ' s.\n')
   }
   return(stats)
 }

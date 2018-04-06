@@ -90,27 +90,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// C_mergepairs2
-Rcpp::CharacterVector C_mergepairs2(std::string s1, std::string s2, std::string q1, std::string q2, std::string posterior_match_file, std::string posterior_mismatch_file, int match, int mismatch, int gap_p, double min_pct_sim, int min_aln_len);
-RcppExport SEXP _himap_C_mergepairs2(SEXP s1SEXP, SEXP s2SEXP, SEXP q1SEXP, SEXP q2SEXP, SEXP posterior_match_fileSEXP, SEXP posterior_mismatch_fileSEXP, SEXP matchSEXP, SEXP mismatchSEXP, SEXP gap_pSEXP, SEXP min_pct_simSEXP, SEXP min_aln_lenSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< std::string >::type s1(s1SEXP);
-    Rcpp::traits::input_parameter< std::string >::type s2(s2SEXP);
-    Rcpp::traits::input_parameter< std::string >::type q1(q1SEXP);
-    Rcpp::traits::input_parameter< std::string >::type q2(q2SEXP);
-    Rcpp::traits::input_parameter< std::string >::type posterior_match_file(posterior_match_fileSEXP);
-    Rcpp::traits::input_parameter< std::string >::type posterior_mismatch_file(posterior_mismatch_fileSEXP);
-    Rcpp::traits::input_parameter< int >::type match(matchSEXP);
-    Rcpp::traits::input_parameter< int >::type mismatch(mismatchSEXP);
-    Rcpp::traits::input_parameter< int >::type gap_p(gap_pSEXP);
-    Rcpp::traits::input_parameter< double >::type min_pct_sim(min_pct_simSEXP);
-    Rcpp::traits::input_parameter< int >::type min_aln_len(min_aln_lenSEXP);
-    rcpp_result_gen = Rcpp::wrap(C_mergepairs2(s1, s2, q1, q2, posterior_match_file, posterior_mismatch_file, match, mismatch, gap_p, min_pct_sim, min_aln_len));
-    return rcpp_result_gen;
-END_RCPP
-}
 // C_mergepairs
 Rcpp::CharacterVector C_mergepairs(std::string s1, std::string s2, std::string q1, std::string q2, std::string posterior_match_file, std::string posterior_mismatch_file, int match, int mismatch, int gap_p, double min_pct_sim, int min_aln_len);
 RcppExport SEXP _himap_C_mergepairs(SEXP s1SEXP, SEXP s2SEXP, SEXP q1SEXP, SEXP q2SEXP, SEXP posterior_match_fileSEXP, SEXP posterior_mismatch_fileSEXP, SEXP matchSEXP, SEXP mismatchSEXP, SEXP gap_pSEXP, SEXP min_pct_simSEXP, SEXP min_aln_lenSEXP) {
@@ -141,7 +120,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_himap_compare_alignment", (DL_FUNC) &_himap_compare_alignment, 2},
     {"_himap_load_posterior", (DL_FUNC) &_himap_load_posterior, 1},
     {"_himap_nwalign_endsfree_test", (DL_FUNC) &_himap_nwalign_endsfree_test, 6},
-    {"_himap_C_mergepairs2", (DL_FUNC) &_himap_C_mergepairs2, 11},
     {"_himap_C_mergepairs", (DL_FUNC) &_himap_C_mergepairs, 11},
     {NULL, NULL, 0}
 };
