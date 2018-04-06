@@ -1,9 +1,9 @@
 Package: himap
 Type: Package
-Title: What the Package Does (Title Case)
+Title: High resolution Microbial Analysis Pipeline
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
+Author: Igor Segota
+Maintainer: Igor Segota <is246@cornell.edu>
 Description: More about what it does (maybe more than one line)
     Use four spaces when indenting paragraphs within the Description.
 License: What license is it under?
@@ -11,12 +11,14 @@ Encoding: UTF-8
 LazyData: true
 Imports:
    dada2,
-   data.table,
    limSolve,
    igraph,
    pso,
    ShortRead,
    stringr,
-   Rcpp,
    parallel,
    utils
+Depends:
+   Rcpp,
+   RcppParallel,
+   data.table

@@ -9,14 +9,6 @@ get_blast_path = function () {
    return(system2('which', 'blastn', stdout=T))
 }
 
-# blast_path_def = '/home/isegota/bin/ncbi-blast-2.6.0+/bin/blastn'
-blast_path_def = get_blast_path()
-
-
-# blast_out_fmt = 'qseqid sseqid qlen length qstart qend sstart send qseq sseq'
-blast_out_fmt = 'qseqid sseqid qlen length qstart qend sstart send slen qseq sseq'
-aln_params = c(5L, -4L, -8L, -6L)
-
 write_seqs_to_fasta = function (seqs, fa_out) {
    # Write a vector of sequences seqs to fa_out fasta file.
    for (i in seq_along(seqs)) {
@@ -29,7 +21,7 @@ write_seqs_to_fasta = function (seqs, fa_out) {
    }
 }
 
-blast_seqs_to_reference = function (seqs_fa, ref_db, blast_path=blast_path_def,
+blast_seqs_to_reference = function (seqs_fa, ref_db, blast_path=get_blast_path(),
                                     match=aln_params[1], mismatch=aln_params[2],
                                     gapopen=-aln_params[3], gapextend=-aln_params[4],
                                     word_size=13, ncpu=4, max_target_seqs=5000,

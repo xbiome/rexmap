@@ -8,7 +8,7 @@ static std::map<char, int> nt2int = {{'A',0}, {'C', 1}, {'G', 2}, {'T', 3}, {'N'
 // [[Rcpp::export]]
 int hamming (std::string s1, std::string s2) {
   // Calculate hamming distance between two sequences of equal length
-  int s1_i, s2_i, s1_p, s2_p;
+  int s1_i, s2_i;
   int mismatch = 0;
   size_t len = s1.length();
   // Length check
@@ -40,7 +40,7 @@ IntegerVector compare_alignment (std::string s1, std::string s2) {
     Rprintf("Error: aligned strings are not the same length.\n");
     return R_NilValue;
   }
-  // Keep track of previous symbols for gap extension. 
+  // Keep track of previous symbols for gap extension.
   // Initialize them to any other than 5.
   s1_p = 0;
   s2_p = 0;
@@ -67,7 +67,7 @@ IntegerVector compare_alignment (std::string s1, std::string s2) {
 
 // input: vector: [1, 2, 3, 4, 1, 2, 5, 1, 6, 4, 7, 8, 8]
 //                 0  1  2  3  4  5  6  7  8  9 10 11 12
-// output: 1, 
+// output: 1,
 
 
 

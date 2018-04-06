@@ -12,23 +12,31 @@
 # suppressPackageStartupMessages(library(stringr))
 # suppressPackageStartupMessages(library(Rcpp))
 # suppressPackageStartupMessages(library(parallel))
+
+.onAttach = function (libname, pkgname) {
+  packageStartupMessage('HiMAP v1.0 loaded.')
+}
+
+# Default options
 himap_opts = new.env()
-assign('himap_path', )
+assign('himap_path', '', env=himap_opts)
+# BLAST blast() output format
+assign('blast_out_fmt',
+       'qseqid sseqid qlen length qstart qend sstart send slen qseq sseq',
+       env=himap_opts)
+# BLAST collapse() format
+assign('blast_coll_fmt',
+       'qseqid sseqid qlen slen length qstart qend sstart send pident',
+       env=himap_opts)
+# BLAST alignment parameters
+assign('aln_params', c(5L, -4L, -8L, -6L), env=himap_opts)
+# Autodetect number of available threads for multithreading parts
+# Set to 1 if you always  want to use only 1 thread.
+assign('ncpu', parallel::detectCores(), env=himap_opts)
 
 
 # Load HiMAP functions
-himap_path = '/Users/igor/cloud/research/microbiome/himap'
-
-sourceCpp(file.path(himap_path, 'src/mergepairs.cpp'))
-sourceCpp(file.path(himap_path, 'src/hamming.cpp'))
-sourceCpp(file.path(himap_path, 'src/fastq_retrieve.cpp'))
-
-source(file.path(himap_path, 'r/mergepairs.R'))
-source(file.path(himap_path, 'r/blast_vs_fasta.R'))
-source(file.path(himap_path, 'r/read_fastx.R'))
-
-# Minimum BLAST alignment length
-blast_aln_len = 200
+# himap_path = '/Users/igor/cloud/research/microbiome/himap'
 
 out_from_input_file = function (new_input, suffix, input) {
   if (new_input == '<<default>>') {
@@ -46,9 +54,16 @@ ie = function(test, yes, no) {
   }
 }
 
-
-
-
+#' Untrim trimmed sequences in a DADA2 object
+#'
+#' @param dada_res DADA2 object with sequences to un-trim.
+#' @param derep DADA2 derep object that was used to obtain dada_res.
+#' @param fq_tri A character vector of FASTQ filenames pre-global-trimming (but after PCR primer trim).
+#' @param fq_fil A character vector of FASTQ filenames post-global-trimming and filtering.
+#' @param truncLen Length used to trim.
+#' @param verbose Boolean specifying whether to display progress bar.
+#' @param ncpu Integer specifying number of CPU threads to use. This uses R package "parallel" so works only on macOS and Linux.
+#'
 add_consensus = function (dada_res, derep, fq_tri, fq_fil, truncLen,
                           verbose=T, ncpu=detectCores()-1) {
   if (verbose) cat('Retrieving full-length sequences...\n')
@@ -62,13 +77,11 @@ add_consensus = function (dada_res, derep, fq_tri, fq_fil, truncLen,
     fq_fil_data = sfastq_reader(fq_fil[s_id])
     fq_mer_data = sfastq_reader(fq_tri[s_id])
     if (verbose) cat('OK. Consensus...')
-    # pid_to_seq = vector("list", length(x))
     pid_to_seq = unlist(mclapply(1:length(x), function (i) {
       metas = fq_fil_data[['meta']][x[i][[1]]+1]
       mer_seqs = fq_mer_data[['seqs']][which(fq_mer_data[['meta']] %in% metas)]
       # Select only the right hanging part
       mer_seqs_right = str_sub(mer_seqs, start=truncLen+1)
-      # pid_to_seq[i] = gsub('[-]{1,}.*', '', consensus_sequence(mer_seqs_right))
       mer_seqs_cons = gsub('[-|N]{1,}.*', '', consensus_sequence(mer_seqs_right))
       names(mer_seqs_cons) = as.character(i)
       return(mer_seqs_cons)
@@ -80,7 +93,6 @@ add_consensus = function (dada_res, derep, fq_tri, fq_fil, truncLen,
                                      pid_to_seq,
                                      sep='')
     names(dada_res[[s_id]]$denoised) = dada_res[[s_id]]$sequence
-    # cat('.')
     if (verbose) cat('OK.\n')
   }
   return(dada_res)
@@ -99,7 +111,8 @@ blast_out_to_best_cp = function (
   blast_out.dt = fread(blast_output)
   names(blast_out.dt) = strsplit(blast_out_fmt, ' ')[[1]]
   # Calculate BLAST scores.
-  blast_out.dt[, c('score', 'match', 'mismatch', 'gapopen', 'gapextend') := transpose(unname(mcmapply(function (q,s) {
+  blast_out.dt[, c('score', 'match', 'mismatch', 'gapopen', 'gapextend') := transpose(
+    unname(mcmapply(function (q,s) {
     aln = compare_alignment(q,s)
     as.integer(c(sum(aln_params*aln), aln[1], aln[2], aln[3], aln[4]))
   }, qseq, sseq, SIMPLIFY=F, mc.cores=ncpu)))]
@@ -116,8 +129,11 @@ blast_out_to_best_cp = function (
   if (verbose) cat('OK. blast best: ')
 
   # For each dada2 sequence, keep only the best matches by bitscore
-  blast_best.dt = blast_best_seq_matches(blast_out.dt, strsplit(blast_out_fmt, ' ')[[1]][1],
-                                         strsplit(blast_out_fmt, ' ')[[1]][2])
+  blast_best.dt = blast_best_seq_matches(
+    blast_out.dt,
+    strsplit(blast_out_fmt, ' ')[[1]][1],
+    strsplit(blast_out_fmt, ' ')[[1]][2]
+  )
   blast_best.dt[, variant_id := gsub('^([0-9]+)-.*', '\\1', sseqid)]
   # Remove sequence alignment columns since we already calculated alignment score
   blast_best.dt[, c('qseq', 'sseq') := NULL]
@@ -220,85 +236,6 @@ ab_mat_to_dt = function (ab_tab_nochim, fq_prefix_split='_') {
    ab_tab_nochim_m.dt[, dada2_seqid := NULL]
    return(ab_tab_nochim_m.dt)
 }
-
-
-pcr_primer_filter = function (fq_in, fq_out, pr_fwd='CCTACGGGNGGCWGCAG',
-                              pr_rev='GGATTAGATACCCBDGTAGTCC',
-                              pr_fwd_maxoff=10, pr_rev_maxoff=10, return_noprimer=T,
-                              multithread=T, ncpu=detectCores()-1, max_mismatch=2) {
-  # fq_in = input fastq file
-  # fq_out = output fastq file (without primers)
-  # pr_fwd = forward primer
-  # pr_rev = reverse primer
-  #
-  # Load Input FASTQ file
-  #
-  # Count extended DNA symbols
-  # Ignore any extended DNA symbols. Shouldn't have too many of them anyway.
-  pr_fwd = gsub('[^ACGT-]', 'N', pr_fwd)
-  pr_rev = gsub('[^ACGT-]', 'N', pr_rev)
-  in_fq = sfastq_reader(fq_in)
-  # max_mismatch = 2
-
-  seq = in_fq[['seqs']][1]
-  qual = in_fq[['qual']][1]
-
-  fastq_trimmer = function (meta, seq, qual, return_noprimer=return_noprimer) {
-
-    # Search for forward primer
-    aln = C_nwalign(pr_fwd, seq, match=1, mismatch=-1, indel=-1)
-    pr_fwd_left = max(regexpr('[^-]', aln[1])[1],
-                      regexpr('[^-]', aln[2])[1])
-    pr_fwd_right = regexpr('[-]{1,}$', aln[1])[1]-1
-    pr_fwd_n = lengths(regmatches(pr_fwd, gregexpr('N', pr_fwd)))
-    pr_rev_n = lengths(regmatches(pr_rev, gregexpr('N', pr_rev)))
-    # Alignment statistics: match, mismatch, gapopen, gapextend
-    aln_stat = compare_alignment(str_sub(aln[1], start=pr_fwd_left, end=pr_fwd_right),
-                                 str_sub(aln[2], start=pr_fwd_left, end=pr_fwd_right))
-    # Forward primer alignment is acceptable if it's near beginning (within first 5 nts)
-    # and if it doesn't have more than 2 mismatches for non-N symbols, which includes indels.
-    pr_fwd_found = FALSE
-    pr_rev_found = FALSE
-    if (pr_fwd_left < pr_fwd_maxoff & aln_stat[2]+aln_stat[3]+aln_stat[4]-pr_fwd_n <= max_mismatch) {
-      pr_fwd_found = TRUE
-    }
-
-    # Search for reverse primer
-    aln2 = C_nwalign(pr_rev, seq, match=1, mismatch=-1, indel=-1)
-    pr_rev_left = regexpr('[^-]', aln2[1])[1]
-    pr_rev_right = min(regexpr('[ACGTN][^ACGTN]*$', aln2[1])[1],
-                       regexpr('[ACGTN][^ACGTN]*$', aln2[2])[1])
-    aln2_stat = compare_alignment(str_sub(aln2[1], start=pr_rev_left, end=pr_rev_right),
-                                  str_sub(aln2[2], start=pr_rev_left, end=pr_rev_right))
-    if (pr_rev_left > nchar(seq)-nchar(pr_rev)-pr_rev_maxoff & aln2_stat[2]+aln2_stat[3]+aln2_stat[4]-pr_rev_n <= max_mismatch) {
-      # Reverse primer found
-      pr_rev_found = TRUE
-    }
-
-    # Trim if needed
-    start = 1L
-    end = -1L
-    if (pr_fwd_found) start = pr_fwd_right
-    if (pr_rev_found) end = pr_rev_left
-
-    #if ((pr_fwd_found & pr_rev_found) | return_noprimer) {
-      return(list('meta' = meta,
-                  'seqs' = str_sub(seq, start=start, end=end),
-                  'qual' = str_sub(qual, start=start, end=end)))
-    #}
-  }
-
-  # Apply fastq_trimmer() to each sequence in this file
-  out_trimmed = unname(mcmapply(fastq_trimmer, in_fq[['meta']], in_fq[['seqs']], in_fq[['qual']],
-                         mc.cores=ncpu, SIMPLIFY=FALSE))
-
-  # Save results in a new file
-  fastq_list_writer(out_trimmed, fq_out, ncpu=ncpu)
-}
-
-pcr_primer_trimmer = Vectorize(pcr_primer_filter, vectorize.args=c('fq_in', 'fq_out'))
-
-
 
 
 

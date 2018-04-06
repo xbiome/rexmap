@@ -41,57 +41,58 @@ std::vector< std::vector<int> > load_posterior (std::string filename) {
   return(out);
 }
 
-void readCSV(std::istream &input, std::vector< std::vector<std::string> > &output, char delim) {
-   std::string csvLine;
-   std::vector< std::vector<int> > out;
-   // read every line from the stream
-   while(std::getline(input, csvLine)) {
-      std::istringstream csvStream(csvLine);
-      std::vector<std::string> csvColumn;
-      std::string csvElement;
-      // read every element from the line that is seperated by commas
-      // and put it into the vector or strings
-      while(std::getline(csvStream, csvElement, delim)) {
-         csvColumn.push_back(csvElement);
-      }
-      output.push_back(csvColumn);
-   }
-}
+// void readCSV(std::istream &input, std::vector< std::vector<std::string> > &output, char delim) {
+//    std::string csvLine;
+//    std::vector< std::vector<int> > out;
+//    // read every line from the stream
+//    while(std::getline(input, csvLine)) {
+//       std::istringstream csvStream(csvLine);
+//       std::vector<std::string> csvColumn;
+//       std::string csvElement;
+//       // read every element from the line that is seperated by commas
+//       // and put it into the vector or strings
+//       while(std::getline(csvStream, csvElement, delim)) {
+//          csvColumn.push_back(csvElement);
+//       }
+//       output.push_back(csvColumn);
+//    }
+// }
 
 
-// [[Rcpp::export]]
-std::map<int, int> read_posterior_table (std::string filename) {
-   // Read text file where columns are separated by a delimiter.
-  std::map<int, int> out;
-  std::ifstream fin(filename.c_str());
-  int prev_q1 = 0, q1, q2, q;
-  while (fin >> q1 >> q2 >> q) {
-      out[q1,q2] = q;
-  }
-  return(out);
-}
+// // [[Rcpp::export]]
+// std::map<int, int> read_posterior_table (std::string filename) {
+//    // Read text file where columns are separated by a delimiter.
+//   std::map<int, int> out;
+//   std::ifstream fin(filename.c_str());
+//   //int prev_q1 = 0, q1, q2, q;
+//   int q1, q2, q;
+//   while (fin >> q1 >> q2 >> q) {
+//       out[q1,q2] = q;
+//   }
+//   return(out);
+// }
 
 
-// [[Rcpp::export]]
-std::vector< std::vector<std::string> > load_posterior3 (std::string filename, std::string delimiter=",") {
-
-   std::fstream file(filename, std::ios::in);
-   std::string a;
-   char delim = delimiter[0];
-   typedef std::vector< std::vector<std::string> > csvVector;
-   csvVector csvData;
-
-   readCSV(file, csvData, delim);
-   // print out read data to prove reading worked
-   for(csvVector::iterator i = csvData.begin(); i != csvData.end(); ++i) {
-      for(std::vector<std::string>::iterator j = i->begin(); j != i->end(); ++j) {
-         a=*j;
-         std::cout << a << " ";
-      }
-   }
-
-   return(csvData);
-}
+// // [[Rcpp::export]]
+// std::vector< std::vector<std::string> > load_posterior3 (std::string filename, std::string delimiter=",") {
+//
+//    std::fstream file(filename, std::ios::in);
+//    std::string a;
+//    char delim = delimiter[0];
+//    typedef std::vector< std::vector<std::string> > csvVector;
+//    csvVector csvData;
+//
+//    readCSV(file, csvData, delim);
+//    // print out read data to prove reading worked
+//    for(csvVector::iterator i = csvData.begin(); i != csvData.end(); ++i) {
+//       for(std::vector<std::string>::iterator j = i->begin(); j != i->end(); ++j) {
+//          a=*j;
+//          std::cout << a << " ";
+//       }
+//    }
+//
+//    return(csvData);
+// }
 
 
 
@@ -352,7 +353,7 @@ char **himap_merge_alignment(char** al) {
   int i, len = strlen(al[0]);
   int q1, q2, q;
   char **out = (char **) malloc(2*sizeof(char*));
-  char tmp;
+  // char tmp;
   out[0] = (char *) malloc(len+1); // merged sequence
   out[1] = (char *) malloc(len+1); // merged qual scores
 

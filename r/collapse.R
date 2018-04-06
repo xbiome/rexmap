@@ -28,8 +28,6 @@ cleanup_blastdb = function (db_out) {
   }
 }
 
-blast_coll_fmt = 'qseqid sseqid qlen slen length qstart qend sstart send pident'
-
 blast = function (
   seqs_fa, ref_db,
   blast_path=blast_path_def,
@@ -140,7 +138,7 @@ collapse = function (ab_in, verbose=T) {
 
 ab_to_files = function (ab) {
    # Convert the abundance table matrix into a FASTA file, together
-   # with the read counts.
+   # with the read counts. Used by collapse().
    meta = colnames(ab)
    colnames(ab) = 1:ncol(ab)
 

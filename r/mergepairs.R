@@ -1,17 +1,6 @@
 # suppressPackageStartupMessages(library(ShortRead))
 
-# Merge pairs wrapper
-
-
-# C_mergepairs = function(read_fwd, read_rev, qual_fwd, qual_rev, match, mismatch, gap_p,
-#                         path_posterior) {
-#   .Call('C_mergepairs',
-#         # PACKAGE = 'dada2',
-#         read_fwd, read_rev, qual_fwd, qual_rev, match, mismatch, gap_p,
-#         path_posterior)
-# }
-
-# HiMAP erge pairs function
+# HiMAP merge pairs function
 himap_merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_pct_sim=0.75, min_aln_len=50,
                               match=5L, mismatch=-5L, gap_p=-7L, rc_reverse=TRUE,
                               threads = 10, verbose=FALSE, timing=FALSE,
@@ -30,7 +19,7 @@ himap_merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_pct_sim=0.75, min_aln_
   #  threads = number of cores to use for multi-threading
   #   (tries to detect total number of cores using parallel::detectCores())
   # verbose = (bool) print status messages? (default: FALSE)
-  # timing = (bool) print execution time to stderr (default: FALSE)
+  # timing = (bool) print execution time to stderr (default: FALSE) buggy
   # path_precomputed_posterior = path to tab-delimited headerless tables with precomputed
   #  quality scores for posterior probabilities for read merging
   #  output from mergepairs_generate_posterior_probabilities.py
@@ -75,8 +64,8 @@ himap_merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_pct_sim=0.75, min_aln_
   merged_list = mcmapply(C_mergepairs, read_fwd, read_rev, qual_fwd, qual_rev,
                          match=match, mismatch=mismatch, gap_p=gap_p,
                          min_pct_sim=min_pct_sim, min_aln_len=min_aln_len,
-                         posterior_match_file='/data1/igor/himap/data/himap_mergepairs_match_qs.txt',
-                         posterior_mismatch_file='/data1/igor/himap/data/himap_mergepairs_mismatch_qs.txt',
+                         posterior_match_file=file.path(path_posterior, 'himap_mergepairs_match_qs.txt'),
+                         posterior_mismatch_file=file.path(path_posterior, 'himap_mergepairs_mismatch_qs.txt'),
                          mc.cores=threads
                        )
   m(' OK.\n')
