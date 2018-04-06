@@ -20,8 +20,10 @@ fastq_reader = function (file_name) {
 
 sfastq_reader = function (file_name) {
   x = ShortRead::readFastq(file_name)
-  xx = sread(x)
-  list('meta'= as.character(id(x)), 'seqs'=as.character(xx), 'qual'=as.character(quality(quality(x))))
+  xx = ShortRead::sread(x)
+  list('meta'= as.character(ShortRead::id(x)),
+       'seqs'=as.character(xx),
+       'qual'=as.character(Biostrings::quality(Biostrings::quality(x))))
 }
 
 fastq_list_writer = function (fastq_list, output, ncpu=detectCores()-1) {
@@ -30,7 +32,8 @@ fastq_list_writer = function (fastq_list, output, ncpu=detectCores()-1) {
   list_paste = function (l) {
     paste(paste0('@', l$meta), l$seq, '+', paste0(l$qual, '\n'), sep='\n')
   }
-  writeChar(paste(mclapply(fastq_list, list_paste, mc.cores=ncpu), sep='\n'), output, eos=NULL)
+  writeChar(paste(parallel::mclapply(fastq_list, list_paste, mc.cores=ncpu),
+                  sep='\n'), output, eos=NULL)
 }
 
 fasta_writer = function (meta, seqs, output) {

@@ -18,8 +18,7 @@ Imports:
    stringr,
    parallel,
    RcppParallel,
-   utils
-Depends:
    Rcpp,
-   data.table
+   data.table,
+   utils
 RoxygenNote: 6.0.1

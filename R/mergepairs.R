@@ -17,15 +17,13 @@ himap_merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_pct_sim=0.75, min_aln_
   #  threads = number of cores to use for multi-threading
   #   (tries to detect total number of cores using parallel::detectCores())
   # verbose = (bool) print status messages? (default: FALSE)
-  # timing = (bool) print execution time to stderr (default: FALSE) buggy output
+  # timing = (bool) print execution time to stderr (default: FALSE)
   # path_precomputed_posterior = path to tab-delimited headerless tables with precomputed
   #  quality scores for posterior probabilities for read merging
   #  output from mergepairs_generate_posterior_probabilities.py
-  if (timing) {
-    start_time = Sys.time()
-  }
+  if (timing) start_time = Sys.time()
 
-  if (is.na(threads) | threads == 0) {
+    if (is.na(threads) | threads == 0) {
     # If we can't figure out number of threads, set it to 2
     threads = 2
   }
@@ -43,11 +41,8 @@ himap_merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_pct_sim=0.75, min_aln_
   # Go through each read entry, do alignment
   r_fwd = ShortRead::yield(f_fwd)
   if (length(r_fwd) == 0) break
-  if (rc_reverse) {
-    r_rev = ShortRead::reverseComplement(ShortRead::yield(f_rev))
-  } else {
-    r_rev = ShortRead::yield(f_rev)
-  }
+  if (rc_reverse) r_rev = ShortRead::reverseComplement(ShortRead::yield(f_rev))
+  else r_rev = ShortRead::yield(f_rev)
 
   # Process chunk
   read_fwd = as.character(ShortRead::sread(r_fwd))
@@ -57,18 +52,13 @@ himap_merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_pct_sim=0.75, min_aln_
   ids = gsub('^([^ ]+) .*', '\\1', as.character(ShortRead::id(r_fwd)))
   m(' OK.\n')
 
-  m(head(read_fwd))
-  m(head(qual_fwd))
-  m(head(read_rev))
-  m(head(qual_rev))
-
   # Apply mergepairs
   m('Merging pairs...')
   merged_list = parallel::mcmapply(C_mergepairs, read_fwd, read_rev, qual_fwd, qual_rev,
                          match=match, mismatch=mismatch, gap_p=gap_p,
                          min_pct_sim=min_pct_sim, min_aln_len=min_aln_len,
-                         posterior_match_file=file.path(path_posterior, 'himap_mergepairs_match_qs.txt'),
-                         posterior_mismatch_file=file.path(path_posterior, 'himap_mergepairs_mismatch_qs.txt'),
+                         posterior_match_file=himap_option('mergepairs_matchqs'),
+                         posterior_mismatch_file=himap_option('mergepairs_mismatchqs'),
                          mc.cores=threads
                        )
   m(' OK.\n')
@@ -80,10 +70,10 @@ himap_merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_pct_sim=0.75, min_aln_
   close(f_rev)
   rm(read_fwd, read_rev, qual_fwd, qual_rev, f_fwd, f_rev, r_fwd, r_rev)
   m('Writing output files...')
-  merged_sread = ShortReadQ(
-    sread = ShortRead::DNAStringSet(unname(merged_list[1, merged_aln_filter])),
-    quality = ShortRead::BStringSet(unname(merged_list[2, merged_aln_filter])),
-    id = ShortRead::BStringSet(ids[merged_aln_filter])
+  merged_sread = ShortRead::ShortReadQ(
+    sread = Biostrings::DNAStringSet(unname(merged_list[1, merged_aln_filter])),
+    quality = Biostrings::BStringSet(unname(merged_list[2, merged_aln_filter])),
+    id = Biostrings::BStringSet(ids[merged_aln_filter])
   )
 
   # Generate statistics for filtered-out reads
@@ -97,14 +87,13 @@ himap_merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_pct_sim=0.75, min_aln_
   rm(merged_list)
 
   # If file exists, delete it, then write new one
-  if (file.exists(fq_mer)) {
-    file_remove_result = file.remove(fq_mer)
-  }
-  writeFastq(merged_sread, fq_mer, compress = F)
+  if (file.exists(fq_mer)) file_remove_result = file.remove(fq_mer)
+
+  ShortRead::writeFastq(merged_sread, fq_mer, compress = F)
   m(' OK.\n')
   if (timing) {
     end_time = Sys.time()
-    diff_time = difftime(end_time - start_time, units='secds')
+    diff_time = difftime(end_time, start_time, units='secs')
     m('Finished in ', round(as.numeric(diff_time)/60), ' m ',
       round(as.numeric(diff_time)%%60, 1), ' s.\n')
   }

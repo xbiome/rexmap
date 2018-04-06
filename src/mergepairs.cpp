@@ -1,10 +1,6 @@
 // [[Rcpp::depends(RcppParallel)]]
 #include <Rcpp.h>
-#include <fstream>
-
-// Constants
-#define PHRED_OFFSET 33
-#define GAP_P -7
+#include "himap.h"
 
 // Precomputer posterior q scores for matching and mismatching bases
 std::vector< std::vector<int> > post_q_match;
@@ -127,7 +123,7 @@ char **himap_nwalign_endsfree(const char *s1, const char *s2,
   static size_t nnw = 0;
   int i, j;
   int l, r;
-  int band = -1;
+  // int band = -1;
   unsigned int len1 = strlen(s1);
   unsigned int len2 = strlen(s2);
   int diag, left, up;
@@ -151,32 +147,34 @@ char **himap_nwalign_endsfree(const char *s1, const char *s2,
   }
 
   // Calculate left/right-bands in case of different lengths
-  int lband, rband;
-  if(len2 > len1) {
-    lband = band;
-    rband = band+len2-len1;
-  } else if(len1 > len2) {
-    lband = band+len1-len2;
-    rband = band;
-  } else {
-    lband = band;
-    rband = band;
-  }
+  //int lband, rband;
+  // if(len2 > len1) {
+  //   lband = band;
+  //   rband = band+len2-len1;
+  // } else if(len1 > len2) {
+  //   lband = band+len1-len2;
+  //   rband = band;
+  // } else {
+  //   lband = band;
+  //   rband = band;
+  // }
 
   // Fill out band boundaries of d.
-  if(band>=0 && (band<len1 || band<len2)) {
-    for(i=0;i<=len1;i++) {
-      if(i-lband-1 >= 0) { d[i*ncol + i-lband-1] = -9999; }
-      if(i+rband+1 <= len2) { d[i*ncol + i+rband+1] = -9999; }
-    }
-  }
+  // if(band>=0 && (band<len1 || band<len2)) {
+  //   for(i=0;i<=len1;i++) {
+  //     if(i-lband-1 >= 0) { d[i*ncol + i-lband-1] = -9999; }
+  //     if(i+rband+1 <= len2) { d[i*ncol + i+rband+1] = -9999; }
+  //   }
+  // }
 
   // Fill out the body of the DP matrix.
   for (i = 1; i <= len1; i++) {
-    if(band>=0) {
-      l = i-lband; if(l < 1) { l = 1; }
-      r = i+rband; if(r>len2) { r = len2; }
-    } else { l=1; r=len2; }
+    // if(band>=0) {
+    //   l = i-lband; if(l < 1) { l = 1; }
+    //   r = i+rband; if(r>len2) { r = len2; }
+    //} else {
+    l=1; r=len2;
+    //  }
 
     for (j = l; j <= r; j++) {
       // Score for the left move.

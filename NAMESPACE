@@ -1,1 +1,3 @@
+useDynLib(himap)
 exportPattern("^[[:alpha:]]+")
+importFrom(Rcpp, evalCpp)

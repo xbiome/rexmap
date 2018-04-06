@@ -33,3 +33,15 @@ C_mergepairs <- function(s1, s2, q1, q2, posterior_match_file, posterior_mismatc
     .Call('_himap_C_mergepairs', PACKAGE = 'himap', s1, s2, q1, q2, posterior_match_file, posterior_mismatch_file, match, mismatch, gap_p, min_pct_sim, min_aln_len)
 }
 
+fitting_alignment_fast <- function(s1s, s2s, match = 1L, mismatch = -1L, indel = -1L) {
+    .Call('_himap_fitting_alignment_fast', PACKAGE = 'himap', s1s, s2s, match, mismatch, indel)
+}
+
+fit_align_fast <- function(q, s, match, mismatch, indel) {
+    .Call('_himap_fit_align_fast', PACKAGE = 'himap', q, s, match, mismatch, indel)
+}
+
+C_nwalign <- function(s1, s2, match, mismatch, indel) {
+    .Call('_himap_C_nwalign', PACKAGE = 'himap', s1, s2, match, mismatch, indel)
+}
+

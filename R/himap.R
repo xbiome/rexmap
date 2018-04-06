@@ -1,6 +1,15 @@
 # For this pipeline to work we will need to provide filenames for forward and
 # reverse reads for each sample.
 
+# Import these functions for everything
+#' @importFrom data.table data.table
+#' @importFrom data.table setkey
+#' @importFrom data.table setcolorder
+#' @importFrom data.table key
+#' @importFrom dada2 filterAndTrim
+NULL
+
+
 .onAttach = function (libname, pkgname) {
   packageStartupMessage('HiMAP v1.0 loaded.')
 }
@@ -24,6 +33,37 @@ assign('aln_params', c(5L, -4L, -8L, -6L), env=himap_opts)
 # Set to 1 if you always  want to use only 1 thread.
 assign('ncpu', parallel::detectCores(), env=himap_opts)
 
+# Read merging
+assign('mergepairs_matchqs',
+       system.file('inst', 'merge_tables', 'himap_mergepairs_match_qs.txt',
+                   package='himap'),
+       env=himap_opts)
+assign('mergepairs_mismatchqs',
+       system.file('inst', 'merge_tables', 'himap_mergepairs_mismatch_qs.txt',
+                   package='himap'),
+       env=himap_opts)
+
+
+
+# Interface to load HiMAP default options
+himap_option = function (option_names) {
+  if (is.null(option_names)) return(ls(himap_opts))
+
+  if(!all(option_names %in% ls(himap_opts))) {
+    warning("Invalid  option: ", option_names[!(option_names %in% ls(himap_opts))])
+    option_names = option_names[option_names %in% ls(himap_opts)]
+  }
+  if (length(option_names) == 0) stop("Invalid options.")
+  get(option_names, env=himap_opts)
+}
+
+himap_setoption = function (option_name, value) {
+  # Simply set option_name to value. Used to change HiMAP defaults. Not finished yet.
+  if (option_name == 'ncpu') {
+    # Check that it is an integer
+    if (!(class(value) == 'integer')) stop('ncpu must be an integer.')
+  }
+}
 
 # Load HiMAP functions
 # himap_path = '/Users/igor/cloud/research/microbiome/himap'
