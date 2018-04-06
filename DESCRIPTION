@@ -22,3 +22,4 @@ Depends:
    Rcpp,
    RcppParallel,
    data.table
+RoxygenNote: 6.0.1

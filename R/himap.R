@@ -1,18 +1,6 @@
 # For this pipeline to work we will need to provide filenames for forward and
 # reverse reads for each sample.
 
-# Load required packages
-# suppressPackageStartupMessages(library(dada2))
-# suppressPackageStartupMessages(library(data.table))
-# suppressPackageStartupMessages(library(ggplot2))
-# suppressPackageStartupMessages(library(limSolve))
-# suppressPackageStartupMessages(library(igraph))
-# suppressPackageStartupMessages(library(pso))
-# suppressPackageStartupMessages(library(ShortRead))
-# suppressPackageStartupMessages(library(stringr))
-# suppressPackageStartupMessages(library(Rcpp))
-# suppressPackageStartupMessages(library(parallel))
-
 .onAttach = function (libname, pkgname) {
   packageStartupMessage('HiMAP v1.0 loaded.')
 }
@@ -20,6 +8,7 @@
 # Default options
 himap_opts = new.env()
 assign('himap_path', '', env=himap_opts)
+assign()
 # BLAST blast() output format
 assign('blast_out_fmt',
        'qseqid sseqid qlen length qstart qend sstart send slen qseq sseq',
@@ -308,33 +297,6 @@ blast_cp_to_osu_dt = function (
   osu_data5.dt = osu_data5.dt[, .(osu_id, copy_number, variant_id, raw_count, sample_id, pctsim, no_strains_in_osu)]
   osu_data5.dt = osu_data5.dt[order(sample_id, osu_id, variant_id)]
 
-  # osu_data_m.dt = rbindlist(mclapply(sample_ids, function (s) {
-  #   # Melt OSU data spectrum
-  #   osu_data.dt[, { # For each OSU id
-  #     # cat('osu_id: ', osu_id, ', group: ', .GRP, '\n')
-  #     # Extract variant IDs and respective copy numbers from spectrum string
-  #     cp_vid = strsplit(strsplit(spectrum, ',')[[1]], ':')
-  #     cp = as.integer(sapply(cp_vid, `[`, 1))
-  #     vid = sapply(cp_vid, `[`, 2)
-  #     # For each variant id, extract dada2_seqid
-  #     did = unname(sapply(vid, function (v) {
-  #       blast_reduced.dt[variant_id==v & pctsim >= pctsim_min, if (.N==0) NA else qseqid]
-  #     }))
-  #     pctsims = unname(sapply(vid, function (v) {
-  #       blast_reduced.dt[variant_id==v & pctsim >= pctsim_min , if (.N==0) NA else pctsim]
-  #     }))
-  #     raw_c = unname(sapply(did, function (i) {
-  #       if (is.na(i)) {
-  #         0L
-  #       }
-  #       else {
-  #         ab_tab_nochim_m.dt[qseqid==i & sample_id==s, as.integer(raw_count)]
-  #       }
-  #     }))
-  #     .(copy_number=cp, variant_id=vid, raw_count=raw_c, sample_id=s,
-  #       pctsim=as.double(pctsims), no_strains_in_osu=unique(no_strains_in_osu))
-  #   }, by=osu_id]
-  # }, mc.cores=ncpu))
   if (verbose) cat(' OK.')
   return(osu_data5.dt[, .(osu_id, copy_number, variant_id, raw_count, sample_id, pctsim, no_strains_in_osu)])
 }

@@ -1,5 +1,3 @@
-# suppressPackageStartupMessages(library(ShortRead))
-
 # HiMAP merge pairs function
 himap_merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_pct_sim=0.75, min_aln_len=50,
                               match=5L, mismatch=-5L, gap_p=-7L, rc_reverse=TRUE,
@@ -19,7 +17,7 @@ himap_merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_pct_sim=0.75, min_aln_
   #  threads = number of cores to use for multi-threading
   #   (tries to detect total number of cores using parallel::detectCores())
   # verbose = (bool) print status messages? (default: FALSE)
-  # timing = (bool) print execution time to stderr (default: FALSE) buggy
+  # timing = (bool) print execution time to stderr (default: FALSE) buggy output
   # path_precomputed_posterior = path to tab-delimited headerless tables with precomputed
   #  quality scores for posterior probabilities for read merging
   #  output from mergepairs_generate_posterior_probabilities.py
@@ -27,7 +25,7 @@ himap_merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_pct_sim=0.75, min_aln_
     start_time = Sys.time()
   }
 
-  if (is.na(threads) | threads==0) {
+  if (is.na(threads) | threads == 0) {
     # If we can't figure out number of threads, set it to 2
     threads = 2
   }
@@ -61,7 +59,7 @@ himap_merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_pct_sim=0.75, min_aln_
 
   # Apply mergepairs
   m('Merging pairs...')
-  merged_list = mcmapply(C_mergepairs, read_fwd, read_rev, qual_fwd, qual_rev,
+  merged_list = parallel::mcmapply(C_mergepairs, read_fwd, read_rev, qual_fwd, qual_rev,
                          match=match, mismatch=mismatch, gap_p=gap_p,
                          min_pct_sim=min_pct_sim, min_aln_len=min_aln_len,
                          posterior_match_file=file.path(path_posterior, 'himap_mergepairs_match_qs.txt'),

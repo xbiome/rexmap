@@ -23,7 +23,7 @@ pcr_primer_filter = function (fq_in, fq_out, pr_fwd='CCTACGGGNGGCWGCAG',
   fastq_trimmer = function (meta, seq, qual, return_noprimer=return_noprimer) {
 
     # Search for forward primer
-    aln = dada2:::C_nwalign(pr_fwd, seq, match=1, mismatch=-1, indel=-1)
+    aln = C_nwalign(pr_fwd, seq, match=1, mismatch=-1, indel=-1)
     pr_fwd_left = max(regexpr('[^-]', aln[1])[1],
                       regexpr('[^-]', aln[2])[1])
     pr_fwd_right = regexpr('[-]{1,}$', aln[1])[1]-1

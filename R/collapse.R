@@ -32,7 +32,7 @@ blast = function (
   seqs_fa, ref_db,
   blast_path=blast_path_def,
   match=aln_params[1], mismatch=aln_params[2], gapopen=-aln_params[3],
-  gapextend=-aln_params[4], word_size=13, ncpu=4, max_target_seqs=5000,
+  gapextend=-aln_params[4], word_size=13, ncpu=4, max_target_seqs=2000,
   perc_identity=75, outfmt=paste0('6 ', blast_out_fmt), dust='20 64 1',
   output='blast_output.txt',
   output_err=F) {

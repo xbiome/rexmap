@@ -41,61 +41,6 @@ std::vector< std::vector<int> > load_posterior (std::string filename) {
   return(out);
 }
 
-// void readCSV(std::istream &input, std::vector< std::vector<std::string> > &output, char delim) {
-//    std::string csvLine;
-//    std::vector< std::vector<int> > out;
-//    // read every line from the stream
-//    while(std::getline(input, csvLine)) {
-//       std::istringstream csvStream(csvLine);
-//       std::vector<std::string> csvColumn;
-//       std::string csvElement;
-//       // read every element from the line that is seperated by commas
-//       // and put it into the vector or strings
-//       while(std::getline(csvStream, csvElement, delim)) {
-//          csvColumn.push_back(csvElement);
-//       }
-//       output.push_back(csvColumn);
-//    }
-// }
-
-
-// // [[Rcpp::export]]
-// std::map<int, int> read_posterior_table (std::string filename) {
-//    // Read text file where columns are separated by a delimiter.
-//   std::map<int, int> out;
-//   std::ifstream fin(filename.c_str());
-//   //int prev_q1 = 0, q1, q2, q;
-//   int q1, q2, q;
-//   while (fin >> q1 >> q2 >> q) {
-//       out[q1,q2] = q;
-//   }
-//   return(out);
-// }
-
-
-// // [[Rcpp::export]]
-// std::vector< std::vector<std::string> > load_posterior3 (std::string filename, std::string delimiter=",") {
-//
-//    std::fstream file(filename, std::ios::in);
-//    std::string a;
-//    char delim = delimiter[0];
-//    typedef std::vector< std::vector<std::string> > csvVector;
-//    csvVector csvData;
-//
-//    readCSV(file, csvData, delim);
-//    // print out read data to prove reading worked
-//    for(csvVector::iterator i = csvData.begin(); i != csvData.end(); ++i) {
-//       for(std::vector<std::string>::iterator j = i->begin(); j != i->end(); ++j) {
-//          a=*j;
-//          std::cout << a << " ";
-//       }
-//    }
-//
-//    return(csvData);
-// }
-
-
-
 // Modified dada2 nwalign_endsfree to allow Ns and
 void nt2int(char *oseq, const char *iseq) {
   int i, len = strlen(iseq);
@@ -279,7 +224,6 @@ char **himap_nwalign_endsfree(const char *s1, const char *s2,
   j = len2;
 
   while ( i > 0 || j > 0 ) {
-    //    Rprintf("(%i, %i): p=%i, d=%i\n", i, j, p[i*ncol + j], d[i*ncol + j]);
     switch ( p[i*ncol + j] ) {
     case 1:
       i = i - 1;
@@ -435,139 +379,6 @@ Rcpp::CharacterVector nwalign_endsfree_test (std::string s1, std::string s2, std
   rval.push_back(std::string(al[1]));
   return(rval);
 }
-// [[Rcpp::export]]
-Rcpp::CharacterVector C_mergepairs2(std::string s1, std::string s2,
-                                std::string q1, std::string q2,
-                                std::string posterior_match_file,
-                                std::string posterior_mismatch_file,
-                                int match, int mismatch, int gap_p,
-                                double min_pct_sim, int min_aln_len) {
-
-  // Alignment filter parameters
-  unsigned int aln_matches = 0; // number of matching letters in the alignment
-  unsigned int left_end = 0, right_end = 0; // lengths of ---- ends
-  bool still_left = TRUE;
-  int len_al, len_overlap;
-  double pct_sim;
-
-  // Load pre-computed posterior quality scores
-  post_q_match = load_posterior(posterior_match_file);
-  post_q_mismatch = load_posterior(posterior_mismatch_file);
-
-  // Make  c-style 2d score array
-  int i, j;
-  int c_score[5][5];
-  for(i=0;i<5;i++) {
-    for(j=0;j<5;j++) {
-      if(i==j) {
-        if (i==4) {
-          // both i and j are N, declare it mismatch
-          c_score[i][j] = mismatch;
-        } else {
-          c_score[i][j] = match;
-        }
-      }
-      else {
-        c_score[i][j] = mismatch;
-      }
-    }
-  }
-
-  // Make integer-ized c-style sequence strings
-  char **al;
-  char **merged;
-  char *seq1 = (char *) malloc(s1.size()+1);
-  char *seq2 = (char *) malloc(s2.size()+1);
-  if (seq1 == NULL || seq2 == NULL)  Rcpp::stop("Memory allocation failed.");
-  nt2int(seq1, s1.c_str());
-  nt2int(seq2, s2.c_str());
-  const char *qs1 = q1.c_str();
-  const char *qs2 = q2.c_str();
-//
-  // Perform alignment and convert back to ACGT
-  al = himap_nwalign_endsfree(seq1, seq2, qs1, qs2, c_score, gap_p);
-  int2nt(al[0], al[0]);
-  int2nt(al[1], al[1]);
-
-  len_al = strlen(al[0]);
-
-    // Calculate the number of matching letters in the alignment
-  // Since it is ends-free - vs anything will be a mismatch automatically.
-  for (i=0; i<len_al; i++) {
-    // "letter" (int) of the first alignment string
-    if (al[0][len_al-i-1] == al[1][len_al-i-1]) {
-      aln_matches++;
-    }
-    if (still_left) {
-      if (al[0][len_al-i-1] == '-') {
-        left_end++;
-      } else {
-        still_left = FALSE;
-      }
-    }
-    if (al[1][len_al-i-1] == '-') {
-      right_end++;
-    } else {
-      right_end = 0;
-    }
-  }
-
-    // Now find the length of the aligned region
-  len_overlap = len_al - left_end - right_end;
-
-    // Calculate percentage similarity
-  pct_sim = aln_matches/(double)len_overlap;
-
-    // Clean up
-  free(seq1);
-  free(seq2);
-
-  std::cout << al[0][22] << "\n";
-  std::cout << al[1][22] << "\n";
-  if (al[0][22] == al[1][22]) {
-     std::cout << "yes.\n";
-  }
-  // Now merge the aligned sequences
-  merged = himap_merge_alignment(al);
-
-  free(al[0]);
-  free(al[1]);
-  free(al[2]);
-  free(al[3]);
-  free(al);
-  // Generate R-style return vector
-  Rcpp::CharacterVector rval;
-  // rval.push_back(std::string(merged[0]));
-  // rval.push_back(std::string(merged[1]));
-  // rval.push_back(std::string(pct_sim >= min_pct_sim ? "TRUE" : "FALSE"));
-  // rval.push_back(std::string(len_overlap >= min_aln_len ? "TRUE" : "FALSE"));
-  // rval.push_back(std::string(al[0]));
-  // rval.push_back(std::string(al[1]));
-  // free(merged[0]);
-  // free(merged[1]);
-   return(rval);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 // [[Rcpp::export]]

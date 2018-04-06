@@ -19,7 +19,7 @@ fastq_reader = function (file_name) {
 }
 
 sfastq_reader = function (file_name) {
-  x = readFastq(file_name)
+  x = ShortRead::readFastq(file_name)
   xx = sread(x)
   list('meta'= as.character(id(x)), 'seqs'=as.character(xx), 'qual'=as.character(quality(quality(x))))
 }

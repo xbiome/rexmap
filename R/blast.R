@@ -5,8 +5,14 @@
 # sequences in the reference file.
 
 get_blast_path = function () {
-   # Find blastn path (assume its in system PATH)
-   return(system2('which', 'blastn', stdout=T))
+  # Find blastn path (assume its in system PATH)
+  # First look for the package binary
+  bin = system.file('exec', 'blastn', package='himap')
+  # Binary file from the package not found. Fall back to system blastn
+  if (bin == '') bin = suppressWarnings(system2('which', 'blastn', stdout=T))
+  # If this is not found either, then just stop.
+  if (attr(bin, 'status') == 1) stop('Error: makeblastdb command not found.')
+  else return(bin)
 }
 
 write_seqs_to_fasta = function (seqs, fa_out) {
@@ -58,24 +64,6 @@ blast_best_seq_matches = function (dt, id_col='dada_seqid', match_col='match_str
   return(dt2)
 }
 
-blast_best_seq_matches_old = function (dt, id_col='dada_seqid', match_col='match_strains',
-                                   exclude_match=FALSE) {
-   # For each strain sequence, find the best match (by bitscore) for
-   # fwd and rev primers.
-   # exclude_match=T will not show the match_col in the output and will just show
-   # statistics for the best matched hit.
-   dt2 = dt[, {
-      if (.N > 0) {
-         best_match = .SD[bitscore == max(bitscore)][pct_sim == max(pct_sim)][aln_len == max(aln_len)]
-         if (exclude_match) {
-            unique(best_match[, setdiff(names(best_match), match_col), with=F])
-         } else {
-            best_match
-         }
-      }
-   }, by=c(id_col)]
-   return(dt2)
-}
 
 species_from_metadata = function (meta_data, sep='$', space_char='_', collapse=F,
                                   collapse_str=', ') {
