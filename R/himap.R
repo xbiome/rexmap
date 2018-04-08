@@ -7,6 +7,8 @@
 #' @importFrom data.table setcolorder
 #' @importFrom data.table key
 #' @importFrom dada2 filterAndTrim
+#' @importFrom stringr str_sub
+#' @useDynLib himap
 NULL
 
 
@@ -14,7 +16,7 @@ NULL
   packageStartupMessage('HiMAP v1.0 loaded.')
 }
 
-# Default options
+# Default options -------------------------------------------------------------
 himap_opts = new.env()
 assign('himap_path', '', env=himap_opts)
 # FUll current path is obtained by:
@@ -27,12 +29,21 @@ assign('blast_out_fmt',
 assign('blast_coll_fmt',
        'qseqid sseqid qlen slen length qstart qend sstart send pident',
        env=himap_opts)
+# BLAST paths
+assign('path_makeblastdb', 'makeblastdb', env=himap_opts)
+assign('path_blastn', 'blastn', env=himap_opts)
 # BLAST alignment parameters
 assign('aln_params', c(5L, -4L, -8L, -6L), env=himap_opts)
 # Autodetect number of available threads for multithreading parts
 # Set to 1 if you always  want to use only 1 thread.
 assign('ncpu', parallel::detectCores(), env=himap_opts)
-
+# BLAST databases
+assign('blast_dbs',
+       data.table::fread(system.file('inst', 'database', 'pcr_primers_table.txt',
+                   package='himap'), header=T, sep='\t'),
+       env=himap_opts)
+assign('blast_max_seqs', 2000, env=himap_opts)
+assign('blast_word_size', 13, env=himap_opts)
 # Read merging
 assign('mergepairs_matchqs',
        system.file('inst', 'merge_tables', 'himap_mergepairs_match_qs.txt',
@@ -42,8 +53,6 @@ assign('mergepairs_mismatchqs',
        system.file('inst', 'merge_tables', 'himap_mergepairs_mismatch_qs.txt',
                    package='himap'),
        env=himap_opts)
-
-
 
 # Interface to load HiMAP default options
 himap_option = function (option_names) {
@@ -65,16 +74,7 @@ himap_setoption = function (option_name, value) {
   }
 }
 
-# Load HiMAP functions
-# himap_path = '/Users/igor/cloud/research/microbiome/himap'
 
-out_from_input_file = function (new_input, suffix, input) {
-  if (new_input == '<<default>>') {
-    file.path(ddirname(dirname(input)), suffix)
-  } else {
-    new_input
-  }
-}
 
 ie = function(test, yes, no) {
   if (test) {
@@ -82,6 +82,23 @@ ie = function(test, yes, no) {
   } else {
     no
   }
+}
+
+
+#' Generate a frequency table of sequence lengths in FASTQ files
+#'
+#' @param fastq_files A character vector of FASTQ filenames.
+#' The resulting "table" object can be visuaized with base plot function.
+sequence_length_table = function (fastq_files) {
+  return(
+    table(unlist(sapply(fastq_files, function (f) nchar(sfastq_reader(f)$seqs))))
+  )
+}
+
+ftquantile = function (ft, prob) {
+  # Return a quantile from a frequency table ft at given probability prob.
+  ft_relsum = cumsum(ft)/sum(ft)
+  return(as.integer(names(ft_relsum[ft_relsum >= prob])[1]))
 }
 
 #' Untrim trimmed sequences in a DADA2 object
@@ -95,7 +112,7 @@ ie = function(test, yes, no) {
 #' @param ncpu Integer specifying number of CPU threads to use. This uses R package "parallel" so works only on macOS and Linux.
 #'
 add_consensus = function (dada_res, derep, fq_tri, fq_fil, truncLen,
-                          verbose=T, ncpu=detectCores()-1) {
+                          verbose=T, ncpu=himap_option('ncpu')) {
   if (verbose) cat('Retrieving full-length sequences...\n')
   for (s_id in 1:length(dada_res)) { # For each sample s_id
     if (verbose) cat('Sample ', s_id, '. Load...')
@@ -107,7 +124,7 @@ add_consensus = function (dada_res, derep, fq_tri, fq_fil, truncLen,
     fq_fil_data = sfastq_reader(fq_fil[s_id])
     fq_mer_data = sfastq_reader(fq_tri[s_id])
     if (verbose) cat('OK. Consensus...')
-    pid_to_seq = unlist(mclapply(1:length(x), function (i) {
+    pid_to_seq = unlist(parallel::mclapply(1:length(x), function (i) {
       metas = fq_fil_data[['meta']][x[i][[1]]+1]
       mer_seqs = fq_mer_data[['seqs']][which(fq_mer_data[['meta']] %in% metas)]
       # Select only the right hanging part
@@ -128,21 +145,72 @@ add_consensus = function (dada_res, derep, fq_tri, fq_fil, truncLen,
   return(dada_res)
 }
 
-
+#' BLAST FASTA file against a 16S database
+#'
+#' Aligns each sequence from the FASTA file against a reference database.
+#' Either \code{region} or both \code{ref_db} and \code{ref_cp} arguments must be specificed.
+#' If \code{region}
+#' is specified, then the \code{ref_db} and \code{ref_cp} arguments are ignored and a
+#' reference database is chosen
+#' from the pre-computed set matching that hyper-variable region.
+#' This function returns a blast-class object (named list; see ?blast-class for info).
+#'
+#' @param fasta_file FASTA file to BLAST.
+#' @param region Hyper-variable region. If this is not NULL, \code{ref_db} is ignored. Possible
+#' values: 'V4', 'V3-V4'.
+#' @param ref_db Full path to a custom database.
+#' @param ref_cp Full path to a copy number table for a custom database.
+#' @param max_target_seqs Maximum number of target sequences to return for each query.
+#' Note that the temporary output file will be large if this is set > 1000.
+#' @param word_size Word size used for BLAST alignment.
+#'
+#' @export
+#'
+#'
+blast = function (fasta_file, blast_output, region=NULL, ref_db=NULL,
+                  ref_cp=NULL, max_target_seqs=himap_option('blast_max_seqs'),
+                  word_size=himap_option('blast_word_size')) {
+  # Run Blastn
+  # Run blast_out_to_best_cp
+  # Return himap object
+  blast_status = blastn(fa_denoised, blast_output, region=region,
+                        max_target_seqs=max_target_seqs,
+                        word_size=word_size)
+  if (blast_status != 0) stop('blast: error running blastn.')
+  # Load BLAST results (can take a while if there are lots of sequences and max_target_seqs
+  # is large.
+  if (!file.exists(blast_output)) stop('blast: ', blast_output, ' file does not exist.')
+  blast_cp = blast_out_to_best_cp(blast_output, region=region)
+  names(blast_cp) = c('alignments', 'cp')
+  blast_cp$parameters = list(
+    'max_target_seqs'=max_target_seqs, 'word_size'=word_size, 'alignment_parameters'=
+    paste(c('match', 'mismatch', 'gap_open', 'gap_extend'), himap_option('aln_params'),
+          collapse=', ', sep=': '))
+  return(as(blast_cp, 'blast'))
+}
 
 blast_out_to_best_cp = function (
-   blast_output, ref_cp, aln_params=c(5L, -4L, -8L, -6L),
-   blast_out_fmt='qseqid sseqid qlen length qstart qend sstart send slen qseq sseq',
-   verbose=T, ncpu=detectCores()-1, variant_sep='-'
+   blast_output, region=NULL, ref_cp=NULL, aln_params=himap_option('aln_params'),
+   blast_out_fmt=himap_option('blast_out_fmt'),
+   verbose=T, ncpu=himap_option('ncpu'), variant_sep='-'
   )
 {
+  # Select region all ref_cp from file
+  if (!is.null(region)) { # If region is given, ignore ref_cp
+    ref_cp = himap_option('blast_dbs')[Hypervariable_region==region, table]
+    ref_cp = system.file('inst', 'database', ref_cp, package='himap')
+    if (length(ref_cp) == 0) stop('blast: invalid hyper-variable region.')
+  } else { # Region is not given, just check if ref_cp file exist
+    if (is.null(ref_cp)) stop('blast: reference copy number table argument missing.')
+    if (!file.exists(ref_cp)) stop('blast: reference copy number table file missing.')
+  }
 
-  if (verbose) cat('blast out: ')
-  blast_out.dt = fread(blast_output)
+  if (verbose) cat('* blast out: ')
+  blast_out.dt = data.table::fread(blast_output)
   names(blast_out.dt) = strsplit(blast_out_fmt, ' ')[[1]]
   # Calculate BLAST scores.
   blast_out.dt[, c('score', 'match', 'mismatch', 'gapopen', 'gapextend') := transpose(
-    unname(mcmapply(function (q,s) {
+    unname(parallel::mcmapply(function (q,s) {
     aln = compare_alignment(q,s)
     as.integer(c(sum(aln_params*aln), aln[1], aln[2], aln[3], aln[4]))
   }, qseq, sseq, SIMPLIFY=F, mc.cores=ncpu)))]
@@ -172,7 +240,7 @@ blast_out_to_best_cp = function (
   blast_best.dt[, pctsim := round(100*match/(match+mismatch+gapopen+gapextend), 2)]
 
   if (verbose) cat('OK. copy number table: ')
-  cp.dt = fread(ref_cp, select=c(1:3), colClasses=c('character', 'character', 'integer', 'character'))
+  cp.dt = data.table::fread(ref_cp, colClasses=c('character', 'character', 'integer'))
 
   # Prepare copy number table columns
   cp.dt[, strain := gsub('_@rrn[0-9]+', '', strain_name)]
@@ -190,21 +258,6 @@ blast_out_to_best_cp = function (
   # Merge with blast hits
   # First do perfect matches
 
-  # Original variant_ids depend how the reduced database is made. That is, they represent unique 16S regions
-  # including the overhangs, which do not exactly match the lengths of sequenced regions. Here we just generate
-  # new variant_id that pools together all sequences that are different in the extended region but the same
-  # in the reduced region that was sequenced (and new variant_id is taken as just the first in the list).
-  # blast_best.dt = blast_best.dt[, {
-  #   vids = unique(variant_id)
-  #   merge(.SD, cp.dt[variant_id %in% vids, .(variant_id, strain, copy_number)], all.x=T, by='variant_id')
-  # }, by=qseqid]
-
-  # blast_best.dt[, variant_id := variant_id[1], by=qseqid]
-
-  # Find variant ids from the database that all map to the same shorter sequence in the data and pool together
-  # those variant ids into a new one.
-  # Find DIFFERENT qseqids with exact same qstart qend
-  # blast_best2.dt = blast_best.dt[, , by=.(qseqid, strain)]
   if (verbose) cat('merge: ')
   blast_best.dt = merge(blast_best.dt, cp.dt[, .(variant_id, strain, copy_number)],
                         by='variant_id', allow.cartesian=T)
@@ -256,7 +309,10 @@ blast_out_to_best_cp = function (
 }
 
 
-
+#' Convert abundance matrix to an abundance data table
+#'
+#' Each row in abundance matrix is a different sample, each column is a different
+#' sequence.
 ab_mat_to_dt = function (ab_tab_nochim, fq_prefix_split='_') {
    ab_tab_nochim.dt = as.data.table(unname(ab_tab_nochim))
    ab_tab_nochim.dt[, sample_id := sapply(strsplit(dimnames(ab_tab_nochim)[[1]], fq_prefix_split, fixed=T), `[`, 1)]
@@ -264,16 +320,38 @@ ab_mat_to_dt = function (ab_tab_nochim, fq_prefix_split='_') {
                                variable.name = 'dada2_seqid', value.name = 'raw_count')
    ab_tab_nochim_m.dt[, qseqid := as.numeric(gsub('V', '', dada2_seqid))]
    ab_tab_nochim_m.dt[, dada2_seqid := NULL]
-   return(ab_tab_nochim_m.dt)
+   ab_tab_nochim_m.dt = merge(
+     ab_tab_nochim_m.dt,
+     data.table(qseqid=1:ncol(ab_tab_nochim_coll), sequence=dimnames(ab_tab_nochim_coll)[[2]])
+   )
+   return(ab_tab_nochim_m.dt[])
 }
 
+#' Saves sequences from HiMAP sequence abundance table to FASTA file
+#'
+#' @param remove_from_table If TRUE, column with sequences (names sequences)
+#' is removed from the data table after the FASTA file is written to disk.
+sequences_to_fasta = function (abundance_table, fasta_out, remove_from_table=F) {
+  if ('sequence' %in% names(abundance_table)) {
+    with(unique(abundance_table[, .(qseqid, sequence)])[order(qseqid)],
+      fasta_writer(
+        1:length(sequence),
+        sequence,
+        fasta_out
+      )
+    )
+    if (remove_from_table) abundance_table[, sequence := NULL]
+  } else {
+    warning('Sequences already removed. Nothing to do.')
+  }
+}
 
 
 # OSU binning and abundance estimation
 blast_cp_to_osu_dt = function (
   blast_best.dt, cp.dt, ab_tab_nochim_m.dt,
   pctsim_min = 100.00, # Min. pct sim for OSU binning
-  ncpu = detectCores()-1,
+  ncpu = himap_option('ncpu'),
   verbose=T
 ) {
   if (verbose) cat('OSU table: ')
@@ -573,47 +651,28 @@ osu_cp_to_all_abs = function (osu_data_m.dt, cp.dt, blast_best.dt, ab_tab_nochim
   return(unique(all_abs.dt))
 }
 
-
-
-
-collapseNoMismatch2 <- function(seqtab, minOverlap=20, verbose=FALSE) {
-  # CollapseNoMismatch but with progress bar
-  if (verbose) cat('Start collapseNoMismatchSet\n')
-  unqs.srt <- sort(getUniques(seqtab), decreasing=TRUE)
-  seqs <- names(unqs.srt) # The input sequences in order of decreasing total abundance
-  seqs.out <- character(0) # The output sequences (after collapsing)
-  # collapsed will be the output sequence table
-  collapsed <- matrix(0, nrow=nrow(seqtab), ncol=ncol(seqtab))
-  colnames(collapsed) <- colnames(seqtab) # Keep input ordering for output table
-  rownames(collapsed) <- rownames(seqtab)
-  i = 0
-  for(query in seqs) {
-    added=FALSE
-    prefix <- substr(query, 1, minOverlap)
-    suffix <- substr(query, nchar(query)-minOverlap+1,nchar(query))
-    for(ref in seqs.out) { # Loop over the reference sequences already added to output
-      # Prescreen to see if costly alignment worthwhile, this all should possibly be C-side
-      if(grepl(prefix, ref) || grepl(suffix, ref)) {
-        if(nwhamming(query,ref,band=-1) == 0) { # No mismatches/indels, join more abundant sequence
-          collapsed[,ref] <- collapsed[,ref] + seqtab[,query]
-          added=TRUE
-          break
-        }
-      }
-    } # for(ref in seqs.out)
-    if(!added) {
-      collapsed[,query] <- seqtab[,query]
-      seqs.out <- c(seqs.out, query)
-    }
-    i = i + 1
-    if (verbose) cat('\r* processed ', i, ' out of ', length(seqs), ' sequences.')
-  } # for(query in seqs)
-  cat('\n')
-  if(!identical(unname(colSums(collapsed)>0), colnames(collapsed) %in% seqs.out)) {
-    stop("Mismatch between output sequences and the collapsed sequence table.")
+#' Return abundances of each sequence from DADA2 result object
+#'
+#' @param dada_result dada() result
+#' @param remove_bimeras Check and remove bimeric reads? (default: TRUE)
+#' @param collapse_sequences Should we check for sequences that differ up to
+#' shifts and add up the counts? (default: TRUE)
+#' @param remove_bimeras_method Method to remove bimeras. See ?dada2::removeBimeraDenovo
+#' for more options.
+#'
+sequence_abundance = function (dada_result, remove_bimeras=T, collapse_sequences=T,
+                               verbose=T, remove_bimeras_method='consensus',
+                               remove_bimeras_oneoff=T, fq_prefix_split='.') {
+  # Extract sequences and their counts from the dada class result
+  ab_tab = dada2::makeSequenceTable(dada_res2)
+  if (remove_bimeras) {
+    ab_tab_nochim = dada2::removeBimeraDenovo(
+      ab_tab, method=remove_bimeras_method, allowOneOff=remove_bimeras_oneoff,
+      multithread=ie(himap_option('ncpu') > 1, T, F), verbose=verbose)
+  } else {
+    ab_tab_nochim = ab_tab
   }
-  collapsed <- collapsed[,colnames(collapsed) %in% seqs.out,drop=FALSE]
-
-  if(verbose) message("Output ", ncol(collapsed), " collapsed sequences out of ", ncol(seqtab), " input sequences.")
-  collapsed
+  if (collapse_sequences) ab_tab_nochim_coll = collapse(ab_tab_nochim, verbose=verbose)
+  else ab_tab_nochim_coll = ab_tab_nochim
+  return(ab_mat_to_dt(ab_tab_nochim_coll, fq_prefix_split=fq_prefix_split))
 }

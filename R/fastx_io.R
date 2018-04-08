@@ -42,6 +42,3 @@ fasta_writer = function (meta, seqs, output) {
             output, eos=NULL)
 }
 
-
-# testfa = "/data1/igor/himap/16s_uniq_refseq_fullgen_bact_arch_2017-08-24.fasta"
-# testfq = '/data1/igor/app/pcr_pacbio/test.fastq'

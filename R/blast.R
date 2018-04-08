@@ -4,46 +4,6 @@
 # We will use this to check how many exact matches, one off etc we have against
 # sequences in the reference file.
 
-get_blast_path = function () {
-  # Find blastn path (assume its in system PATH)
-  # First look for the package binary
-  bin = system.file('exec', 'blastn', package='himap')
-  # Binary file from the package not found. Fall back to system blastn
-  if (bin == '') bin = suppressWarnings(system2('which', 'blastn', stdout=T))
-  # If this is not found either, then just stop.
-  if (attr(bin, 'status') == 1) stop('Error: makeblastdb command not found.')
-  else return(bin)
-}
-
-write_seqs_to_fasta = function (seqs, fa_out) {
-   # Write a vector of sequences seqs to fa_out fasta file.
-   for (i in seq_along(seqs)) {
-      if (i == 1) {
-         app = F
-      } else {
-         app = T
-      }
-      cat('>', i, '\n', seqs[i], '\n', file=fa_out, sep='', append=app)
-   }
-}
-
-blast_seqs_to_reference = function (seqs_fa, ref_db, blast_path=get_blast_path(),
-                                    match=aln_params[1], mismatch=aln_params[2],
-                                    gapopen=-aln_params[3], gapextend=-aln_params[4],
-                                    word_size=13, ncpu=4, max_target_seqs=5000,
-                                    query_coverage_pct=100, outfmt=paste0('6 ', blast_out_fmt),
-                                    output='/data1/igor/zr_16s2/blast_test.txt',
-                                    output_err=F) {
-   x = system2(blast_path, args = c(
-      '-dust', 'no', '-word_size', word_size,
-      '-reward', match, '-penalty', mismatch, '-gapopen', gapopen, '-gapextend', gapextend,
-      '-no_greedy', '-outfmt', shQuote(outfmt),
-      '-query', seqs_fa, '-db', ref_db, '-num_threads', ncpu,
-      '-max_target_seqs', max_target_seqs
-      # '-qcov_hsp_perc', query_coverage_pct
-   ), stdout = output, stderr = output_err)
-   return(x)
-}
 
 blast_best_seq_matches = function (dt, id_col='dada_seqid', match_col='match_strains',
                                    exclude_match=FALSE) {
@@ -84,15 +44,6 @@ species_from_metadata = function (meta_data, sep='$', space_char='_', collapse=F
   }
 }
 
-strains_from_meta_data = function (meta_data_v, sep='$') {
-  out = c()
-  for (meta_data in meta_data_v) {
-    meta_data = gsub('[\\$]{2,}', '\\$', meta_data)
-    if (sep == '$') sep = '\\$'
-    out = c(out, gsub('_@rrn[0-9]+', '', unlist(strsplit(meta_data, sep))))
-  }
-  unique(out)
-}
 
 
 filter_rrn_from_best_matches = function (dt, id_col='dada_seqid',

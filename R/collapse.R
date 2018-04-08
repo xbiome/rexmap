@@ -8,12 +8,13 @@ get_makeblastdb_path = function () {
   if (attr(out, 'status') == 1) stop('Error: makeblastdb command not found.')
 }
 
-makeblastdb = function (fasta_in, db_out, verbose=T) {
+makeblastdb = function (fasta_in, db_out, verbose=T,
+                        makeblastdb_path=himap_option('path_makeblastdb')) {
   # Generate a BLAST database from fasta_in
   # db_out contains a full location and prefix for BLASTDB files
   # This function does not return anything, but can optionally
   # (if verbose == T) write the status to console.
-  makeblastdb_path = get_makeblastdb_path()
+  # makeblastdb_path = get_makeblastdb_path()
   if (verbose) output = ''
   else output = FALSE
   system2(makeblastdb_path, c('-dbtype', 'nucl', '-in', fasta_in,
@@ -28,14 +29,39 @@ cleanup_blastdb = function (db_out) {
   }
 }
 
-blast = function (
-  seqs_fa, ref_db,
-  blast_path=blast_path_def,
-  match=aln_params[1], mismatch=aln_params[2], gapopen=-aln_params[3],
-  gapextend=-aln_params[4], word_size=13, ncpu=4, max_target_seqs=2000,
-  perc_identity=75, outfmt=paste0('6 ', blast_out_fmt), dust='20 64 1',
-  output='blast_output.txt',
+blastn = function (
+  seqs_fa, output, region=NULL, ref_db=NULL,
+  blast_path=himap_option('path_blastn'),
+  match=himap_option('aln_params')[1], mismatch=himap_option('aln_params')[2],
+  gapopen=-himap_option('aln_params')[3], gapextend=-himap_option('aln_params')[4],
+  word_size=himap_option('blast_word_size'), ncpu=himap_option('ncpu'),
+  max_target_seqs=himap_option('blast_max_seqs'),
+  perc_identity=75, outfmt=paste0('6 ', himap_option('blast_out_fmt')),
+  dust='20 64 1',
   output_err=F) {
+
+  dbs = himap_option('blast_dbs')
+  if (!is.null(region)) {
+    # Region is specificed, ignore ref_db
+    if (!(region %in% dbs[, Hypervariable_region])) {
+      stop('blast: wrong hypervariable region specified.')
+    } else {
+      if (dbs[Hypervariable_region==region, DB] == '') {
+        stop('blast: no database listed for this hypervariable region.')
+      } else {
+        ref_db = system.file('inst', 'database',
+                             paste0(dbs[Hypervariable_region==region, DB], '.nhr'),
+                             package='himap')
+        if (ref_db == '') stop('blast: missing database.')
+        else ref_db = sub('.nhr$', '', ref_db)
+      }
+    }
+  } else {
+    # ref_db is specified so just use that and check if the files are there.
+    if (!all(file.exists(paste0(ref_db, c('.nin', '.nhr', '.nsq'))))) {
+      stop('blast: missing database file(s).')
+    }
+  }
    x = system2(blast_path, args = c(
       '-dust', shQuote(dust), '-word_size', word_size,
       '-reward', match, '-penalty', mismatch, '-gapopen', gapopen,
@@ -62,39 +88,52 @@ collapse = function (ab_in, verbose=T) {
   # Provide ab_tab_nochim as an input argument
 
   # Generate temp files, this automatically generates file names
-  if (verbose) cat('collapse:')
-  if (verbose) cat('- generating temporary files...')
+  if (verbose) cat('collapse:\n')
+  if (verbose) cat('* generating temporary files...')
   ab = copy(ab_in)
-  out_files = ab_to_files(ab)
+  out_files = ab_to_files(ab, verbose=verbose)
   fasta = out_files[1]
   db = out_files[2]
   if (verbose) cat('OK.\n')
 
   # Generate temp output file
-  if (verbose) cat('- blast word size: ')
+  if (verbose) cat('* blast word size: ')
   blast_out = paste0(db, '_blast_output.txt')
   ws = min_seq_len(fasta) - 50
   if (verbose) cat(ws, '\n')
 
   # BLAST fasta_in vs db
-  if (verbose) cat('- running blast...')
-  blast_status = blast(fasta, db, blast_path=get_blast_path(),
-                       output=blast_out, max_target_seqs=50,
-                       outfmt=paste0('6 ', blast_coll_fmt),
-                       perc_identity=100, word_size=ws)
+  if (verbose) cat('* running blast...')
+  blast_status = blastn(fasta, ref_db=db,
+                        output=blast_out, max_target_seqs=50,
+                        outfmt=paste0('6 ', himap_option('blast_coll_fmt')),
+                        perc_identity=100, word_size=ws)
   if (blast_status != 0) {
      stop('\nError in BLAST alignment step.')
   }
   if (verbose) cat('OK.\n')
   # Load blast output and remove the temp blast output file
-  if (verbose) cat('- selecting ends-free alignments...')
+  if (verbose) cat('* selecting ends-free alignments...')
   blast.dt = fread(blast_out)
 
-  names(blast.dt) = strsplit(blast_coll_fmt, ' ', fixed=T)[[1]]
+  names(blast.dt) = strsplit(himap_option('blast_coll_fmt'), ' ', fixed=T)[[1]]
   blast2.dt = blast.dt[(qseqid != sseqid) & (pident==100)]
   # Select only ends-free alignments
   blast3.dt = blast2.dt[(qstart==1 & qend==qlen) | (sstart==1 & send==slen) |
                         (qstart==1 & send==slen) | (sstart==1 & qend==qlen)]
+  if (nrow(blast3.dt) == 0) {
+    # This means there aren't any sequences that need collapsing.
+    # Return the input back then.
+    if (verbose) cat('OK.\n')
+    if (verbose) cat('* no sequences need collapsing.\n')
+    if (verbose) cat('* cleaning up temporary files...')
+    file.remove(blast_out)
+    file.remove(fasta)
+    cleanup_blastdb(db)
+    if (verbose) cat('OK.\n')
+    if (verbose) cat('* returning input.\n')
+    return(ab_in)
+  }
   blast3.dt[, pair := paste0(min(.BY[[1]], .BY[[2]]), ',',
                              max(.BY[[1]], .BY[[2]])), by=.(qseqid, sseqid)]
   # Select only 1 alignment from each pair
@@ -102,7 +141,7 @@ collapse = function (ab_in, verbose=T) {
   if (verbose) cat('OK.\n')
 
   # Addup counts to the sequence with more total reads
-  if (verbose) cat('- adding up abundances...')
+  if (verbose) cat('* adding up abundances...')
   qs_names = names(blast.dt)[1:2]
   filtered_columns = c()
   for (i in 1:nrow(blast3.dt)) {
@@ -126,7 +165,7 @@ collapse = function (ab_in, verbose=T) {
 
 
   # Cleanup the temp database
-  if (verbose) cat('- cleaning up temporary files...')
+  if (verbose) cat('* cleaning up temporary files...')
   file.remove(blast_out)
   file.remove(fasta)
   cleanup_blastdb(db)
@@ -136,7 +175,7 @@ collapse = function (ab_in, verbose=T) {
 }
 
 
-ab_to_files = function (ab) {
+ab_to_files = function (ab, verbose=T) {
    # Convert the abundance table matrix into a FASTA file, together
    # with the read counts. Used by collapse().
    meta = colnames(ab)
@@ -165,7 +204,7 @@ ab_to_files = function (ab) {
    fasta_writer(colnames(ab), meta, fasta_out)
 
    # Generate a BLAST database from this fasta file
-   makeblastdb(fasta_out, db_prefix)
+   makeblastdb(fasta_out, db_prefix, verbose=verbose)
 
    # Return file names
    return(c(fasta_out, db_prefix))
