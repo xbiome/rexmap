@@ -39,18 +39,18 @@ assign('aln_params', c(5L, -4L, -8L, -6L), env=himap_opts)
 assign('ncpu', parallel::detectCores(), env=himap_opts)
 # BLAST databases
 assign('blast_dbs',
-       data.table::fread(system.file('inst', 'database', 'pcr_primers_table.txt',
+       data.table::fread(system.file('database', 'pcr_primers_table.txt',
                    package='himap'), header=T, sep='\t'),
        env=himap_opts)
 assign('blast_max_seqs', 2000, env=himap_opts)
 assign('blast_word_size', 13, env=himap_opts)
 # Read merging
 assign('mergepairs_matchqs',
-       system.file('inst', 'merge_tables', 'himap_mergepairs_match_qs.txt',
+       system.file('merge_tables', 'himap_mergepairs_match_qs.txt',
                    package='himap'),
        env=himap_opts)
 assign('mergepairs_mismatchqs',
-       system.file('inst', 'merge_tables', 'himap_mergepairs_mismatch_qs.txt',
+       system.file('merge_tables', 'himap_mergepairs_mismatch_qs.txt',
                    package='himap'),
        env=himap_opts)
 
@@ -145,169 +145,6 @@ add_consensus = function (dada_res, derep, fq_tri, fq_fil, truncLen,
   return(dada_res)
 }
 
-#' BLAST FASTA file against a 16S database
-#'
-#' Aligns each sequence from the FASTA file against a reference database.
-#' Either \code{region} or both \code{ref_db} and \code{ref_cp} arguments must be specificed.
-#' If \code{region}
-#' is specified, then the \code{ref_db} and \code{ref_cp} arguments are ignored and a
-#' reference database is chosen
-#' from the pre-computed set matching that hyper-variable region.
-#' This function returns a blast-class object (named list; see ?blast-class for info).
-#'
-#' @param fasta_file FASTA file to BLAST.
-#' @param region Hyper-variable region. If this is not NULL, \code{ref_db} is ignored. Possible
-#' values: 'V4', 'V3-V4'.
-#' @param ref_db Full path to a custom database.
-#' @param ref_cp Full path to a copy number table for a custom database.
-#' @param max_target_seqs Maximum number of target sequences to return for each query.
-#' Note that the temporary output file will be large if this is set > 1000.
-#' @param word_size Word size used for BLAST alignment.
-#'
-#' @export
-#'
-#'
-blast = function (fasta_file, blast_output, region=NULL, ref_db=NULL,
-                  ref_cp=NULL, max_target_seqs=himap_option('blast_max_seqs'),
-                  word_size=himap_option('blast_word_size')) {
-  # Run Blastn
-  # Run blast_out_to_best_cp
-  # Return himap object
-  blast_status = blastn(fa_denoised, blast_output, region=region,
-                        max_target_seqs=max_target_seqs,
-                        word_size=word_size)
-  if (blast_status != 0) stop('blast: error running blastn.')
-  # Load BLAST results (can take a while if there are lots of sequences and max_target_seqs
-  # is large.
-  if (!file.exists(blast_output)) stop('blast: ', blast_output, ' file does not exist.')
-  blast_cp = blast_out_to_best_cp(blast_output, region=region)
-  names(blast_cp) = c('alignments', 'cp')
-  blast_cp$parameters = list(
-    'max_target_seqs'=max_target_seqs, 'word_size'=word_size, 'alignment_parameters'=
-    paste(c('match', 'mismatch', 'gap_open', 'gap_extend'), himap_option('aln_params'),
-          collapse=', ', sep=': '))
-  return(as(blast_cp, 'blast'))
-}
-
-blast_out_to_best_cp = function (
-   blast_output, region=NULL, ref_cp=NULL, aln_params=himap_option('aln_params'),
-   blast_out_fmt=himap_option('blast_out_fmt'),
-   verbose=T, ncpu=himap_option('ncpu'), variant_sep='-'
-  )
-{
-  # Select region all ref_cp from file
-  if (!is.null(region)) { # If region is given, ignore ref_cp
-    ref_cp = himap_option('blast_dbs')[Hypervariable_region==region, table]
-    ref_cp = system.file('inst', 'database', ref_cp, package='himap')
-    if (length(ref_cp) == 0) stop('blast: invalid hyper-variable region.')
-  } else { # Region is not given, just check if ref_cp file exist
-    if (is.null(ref_cp)) stop('blast: reference copy number table argument missing.')
-    if (!file.exists(ref_cp)) stop('blast: reference copy number table file missing.')
-  }
-
-  if (verbose) cat('* blast out: ')
-  blast_out.dt = data.table::fread(blast_output)
-  names(blast_out.dt) = strsplit(blast_out_fmt, ' ')[[1]]
-  # Calculate BLAST scores.
-  blast_out.dt[, c('score', 'match', 'mismatch', 'gapopen', 'gapextend') := transpose(
-    unname(parallel::mcmapply(function (q,s) {
-    aln = compare_alignment(q,s)
-    as.integer(c(sum(aln_params*aln), aln[1], aln[2], aln[3], aln[4]))
-  }, qseq, sseq, SIMPLIFY=F, mc.cores=ncpu)))]
-
-  # For local alignments that are one-off at each end, reduce the score using
-  # a mismatch penalty. (We deliberately use indel score that is very similar.)
-  blast_out.dt[qstart >= 2 & sstart >= 2, score := score-aln_params[2]]
-  blast_out.dt[qstart >= 2 & sstart >= 2, mismatch := mismatch+1L]
-  blast_out.dt[qend <= qlen-1 & send < slen, score := score-aln_params[2]]
-  blast_out.dt[qend <= qlen-1 & send < slen, mismatch := mismatch+1L]
-
-  # Filter out alignments with large gaps at beginning or the end
-  # blast_out.dt = blast_out.dt[qstart <= 2 & qend >= qlen-1]
-  if (verbose) cat('OK. blast best: ')
-
-  # For each dada2 sequence, keep only the best matches by bitscore
-  blast_best.dt = blast_best_seq_matches(
-    blast_out.dt,
-    strsplit(blast_out_fmt, ' ')[[1]][1],
-    strsplit(blast_out_fmt, ' ')[[1]][2]
-  )
-  blast_best.dt[, variant_id := gsub('^([0-9]+)-.*', '\\1', sseqid)]
-  # Remove sequence alignment columns since we already calculated alignment score
-  blast_best.dt[, c('qseq', 'sseq') := NULL]
-  blast_best.dt[, c('sseqid') := NULL]
-  # Calculate percentage similarity
-  blast_best.dt[, pctsim := round(100*match/(match+mismatch+gapopen+gapextend), 2)]
-
-  if (verbose) cat('OK. copy number table: ')
-  cp.dt = data.table::fread(ref_cp, colClasses=c('character', 'character', 'integer'))
-
-  # Prepare copy number table columns
-  cp.dt[, strain := gsub('_@rrn[0-9]+', '', strain_name)]
-
-  # Generate strain index
-  cp.dt[, strain_id := .GRP, by=strain]
-  cp.dt[, strain_name := NULL]
-
-  # How many unique 16S rrna variants of each strain?
-  cp.dt[, rrn_uniq := length(unique(variant_id)), by=strain]
-
-  # Sort by strain_id, then by
-  cp.dt = cp.dt[order(strain_id, variant_id)]
-  if (verbose) cat('OK.\n')
-  # Merge with blast hits
-  # First do perfect matches
-
-  if (verbose) cat('merge: ')
-  blast_best.dt = merge(blast_best.dt, cp.dt[, .(variant_id, strain, copy_number)],
-                        by='variant_id', allow.cartesian=T)
-  if (verbose) cat('OK. Fix overhang differences:')
-  hang_diff_qseqids = blast_best.dt[pctsim==100, 1, by=qseqid][, unique(qseqid)]
-  for (q in hang_diff_qseqids) {
-    vids = blast_best.dt[pctsim==100 & qseqid==q, sort(unique(variant_id))]
-    blast_best.dt[pctsim==100 & qseqid==q, variant_id := paste(vids, collapse=variant_sep)]
-    cp.dt[variant_id %in% vids, variant_id := paste(vids, collapse=variant_sep)]
-  }
-  if (verbose) cat('.')
-  blast_best.dt[pctsim==100, copy_number := sum(copy_number), by=.(variant_id, strain)]
-  blast_best.dt = unique(blast_best.dt)
-
-  if (verbose) cat('.')
-  # Add up copy numbers for strain that differ in the undetected overhang
-  cp.dt[, copy_number := sum(copy_number), by=.(variant_id, strain_id)]
-  cp.dt = unique(cp.dt)
-  if (verbose) cat('OK. ')
-
-
-  # Recalculate rrn_uniq after re-numerating variant_ids (b/c the slightly shorter sequence now has the same
-  # or smaller number of variants)
-  cp.dt[, rrn_uniq := length(unique(variant_id)), by=strain_id]
-
-  # Group sequences into OSU
-  cp.dt[, spectrum := paste(copy_number, variant_id, sep=':', collapse=','), by=strain]
-
-  # For strains which have only one unique 16S sequence variant, group them into the same
-  # same OSU, regardless of the copy number.
-  cp.dt[rrn_uniq==1, spectrum := paste0('X:', strsplit(spectrum[1], ':')[[1]][2]), by=strain]
-
-  # OSU is a group of strains all with the same strain spectrum
-  cp.dt[, osu_id := .GRP, by=spectrum]
-
-  # Instead of X put mean copy number or 1
-  cp.dt[rrn_uniq==1, spectrum := gsub('X', round(mean(copy_number)), spectrum), by=osu_id]
-  # ref_cp.dt[rrn_uniq==1, spectrum := gsub('X', '1', spectrum), by=osu_id]
-
-  # Count number of strains binned together
-  cp.dt[, no_strains_in_osu := length(unique(strain)), by=osu_id]
-
-  # Generate species names
-  cp.dt[, species := gsub('^([^_]+)_([^_]+)_.*', '\\1_\\2', strain)]
-  # Count unique number of species per OSU
-  cp.dt[, no_species_in_osu := length(unique(species)), by=osu_id]
-  if (verbose) cat('OK.\n')
-  return(list(blast_best.dt, cp.dt))
-}
-
 
 #' Convert abundance matrix to an abundance data table
 #'
@@ -318,12 +155,13 @@ ab_mat_to_dt = function (ab_tab_nochim, fq_prefix_split='_') {
    ab_tab_nochim.dt[, sample_id := sapply(strsplit(dimnames(ab_tab_nochim)[[1]], fq_prefix_split, fixed=T), `[`, 1)]
    ab_tab_nochim_m.dt = melt(ab_tab_nochim.dt, id.vars = 'sample_id',
                                variable.name = 'dada2_seqid', value.name = 'raw_count')
-   ab_tab_nochim_m.dt[, qseqid := as.numeric(gsub('V', '', dada2_seqid))]
+   ab_tab_nochim_m.dt[, qseqid := as.integer(gsub('V', '', dada2_seqid))]
    ab_tab_nochim_m.dt[, dada2_seqid := NULL]
    ab_tab_nochim_m.dt = merge(
      ab_tab_nochim_m.dt,
      data.table(qseqid=1:ncol(ab_tab_nochim_coll), sequence=dimnames(ab_tab_nochim_coll)[[2]])
    )
+   setcolorder(ab_tab_nochim_m.dt, c('sample_id', 'qseqid', 'raw_count', 'sequence'))
    return(ab_tab_nochim_m.dt[])
 }
 
@@ -346,80 +184,6 @@ sequences_to_fasta = function (abundance_table, fasta_out, remove_from_table=F) 
   }
 }
 
-
-# OSU binning and abundance estimation
-blast_cp_to_osu_dt = function (
-  blast_best.dt, cp.dt, ab_tab_nochim_m.dt,
-  pctsim_min = 100.00, # Min. pct sim for OSU binning
-  ncpu = himap_option('ncpu'),
-  verbose=T
-) {
-  if (verbose) cat('OSU table: ')
-  # First generate a BLAST best results table with just alignment pctsim
-  blast_reduced.dt = unique(blast_best.dt[, .(variant_id, qseqid, pctsim)])[order(qseqid)]
-  blast_reduced.dt[, variant_id_new := variant_id[1], by=qseqid]
-  # blast_reduced.dt = merge(blast_reduced.dt, ab_tab_nochim_m.dt[, .(qseqid, raw_count, sample_id)],
-  #                          by='qseqid', all.x=T)
-  blast_reduced.dt = blast_reduced.dt[, .SD[pctsim==max(pctsim)][1], by=variant_id]
-
-  # Generate a separate reference table
-  osu.dt = unique(cp.dt[, .(osu_id, spectrum, strain, no_strains_in_osu)])
-  osu.dt[, no_variants := sapply(spectrum, function (s) length(strsplit(s, ',', fixed=T)[[1]]))]
-  # osu_m.dt = osu.dt[, .(variant_id = sub('.*:([0-9]{5})$', '\\1', strsplit(spectrum, ',')[[1]]),
-  #                       spectrum=spectrum, strain, no_variants), by=osu_id]
-
-  # Now generate a smaller OSU table containing only osu id that contain
-  # at least one variant ID from the data with > 0 raw count.
-  varids_data = blast_reduced.dt[pctsim >= pctsim_min, unique(variant_id)]
-  # varids_data = [pctsim > pctsim_min, unique(variant_id)]
-  osu_data.dt = osu.dt[, {
-    varids = strsplit(gsub('[0-9]+:', '', spectrum), ',')[[1]]
-    overlap = intersect(varids_data, varids)
-    if (length(overlap) > 0) .SD
-  }, by=osu_id]
-
-  if (verbose) cat('OK. Melt table: ')
-  sample_ids = ab_tab_nochim_m.dt[, unique(sample_id)]
-
-  # Optimized osu_data_m2.dt
-  osu_data2.dt = copy(osu_data.dt)
-  osu_data2.dt = osu_data.dt[,
-   transpose(
-      strsplit(strsplit(spectrum, ',', fixed=T)[[1]], ':', fixed=T)),
-   by=.(osu_id, strain, no_strains_in_osu, no_variants)]
-  names(osu_data2.dt)[5:6] = c('copy_number', 'variant_id')
-
-  # Add BLAST alignment information to each variant_id
-  osu_data3.dt = merge(
-     osu_data2.dt,
-     blast_reduced.dt[pctsim >= pctsim_min, .(variant_id, qseqid, pctsim)],
-     by='variant_id', all.x=T)
-
-  # Remove strain annotation here
-  osu_data4.dt = copy(osu_data3.dt)
-  osu_data4.dt[, strain := NULL]
-  osu_data4.dt = unique(osu_data4.dt)
-
-  # Fill in zeros for some OSUs where we have some, but not all variants
-  sample_ids = ab_tab_nochim_m.dt[, unique(sample_id)]
-  ab_tab_nochim_m_fill.dt = rbindlist(list(
-     ab_tab_nochim_m.dt,
-     data.table(sample_id=sample_ids, raw_count=0, qseqid=NA)))
-
-  # Add abundance information
-  osu_data5.dt = merge(
-     osu_data4.dt,
-     ab_tab_nochim_m_fill.dt,
-     by='qseqid', all.x=T
-  )
-
-  osu_data5.dt = osu_data5.dt[, .(osu_id, copy_number, variant_id, raw_count, sample_id, pctsim, no_strains_in_osu)]
-  osu_data5.dt = osu_data5.dt[order(sample_id, osu_id, variant_id)]
-
-  if (verbose) cat(' OK.')
-  return(osu_data5.dt[, .(osu_id, copy_number, variant_id, raw_count, sample_id, pctsim, no_strains_in_osu)])
-}
-
 pctsim_range_old = function (p) {
   up = unique(p)
   if (length(up) == 1) return(as.character(up))
@@ -428,10 +192,7 @@ pctsim_range_old = function (p) {
   }
 }
 
-pctsim_range = function (p) {
-  return(max(p, na.rm=T))
-}
-
+pctsim_range = function (p) return(max(p, na.rm=T))
 
 print_strains = function (strains, raw=T) {
   # Input: vector of strains
@@ -470,10 +231,48 @@ print_strains = function (strains, raw=T) {
   }
 }
 
+#' Combine BLAST object and a sequence abundance table into OSU table
+#'
+#' @importFrom igraph make_empty_graph
+#' @importFrom igraph add_vertices
+#' @importFrom igraph add_edges
+#' @importFrom igraph as.undirected
+#' @importFrom igraph groups
+#' @importFrom igraph clusters
+#' @importFrom limSolve lsei
+#' @importFrom pso psoptim
+#'
+abundance = function (abundance_table, blast_object, ncpu=himap_option('ncpu'), verbose=T,
+                      raw_strains=FALSE) {
+  # Generate OSU data table first
+  osu_data_m.dt = blast_cp_to_osu_dt(
+    blast_best.dt=blast_object$alignments,
+    cp.dt=blast_object$cp,
+    ab_tab_nochim_m.dt=abundance_table,
+    ncpu=ncpu,
+    verbose=verbose
+  )
+  # Now generate osu abundance table
+  osu_ab.dt = osu_cp_to_all_abs(abundance_table,
+                                blast_object$alignments,
+                                blast_object$cp,
+                                osu_data_m.dt,
+                                ncpu=ncpu, verbose=verbose,
+                                raw=raw_strains)
 
-osu_cp_to_all_abs = function (osu_data_m.dt, cp.dt, blast_best.dt, ab_tab_nochim_m.dt,
-                              pctsim_min=100, ncpu=detectCores()-1, verbose=T, seed=42,
-                              osu_offset=1000000L, raw=T) {
+  return(osu_ab.dt)
+}
+
+
+osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
+                              blast_best.dt,
+                              cp.dt,
+                              osu_data_m.dt,
+                              ncpu=himap_option('ncpu'), verbose=T, seed=42,
+                              raw=T) {
+
+  pctsim_min = 100
+  osu_offset = 1000000L
 
   if (verbose) cat('Preparing blast tables...')
   var_count.dt = unique(osu_data_m.dt[, .(variant_id, raw_count, sample_id)])
@@ -496,7 +295,7 @@ osu_cp_to_all_abs = function (osu_data_m.dt, cp.dt, blast_best.dt, ab_tab_nochim
   osu_sp.dt = cp.dt[, .(species = print_strains(strain, raw=raw)), by=osu_id]
 
   sample_ids = ab_tab_nochim_m.dt[, unique(sample_id)]
-  all_abs.dt = rbindlist(mclapply(sample_ids, function (s) {
+  all_abs.dt = rbindlist(parallel::mclapply(sample_ids, function (s) {
 
       Ab.dt = dcast(
          osu_data_m.dt[sample_id==s], variant_id ~ osu_id,
