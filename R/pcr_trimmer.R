@@ -32,8 +32,8 @@ pcr_primer_filter = function (fq_in, fq_out, pr_fwd='CCTACGGGNGGCWGCAG',
     pr_rev_n = lengths(regmatches(pr_rev, gregexpr('N', pr_rev)))
     # Alignment statistics: match, mismatch, gapopen, gapextend
     aln_stat = compare_alignment(
-      stringr::str_sub(aln[1], start=pr_fwd_left, end=pr_fwd_right),
-      stringr::str_sub(aln[2], start=pr_fwd_left, end=pr_fwd_right)
+      str_sub(aln[1], start=pr_fwd_left, end=pr_fwd_right),
+      str_sub(aln[2], start=pr_fwd_left, end=pr_fwd_right)
     )
     # Forward primer alignment is acceptable if it's near beginning (within first 5 nts)
     # and if it doesn't have more than 2 mismatches for non-N symbols, which includes indels.
@@ -49,8 +49,8 @@ pcr_primer_filter = function (fq_in, fq_out, pr_fwd='CCTACGGGNGGCWGCAG',
     pr_rev_right = min(regexpr('[ACGTN][^ACGTN]*$', aln2[1])[1],
                        regexpr('[ACGTN][^ACGTN]*$', aln2[2])[1])
     aln2_stat = compare_alignment(
-      stringr::str_sub(aln2[1], start=pr_rev_left, end=pr_rev_right),
-      stringr::str_sub(aln2[2], start=pr_rev_left, end=pr_rev_right)
+      str_sub(aln2[1], start=pr_rev_left, end=pr_rev_right),
+      str_sub(aln2[2], start=pr_rev_left, end=pr_rev_right)
     )
     if (pr_rev_left > nchar(seq)-nchar(pr_rev)-pr_rev_maxoff & aln2_stat[2]+aln2_stat[3]+aln2_stat[4]-pr_rev_n <= max_mismatch) {
       # Reverse primer found
@@ -64,8 +64,8 @@ pcr_primer_filter = function (fq_in, fq_out, pr_fwd='CCTACGGGNGGCWGCAG',
     if (pr_rev_found) end = pr_rev_left
 
     return(list('meta' = meta,
-                'seqs' = stringr::str_sub(seq, start=start, end=end),
-                'qual' = stringr::str_sub(qual, start=start, end=end),
+                'seqs' = str_sub(seq, start=start, end=end),
+                'qual' = str_sub(qual, start=start, end=end),
                 'trim_fwd' = pr_fwd_found,
                 'trim_rev' = pr_rev_found))
   }
