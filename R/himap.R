@@ -75,16 +75,6 @@ himap_setoption = function (option_name, value) {
 }
 
 
-
-ie = function(test, yes, no) {
-  if (test) {
-    yes
-  } else {
-    no
-  }
-}
-
-
 #' Generate a frequency table of sequence lengths in FASTQ files
 #'
 #' @param fastq_files A character vector of FASTQ filenames.
@@ -184,52 +174,9 @@ sequences_to_fasta = function (abundance_table, fasta_out, remove_from_table=F) 
   }
 }
 
-pctsim_range_old = function (p) {
-  up = unique(p)
-  if (length(up) == 1) return(as.character(up))
-  else {
-    return(paste0(min(p), ' - ', max(p)))
-  }
-}
 
 pctsim_range = function (p) return(max(p, na.rm=T))
 
-print_strains = function (strains, raw=T) {
-  # Input: vector of strains
-  # Prints a single string with reduced list of strains
-  # such that any non-_bacterium or _sp. strain is shown
-  # on a species level.
-  if (raw) return(paste(strains, collapse=','))
-
-  # Also add strains for species that occur only once!!
-  if (length(strains)==1) return(strains)
-  else {
-    genuses = gsub('^[ ]*([^_]+)_.*', '\\1', strains)
-    species = gsub('^[^_]+_([^_]+)[_]?.*', '\\1', strains)
-    na_filter = grepl('^(sp\\.|bacterium)', species)
-    sp1 = paste(genuses[!na_filter], species[!na_filter], sep='_')
-    sp2 = strains[na_filter]
-    ft = as.table(sort(table(c(sp1, sp2)), decreasing=T))
-    ft2 = ft[ft>1]
-    # Get full strain names for species that occur only once
-    sp_once = names(ft[ft==1])
-    st_once = c()
-    for (sp in sp_once) {
-      st_once = c(st_once, grep(sp, strains, fixed=T, value=T))
-    }
-    out = c()
-    if (length(ft2) > 0) {
-      out = paste(paste0(paste(names(ft2), ft2, sep='_['), ']'), collapse=',')
-    }
-    if (length(out) > 0 & length(st_once) > 0) {
-      out = paste(out, paste(st_once, collapse=','), sep=',')
-    } else if (length(out) == 0 & length(st_once) > 0) {
-      out = paste(st_once, collapse=',')
-    }
-    return(out)
-    # return(gsub('_[1]', '', out, fixed=T))
-  }
-}
 
 #' Combine BLAST object and a sequence abundance table into OSU table
 #'
