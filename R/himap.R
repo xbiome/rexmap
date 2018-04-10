@@ -79,7 +79,7 @@ assign('taxonomy_file',
 
 # Data.table adjustments
 assign('string_maxwidth', 50, env=himap_opts)
-options('datatable.prettyprint.char'=55)
+options('datatable.prettyprint.char'=30)
 assign('maxrows', 12, env=himap_opts)
 #' HiMAP options
 #'
@@ -113,6 +113,11 @@ himap_setoption = function (option_name, value) {
     # Check that it is an integer
     if (!(class(value) == 'integer')) stop('ncpu must be an integer.')
   }
+  if (option_name == 'datatable.prettyprint.char') {
+    # Check that value is integer
+    options('datatable.prettyprint.char'=value)
+  }
+  # Else just assign stuff
   assign(option_name, )
 }
 
