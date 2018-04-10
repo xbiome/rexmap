@@ -53,17 +53,34 @@ assign('mergepairs_mismatchqs',
        system.file('merge_tables', 'himap_mergepairs_mismatch_qs.txt',
                    package='himap'),
        env=himap_opts)
+# Taxonomy
+assign('taxonomy_file',
+       system.file('database', 'lineages-2017-03-17_bacteria_archaea',
+                   package='himap'),
+       env=himap_opts)
 
-# Interface to load HiMAP default options
-himap_option = function (option_names) {
-  if (is.null(option_names)) return(ls(himap_opts))
 
+#' HiMAP options
+#'
+#' @param option_names A string or a vector of strings with available options. If
+#' not given, then the function lists available options.
+#'
+#' Options:
+#'
+#'
+#' @export
+himap_option = function (option_names=NULL) {
+  if (is.null(option_names)) {
+    cat('HiMAP: available options', fill=T)
+    return(ls(himap_opts))
+  }
   if(!all(option_names %in% ls(himap_opts))) {
     warning("Invalid  option: ", option_names[!(option_names %in% ls(himap_opts))])
     option_names = option_names[option_names %in% ls(himap_opts)]
   }
   if (length(option_names) == 0) stop("Invalid options.")
-  get(option_names, env=himap_opts)
+  # get(option_names, env=himap_opts)
+  sapply(option_names, get, env=himap_opts)
 }
 
 himap_setoption = function (option_name, value) {
@@ -72,6 +89,7 @@ himap_setoption = function (option_name, value) {
     # Check that it is an integer
     if (!(class(value) == 'integer')) stop('ncpu must be an integer.')
   }
+  assign(option_name, )
 }
 
 
@@ -91,15 +109,60 @@ ftquantile = function (ft, prob) {
   return(as.integer(names(ft_relsum[ft_relsum >= prob])[1]))
 }
 
+
+#' DADA2 denoising
+#'
+#' @param pvalth P-value threshold (OMEGA_A) for DADA2 function. If left as NULL
+#' defaults
+#' @param use_intermediate Use saved intermediate files. Used for resuming very
+#' long runs.
+#'
+dada_denoise = function (fq_fil, fq_tri, trunclen, pvalth=NULL, save_intermediate=TRUE,
+                         use_intermediate=FALSE, base_pvalue=1e-4, multithread=himap_option('ncpu'),
+                         verbose=T, error_estimation_nsamples=3) {
+  # Dereplicate reads into a derep object
+  # Check whether intermediate folder exists
+  # Load 1 sample at a time, process it, then combine
+
+  # Learn errors
+  if (verbose) cat('* learn errors')
+  dada_derep = dada2::derepFastq(fq_fil[1:min(length(fq_fil), error_estimation_nsamples)])
+  if (class(dada_derep) != 'list') dada_derep = list(dada_derep)
+  cat('...')
+  if (is.null(pvalth)) {
+    # Find the maximum number of unique sequences across all samples
+    max_num_uniques = max(sapply(fq_fil, function (f) length(dada2::derepFastq(f)$uniques)))
+    pvalth = base_pvalue/max_num_uniques
+  }
+  dada_errors = suppressWarnings(dada2::learnErrors(fq_fil, multithread=multithread, OMEGA_A=pvalth))
+  if (verbose) cat(' OK.', fill=T)
+  dada_results = list()
+  for (i in 1:length(fq_fil)) {
+    fq = fq_fil[i]
+    fqt = fq_tri[i]
+    if (verbose) cat('* processing ', fq, fill=T)
+    dada_derep = list(dada2::derepFastq(fq))
+    dada_res = list(suppressWarnings(dada2::dada(dada_derep, err=dada_errors, OMEGA_A=pvalth, multithread=T)))
+    dada_res = add_consensus(dada_res, dada_derep, fqt, fq, truncLen=trunclen,
+                              ncpu=max(1, as.integer(multithread)), verbose=verbose)
+    dada_results[[length(dada_results)+1]] = dada_res[[1]]
+    names(dada_results)[length(dada_results)] = basename(fq)
+  }
+  return(dada_results)
+}
+
+
 #' Untrim trimmed sequences in a DADA2 object
 #'
 #' @param dada_res DADA2 object with sequences to un-trim.
 #' @param derep DADA2 derep object that was used to obtain dada_res.
-#' @param fq_tri A character vector of FASTQ filenames pre-global-trimming (but after PCR primer trim).
+#' @param fq_tri A character vector of FASTQ filenames pre-global-trimming
+#' (but after PCR primer trim).
 #' @param fq_fil A character vector of FASTQ filenames post-global-trimming and filtering.
 #' @param truncLen Length used to trim.
 #' @param verbose Boolean specifying whether to display progress bar.
-#' @param ncpu Integer specifying number of CPU threads to use. This uses R package "parallel" so works only on macOS and Linux.
+#' @param ncpu Integer specifying number of CPU threads to use. This uses R package "parallel"
+#' so works only on macOS and Linux.
 #'
 add_consensus = function (dada_res, derep, fq_tri, fq_fil, truncLen,
                           verbose=T, ncpu=himap_option('ncpu')) {
@@ -142,14 +205,15 @@ add_consensus = function (dada_res, derep, fq_tri, fq_fil, truncLen,
 #' sequence.
 ab_mat_to_dt = function (ab_tab_nochim, fq_prefix_split='_') {
    ab_tab_nochim.dt = as.data.table(unname(ab_tab_nochim))
-   ab_tab_nochim.dt[, sample_id := sapply(strsplit(dimnames(ab_tab_nochim)[[1]], fq_prefix_split, fixed=T), `[`, 1)]
+   ab_tab_nochim.dt[, sample_id := sapply(strsplit(dimnames(ab_tab_nochim)[[1]],
+                                                   fq_prefix_split, fixed=T), `[`, 1)]
    ab_tab_nochim_m.dt = melt(ab_tab_nochim.dt, id.vars = 'sample_id',
                                variable.name = 'dada2_seqid', value.name = 'raw_count')
    ab_tab_nochim_m.dt[, qseqid := as.integer(gsub('V', '', dada2_seqid))]
    ab_tab_nochim_m.dt[, dada2_seqid := NULL]
    ab_tab_nochim_m.dt = merge(
      ab_tab_nochim_m.dt,
-     data.table(qseqid=1:ncol(ab_tab_nochim_coll), sequence=dimnames(ab_tab_nochim_coll)[[2]])
+     data.table(qseqid=1:ncol(ab_tab_nochim), sequence=dimnames(ab_tab_nochim)[[2]])
    )
    setcolorder(ab_tab_nochim_m.dt, c('sample_id', 'qseqid', 'raw_count', 'sequence'))
    return(ab_tab_nochim_m.dt[])
@@ -237,7 +301,8 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
     (t(eps) %*% eps) + ((x0^2) %*% H(x))
   }
 
-  osu_data_m_single.dt = unique(osu_data_m.dt[, if (length(unique(variant_id)) == 1) .SD, by=osu_id][raw_count > 0, .(osu_id, variant_id, copy_number)])
+  osu_data_m_single.dt = unique(osu_data_m.dt[, if (length(unique(variant_id)) == 1) .SD,
+                                              by=osu_id][raw_count > 0, .(osu_id, variant_id, copy_number)])
 
   osu_sp.dt = cp.dt[, .(species = print_strains(strain, raw=raw)), by=osu_id]
 
@@ -324,7 +389,8 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
           Ar2 = Ar[variant_ids, osu_ids]
           Br2 = Br[variant_ids]
 
-          x = as.matrix(dcast(osu_data_m_single.dt[variant_id %in% variant_ids], variant_id ~ as.character(osu_id), value.var='copy_number')[, -1])
+          x = as.matrix(dcast(osu_data_m_single.dt[variant_id %in% variant_ids],
+                              variant_id ~ as.character(osu_id), value.var='copy_number')[, -1])
           rownames(x) = osu_data_m_single.dt[variant_id %in% variant_ids, variant_id]
           x[is.na(x)] = 0
           Ar3.dt = merge(as.data.table(Ar2, keep.rownames=T),
@@ -410,7 +476,7 @@ sequence_abundance = function (dada_result, remove_bimeras=T, collapse_sequences
                                verbose=T, remove_bimeras_method='consensus',
                                remove_bimeras_oneoff=T, fq_prefix_split='.') {
   # Extract sequences and their counts from the dada class result
-  ab_tab = dada2::makeSequenceTable(dada_res2)
+  ab_tab = dada2::makeSequenceTable(dada_result)
   if (remove_bimeras) {
     ab_tab_nochim = dada2::removeBimeraDenovo(
       ab_tab, method=remove_bimeras_method, allowOneOff=remove_bimeras_oneoff,
@@ -421,4 +487,31 @@ sequence_abundance = function (dada_result, remove_bimeras=T, collapse_sequences
   if (collapse_sequences) ab_tab_nochim_coll = collapse(ab_tab_nochim, verbose=verbose)
   else ab_tab_nochim_coll = ab_tab_nochim
   return(ab_mat_to_dt(ab_tab_nochim_coll, fq_prefix_split=fq_prefix_split))
+}
+
+
+#' Parse genus names and strain counts from each OSU species string
+#'
+osuab_genuses = function (osuab) {
+  osuab[, {
+    species_list = strsplit(species[1], ',', fixed=T)[[1]]
+    genus_counts = lapply(species_list, function (s) {
+      genus = gsub('^([^_]+)_.*', '\\1', s)
+      strain_count = gsub('.*_\\[([0-9]+)\\]$', '\\1', s)
+      if (strain_count == s) strain_count = '1'
+      return(c(genus, strain_count))
+    })
+    genus_counts_unique = list()
+    for (i in 1:length(genus_counts)) {
+      genus_i = genus_counts[[i]][1]
+      counts_i = as.integer(genus_counts[[i]][2])
+      if (genus_i %in% names(genus_counts_unique)) {
+        genus_counts_unique[[genus_i]] = genus_counts_unique[[genus_i]] + counts_i
+      } else {
+        genus_counts_unique[[genus_i]] = counts_i
+      }
+    }
+    # Now pool together same genuses and add up the counts
+    list('genus'=names(genus_counts_unique), 'genus_strain_count'=unname(genus_counts_unique))
+  }, by=osu_id]
 }

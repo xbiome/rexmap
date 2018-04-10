@@ -1,14 +1,53 @@
 
-pcr_primer_filter = function (fq_in, fq_out, pr_fwd='CCTACGGGNGGCWGCAG',
-                              pr_rev='GGATTAGATACCCBDGTAGTCC',
+
+
+
+#' PCR primer trimmer
+#'
+#' Trims PCR primers from FASTQ sequences.
+#'
+#' @param fq_in A character vector of input file names.
+#' @param fq_out A character vector of output file names.
+#' @param region Hypervariable region used. Used to automatically retrieve PCR
+#' primer sequences for trimming.
+#' @param pr_fwd_maxoff Maximum allowed offset from the 5' sequence end for the
+#' forward PCR primer. Primers aligned further into the read ignored.
+#' @param pr_rev_maxoff Same but for reverse PCR primer, from the 3' end.
+#' @param ncpu Number of CPU cores (threads) to use for multithreading. By default
+#' all available CPU cores are used (\code{parallel::detectCores()}).
+#' @param max_mismatch Maximum allowed number of mismatches for each PCR primer,
+#' ignoring any ambiguous nucleotides (not A,C,G or T).
+#' @param timing Display run-time at the end of trimming (default: FALSE).
+#'
+pcr_primer_trimmer = Vectorize(function (fq_in, fq_out, region=NULL,
+                              pr_fwd=NULL,
+                              pr_rev=NULL,
                               pr_fwd_maxoff=10, pr_rev_maxoff=10, return_noprimer=T,
-                              multithread=T, ncpu=detectCores()-1, max_mismatch=2,
+                              ncpu=himap_option('ncpu'), max_mismatch=2,
                               timing=F) {
   # fq_in = input fastq file
   # fq_out = output fastq file (without primers)
   # pr_fwd = forward primer 5'->3'
   # pr_rev = reverse primer 5'->3'
   #
+
+  # Check input
+  if (!all_exist(fq_in)) stop('PCR primer filter: some input files are missing.')
+  if (is.null(region) & (is.null(pr_fwd) | is.null(pr_rev))) {
+    stop('PCR primer filter: either region of pr_fwd and pr_rev need to be specified.')
+  }
+  # if region is specified, check that primers exist in the reference table
+  if (!is.null(region)) {
+    if (nrow(himap_option('blast_dbs')[Hypervariable_region==region]) == 0) {
+      # Missing hypervariable region
+      stop('PCR primer filter: hypervariable region \"', region, '\" not found.')
+    }
+    pr_fwd = himap_option('blast_dbs')[Hypervariable_region==region, Primer1_sequence_5to3]
+    pr_rev = reverse_complement(
+      himap_option('blast_dbs')[Hypervariable_region==region, Primer2_sequence_3to5]
+    )
+  }
+
   # Load Input FASTQ file
   if (timing) start_time = Sys.time()
   # Count extended DNA symbols
@@ -90,6 +129,10 @@ pcr_primer_filter = function (fq_in, fq_out, pr_fwd='CCTACGGGNGGCWGCAG',
       round(as.numeric(diff_time)%%60, 1), ' s.\n')
   }
   return(c('fwd_trim'=fwd_trimmed, 'rev_trim'=rev_trimmed))
-}
+}, vectorize.args=c('fq_in', 'fq_out'))
 
-pcr_primer_trimmer = Vectorize(pcr_primer_filter, vectorize.args=c('fq_in', 'fq_out'))
+
+
+
+
+
