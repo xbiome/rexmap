@@ -17,8 +17,9 @@ Imports:
    ShortRead,
    stringr,
    parallel,
-   RcppParallel,
    Rcpp,
    data.table,
    utils
+Depends:
+   Rcpp
 RoxygenNote: 6.0.1
