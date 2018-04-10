@@ -30,8 +30,8 @@ assign('blast_coll_fmt',
        'qseqid sseqid qlen slen length qstart qend sstart send pident',
        env=himap_opts)
 # BLAST paths
-assign('path_makeblastdb', 'makeblastdb', env=himap_opts)
-assign('path_blastn', 'blastn', env=himap_opts)
+assign('path_makeblastdb', exec_file('makeblastdb'), env=himap_opts)
+assign('path_blastn', exec_file('blastn'), env=himap_opts)
 # BLAST alignment parameters
 assign('aln_params', c(5L, -4L, -8L, -6L), env=himap_opts)
 # Autodetect number of available threads for multithreading parts
