@@ -16,6 +16,24 @@ NULL
   packageStartupMessage('HiMAP v1.0 loaded.')
 }
 
+#' Detect operating system
+detect_os = function () {
+  switch(
+    Sys.info()[['sysname']],
+      Windows= {'win'},
+      Linux  = {'linux'},
+      Darwin = {'osx'}
+  )
+}
+
+exec_file = function (filename) {
+  platform = detect_os()
+  if (platform == 'osx') return(filename)
+  else if (platform == 'linux') return(paste0(filename, '_linux'))
+  else if (platform == 'win') return(paste0(sub('.exe', '', filename),
+                                            '_win.exe'))
+}
+
 # Default options -------------------------------------------------------------
 himap_opts = new.env()
 assign('himap_path', '', env=himap_opts)
@@ -40,7 +58,7 @@ assign('ncpu', parallel::detectCores(), env=himap_opts)
 # BLAST databases
 assign('blast_dbs',
        data.table::fread(system.file('database', 'pcr_primers_table.txt',
-                   package='himap'), header=T, sep='\t'),
+                   package='himap')),
        env=himap_opts)
 assign('blast_max_seqs', 2000, env=himap_opts)
 assign('blast_word_size', 13, env=himap_opts)
@@ -59,7 +77,10 @@ assign('taxonomy_file',
                    package='himap'),
        env=himap_opts)
 
-
+# Data.table adjustments
+assign('string_maxwidth', 50, env=himap_opts)
+options('datatable.prettyprint.char'=55)
+assign('maxrows', 12, env=himap_opts)
 #' HiMAP options
 #'
 #' @param option_names A string or a vector of strings with available options. If
@@ -80,8 +101,11 @@ himap_option = function (option_names=NULL) {
   }
   if (length(option_names) == 0) stop("Invalid options.")
   # get(option_names, env=himap_opts)
-  sapply(option_names, get, env=himap_opts)
+  if (length(option_names) == 1) get(option_names, env=himap_opts)
+  else sapply(option_names, get, env=himap_opts)
 }
+
+
 
 himap_setoption = function (option_name, value) {
   # Simply set option_name to value. Used to change HiMAP defaults. Not finished yet.
@@ -259,12 +283,12 @@ abundance = function (abundance_table, blast_object, ncpu=himap_option('ncpu'), 
   osu_data_m.dt = blast_cp_to_osu_dt(
     blast_best.dt=blast_object$alignments,
     cp.dt=blast_object$cp,
-    ab_tab_nochim_m.dt=abundance_table,
+    ab_tab_nochim_m.dt=abundance_table[, 1:3],
     ncpu=ncpu,
     verbose=verbose
   )
   # Now generate osu abundance table
-  osu_ab.dt = osu_cp_to_all_abs(abundance_table,
+  osu_ab.dt = osu_cp_to_all_abs(abundance_table[, 1:3],
                                 blast_object$alignments,
                                 blast_object$cp,
                                 osu_data_m.dt,

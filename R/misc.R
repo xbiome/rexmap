@@ -85,12 +85,13 @@ print_fixed_length_string = function (x, len=30) {
 }
 
 string_fixed_len = function (x, len=30) {
-  if (is.na(x) | is.null(x)) return(x)
+  if (is.na(x)) return(NA)
   if (nchar(x) > len) return(paste0(substr(x, 1, len-3), '...'))
   else return(x)
 }
 
-print.data.table = function (dt, width=50, topn=10) {
+print.data.table2 = function (dt, width=himap_option('string_maxwidth'),
+                             topn=himap_option('maxrows')) {
    dt2 = head(dt, topn)
    extra_rows = nrow(dt) - topn
    for (j in names(dt2)) {
@@ -100,7 +101,7 @@ print.data.table = function (dt, width=50, topn=10) {
       }
    }
    print.data.frame(dt2)
-   if (extra_rows > 0) cat('...', fill=T)
+   if (extra_rows > 0) cat('...', paste0('(', nrow(dt), ' rows)'), fill=T)
 }
 
 #' Reverse complement sequence string
@@ -110,20 +111,4 @@ reverse_complement = function (seq_string) {
 
 all_exist = function (files) all(file.exists(files))
 
-#' Detect operating system
-detect_os = function () {
-  switch(
-    Sys.info()[['sysname']],
-      Windows= {'win'},
-      Linux  = {'linux'},
-      Darwin = {'osx'}
-  )
-}
 
-exec_file = function (filename) {
-  platform = detect_os()
-  if (platform == 'osx') return(filename)
-  else if (platform == 'linux') return(paste0(filename, '_linux'))
-  else if (platform == 'win') return(paste0(sub('.exe', '', filename),
-                                            '_win.exe'))
-}
