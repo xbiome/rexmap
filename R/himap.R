@@ -57,7 +57,7 @@ assign('aln_params', c(5L, -4L, -8L, -6L), env=himap_opts)
 assign('ncpu', parallel::detectCores(), env=himap_opts)
 # BLAST databases
 assign('blast_dbs',
-       data.table::fread(system.file('database', 'pcr_primers_table.txt',
+       data.table::fread(system.file('inst', 'database', 'pcr_primers_table.txt',
                    package='himap')),
        env=himap_opts)
 assign('blast_max_seqs', 2000, env=himap_opts)
