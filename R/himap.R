@@ -194,7 +194,7 @@ ftquantile = function (ft, prob) {
 #'
 #' @export
 dada_denoise = function (fastq_trimmed, fastq_untrimmed,
-                         trim_length, pvalue=1e-4,
+                         pvalue=1e-4,
                          pvalue_adjusted=NULL,
                          save_intermediate=TRUE,
                          use_intermediate=FALSE,
@@ -210,13 +210,13 @@ dada_denoise = function (fastq_trimmed, fastq_untrimmed,
     fastq_trimmed[1:min(length(fastq_trimmed), error_estimation_nsamples)])
   if (class(dada_derep) != 'list') dada_derep = list(dada_derep)
   cat('...')
-  if (is.null(pvalue_adjusted)) {
-    # Find the maximum number of unique sequences across all samples
-    max_num_uniques = max(
-      sapply(fastq_trimmed, function (f) length(dada2::derepFastq(f)$uniques))
-    )
-    pvalue_adjusted = pvalue/max_num_uniques
-  }
+  # if (is.null(pvalue_adjusted)) {
+  #   # Find the maximum number of unique sequences across all samples
+  #   max_num_uniques = max(
+  #     sapply(fastq_trimmed, function (f) length(dada2::derepFastq(f)$uniques))
+  #   )
+  #   pvalue_adjusted = pvalue/max_num_uniques
+  # }
   dada_errors = suppressWarnings(dada2::learnErrors(
     fastq_trimmed, multithread=multithread, OMEGA_A=pvalue_adjusted
   ))
@@ -227,7 +227,15 @@ dada_denoise = function (fastq_trimmed, fastq_untrimmed,
     fqt = fastq_untrimmed[i]
     if (verbose) cat('* processing ', fq, fill=T)
     dada_derep = list(dada2::derepFastq(fq))
+    if (is.null(pvalue_adjusted)) {
+      # Find the maximum number of unique sequences across all samples
+      num_uniques = length(dada_derep[[1]]$uniques)
+      # Adjust the p-value by an estimate for the total number of comparisons in dada2
+      pvalue_adjusted = pvalue/num_uniques^2
+    }
     dada_res = list(suppressWarnings(dada2::dada(dada_derep, err=dada_errors, OMEGA_A=pvalue_adjusted, multithread=T)))
+    # Extract length to which reads have been truncated
+    trunclen = nchar(dada_res[[1]]$sequence[1])
     dada_res = add_consensus(dada_res, dada_derep, fqt, fq, truncLen=trunclen,
                               ncpu=max(1, as.integer(multithread)), verbose=verbose)
     dada_results[[length(dada_results)+1]] = dada_res[[1]]

@@ -4,7 +4,7 @@
 \alias{dada_denoise}
 \title{DADA2 denoising}
 \usage{
-dada_denoise(fastq_trimmed, fastq_untrimmed, trim_length, pvalue = 1e-04,
+dada_denoise(fastq_trimmed, fastq_untrimmed, pvalue = 1e-04,
   pvalue_adjusted = NULL, save_intermediate = TRUE,
   use_intermediate = FALSE, multithread = himap_option("ncpu"),
   verbose = T, error_estimation_nsamples = 3)
