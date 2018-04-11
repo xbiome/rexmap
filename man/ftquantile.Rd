@@ -6,7 +6,21 @@
 \usage{
 ftquantile(ft, prob)
 }
+\arguments{
+\item{prob}{Probability.}
+}
 \description{
 Outputs a quantile corresponding to a given probability \code{prob}
-from a frequency table \code{ft}. Like the base R code \code{}
+from a frequency table \code{ft}. We use this to find the minimum sequence length
+above which we have certain fraction of reads.
+}
+\details{
+Similar to the base R code \code{\link{quantile}}, but works with
+frequency table instead of the raw list.
+}
+\examples{
+# Find minimum sequence length, above which we have 99\% reads
+seqlen.ft = sequence_length_table(fq_tri)
+ftquantile(seqlen.ft, 0.01)
+
 }

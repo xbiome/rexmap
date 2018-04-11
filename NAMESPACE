@@ -3,6 +3,7 @@
 export(abundance)
 export(blast)
 export(dada_denoise)
+export(ftquantile)
 export(himap_option)
 export(ie)
 export(merge_pairs)

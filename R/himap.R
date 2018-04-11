@@ -143,9 +143,21 @@ sequence_length_table = function (fastq_files) {
 #' Quantile from frequency table
 #'
 #' Outputs a quantile corresponding to a given probability \code{prob}
-#' from a frequency table \code{ft}. Like the base R code \code{}
+#' from a frequency table \code{ft}. We use this to find the minimum sequence length
+#' above which we have certain fraction of reads.
 #'
+#' Similar to the base R code \code{\link{quantile}}, but works with
+#' frequency table instead of the raw list.
 #'
+#' @param ft Frequency table of sequence lengths. Output from \code{link{{sequence_length_table}}.
+#' @param prob Probability.
+#'
+#' @examples
+#' # Find minimum sequence length, above which we have 99% reads
+#' seqlen.ft = sequence_length_table(fq_tri)
+#' ftquantile(seqlen.ft, 0.01)
+#'
+#' @export
 ftquantile = function (ft, prob) {
   # Return a quantile from a frequency table ft at given probability prob.
   ft_relsum = cumsum(ft)/sum(ft)
