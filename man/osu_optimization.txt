@@ -1,0 +1,47 @@
+R constOptim:
+
+ui %*% theta - ci >= 0
+
+theta = our OSU bins (x)
+ci = sequence raw counts
+ui = matrix of copy numbers
+
+f, grad
+
+f(x) = ||U*Theta - C||^2 + lambda*||Theta||^2
+
+with two variables: f(x1, x2) = (u11*x1 + u12*x2 - c1)^2 + (u21*x1 + u22*x2 - c2)^2 + (u31*x1 + u32*x2 - c3)^2
+                                + lambda*(x1^2 + x2^2)
+
+
+Derivative:
+
+df/dx1 = df(x1, x2)/dx1 = 2*(u11*x1 + u12*x2 - c1)*u11 + 2*(u21*x1 + u22*x2 - c2)*u21 + 2*(u31*x1 + u32*x2 - c3)*u31
+                          + 2*lambda*x1
+
+                            ( | u11 u12 | | x1 |   | c1 |)     | u11 |
+                        = 2*( | u21 u22 | | x2 | - | c2 |) %*% | u21 | + 2*lambda*x1
+                            ( | u31 u32 |          | c3 |)     | u31 |
+
+                            ( | u11 u12 | | x1 |   | c1 |)     | u1j |
+df/dxj =                = 2*( | u21 u22 | | x2 | - | c2 |) %*% | u2j | + 2*lambda*xj
+                            ( | u31 u32 |          | c3 |)     | u3j |
+
+
+df/dx = 2*||U*Theta-C||
+
+f = function (x, A, B, lambda) {
+    # Return an optimization function
+	eps = A %*% x - B
+	t(eps) %*% eps + lambda*(t(x) %*% x)
+}
+
+fgrad = function (x, A, B, lambda) {
+	# Return a gradient of the optimization function
+	sapply(1:ncol(A), function (j) 2*(A %*% x - B) %*% as.matrix(A[,j]) + 2*lambda*x[j])
+}
+
+
+What if we try to put cost that is a log(x)?
+
+
