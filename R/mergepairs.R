@@ -54,6 +54,12 @@ merge_pairs = Vectorize(function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_
     }
   }
 
+  # Does output folder exist?
+  output_folders = unique(dirname(fq_mer))
+  for (out_f in output_folders) {
+    if (!dir.exists(out_f)) dir.create(out_f, recursive=T)
+  }
+
   # Load reads using ShortRead::FastqStreamer
   m('Loading FASTQ reads...')
   f_fwd = ShortRead::FastqStreamer(fq_fwd)

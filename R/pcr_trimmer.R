@@ -55,6 +55,12 @@ pcr_primer_trimmer = Vectorize(function (fq_in, fq_out, region=NULL,
     )
   }
 
+  # Check if all output folders exist, and if not create them
+  output_folders = unique(dirname(fq_out))
+  for (out_f in output_folders) {
+    if (!dir.exists(out_f)) dir.create(out_f, recursive=T)
+  }
+
   # Load Input FASTQ file
   if (timing) start_time = Sys.time()
   # Count extended DNA symbols

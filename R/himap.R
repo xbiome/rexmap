@@ -6,6 +6,7 @@
 #' @importFrom data.table setkey
 #' @importFrom data.table setcolorder
 #' @importFrom data.table key
+#' @importFrom data.table copy
 #' @importFrom dada2 filterAndTrim
 #' @importFrom stringr str_sub
 #' @useDynLib himap
