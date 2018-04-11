@@ -6,8 +6,7 @@
 \usage{
 merge_pairs(fq_fwd, fq_rev, fq_mer, min_sim = 0.75, min_aln_len = 50,
   match = 5L, mismatch = -5L, gap_p = -7L, rc_reverse = TRUE,
-  threads = himap_option("ncpu"), verbose = FALSE, timing = FALSE,
-  path_posterior = dirname(himap_option("mergepairs_matchqs")))
+  ncpu = himap_option("ncpu"), verbose = FALSE, timing = FALSE)
 }
 \arguments{
 \item{fq_fwd}{A character vector for input forward FASTQ files (can be gzipped).}
@@ -28,14 +27,11 @@ merge_pairs(fq_fwd, fq_rev, fq_mer, min_sim = 0.75, min_aln_len = 50,
 
 \item{rc_reverse}{TRUE/FALSE Reverse complement reverse reads? (default: TRUE)}
 
-\item{threads}{Number of CPU threads to use for multithreading.}
+\item{ncpu}{Number of CPU threads to use for multithreading.}
 
 \item{verbose}{TRUE/FALSE Display of status messages.}
 
 \item{timing}{TRUE/FALSE Time merging.}
-
-\item{path_posterior}{Path to two files with pre-computed posterior quality scores for read merging.
-Don't need to ever change this.}
 }
 \description{
 Merges reads using overlap version of the Needleman-Wunsch alignment algorithm and calculate

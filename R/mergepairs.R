@@ -12,18 +12,16 @@
 #' @param mismatch Score for character mismatch in the alignment (default: -5)
 #' @param gap_p Score for gap penalty, either gap opening on gap extension (default: -7).
 #' @param rc_reverse TRUE/FALSE Reverse complement reverse reads? (default: TRUE)
-#' @param threads Number of CPU threads to use for multithreading.
+#' @param ncpu Number of CPU threads to use for multithreading.
 #' @param verbose TRUE/FALSE Display of status messages.
 #' @param timing TRUE/FALSE Time merging.
-#' @param path_posterior Path to two files with pre-computed posterior quality scores for read merging.
-#' Don't need to ever change this.
 #'
 #' @export
 merge_pairs = Vectorize(function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
                               match=5L, mismatch=-5L, gap_p=-7L, rc_reverse=TRUE,
-                              threads = himap_option('ncpu'),
-                              verbose=FALSE, timing=FALSE,
-                              path_posterior = dirname(himap_option('mergepairs_matchqs'))) {
+                              ncpu = himap_option('ncpu'),
+                              verbose=FALSE, timing=FALSE
+                              ) {
   # fq_fwd = vector of filenames (incl. paths) to forward reads
   # fq_rev = vector of filenames (incl. paths) to reverse reads
   # fq_mer = vector of filenames (incl. paths) to write merged reads
@@ -44,9 +42,10 @@ merge_pairs = Vectorize(function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_
   #  output from mergepairs_generate_posterior_probabilities.py
   if (timing) start_time = Sys.time()
 
-    if (is.na(threads) | threads == 0) {
-    # If we can't figure out number of threads, set it to 2
-    threads = 2
+    if (is.na(ncpu) | ncpu == 0) {
+      # If we can't figure out number of threads, set it to 2 or just stop?
+      ncpu = 2
+      stop('Merge pairs: invalid number of CPU threads.')
   }
   m = function (...) {
     # Print message if verbose is enabled.
@@ -77,10 +76,10 @@ merge_pairs = Vectorize(function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_
   m('Merging pairs...')
   merged_list = parallel::mcmapply(C_mergepairs, read_fwd, read_rev, qual_fwd, qual_rev,
                          match=match, mismatch=mismatch, gap_p=gap_p,
-                         min_sim=min_sim, min_aln_len=min_aln_len,
+                         min_pct_sim=min_sim, min_aln_len=min_aln_len,
                          posterior_match_file=himap_option('mergepairs_matchqs'),
                          posterior_mismatch_file=himap_option('mergepairs_mismatchqs'),
-                         mc.cores=threads
+                         mc.cores=ncpu
                        )
   m(' OK.\n')
   merged_aln_filter = as.logical(unname(merged_list[3, ])) &
