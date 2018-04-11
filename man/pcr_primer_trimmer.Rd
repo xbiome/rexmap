@@ -15,7 +15,15 @@ pcr_primer_trimmer(fq_in, fq_out, region = NULL, pr_fwd = NULL,
 \item{fq_out}{A character vector of output file names.}
 
 \item{region}{Hypervariable region used. Used to automatically retrieve PCR
-primer sequences for trimming.}
+primer sequences for trimming. If this parameter is used (not NULL), then
+\code{pr_fwd} and \code{pr_rev} are ignored.}
+
+\item{pr_fwd}{Sequence for the \strong{forward} PCR primer (5' -> 3') in the extended
+nucleotide code.}
+
+\item{pr_rev}{Sequence for the \strong{reverse} PCR primer (5' -> 3') in the extended
+nucleotide code. If you already have 3' -> 5' sequence, use \code{\link{reverse_complement}}
+to obtain the 5' -> 3' sequence.}
 
 \item{pr_fwd_maxoff}{Maximum allowed offset from the 5' sequence end for the
 forward PCR primer. Primers aligned further into the read ignored.}
