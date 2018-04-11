@@ -6,7 +6,7 @@
 #' @param fq_fwd A character vector for input forward FASTQ files (can be gzipped).
 #' @param fq_rev A character vector for input reverse FASTQ files (can be gzipped).
 #' @param fq_mer A character vector for output merged FASTQ files.
-#' @param min_sim Minimum similarity to accept an alignment. A floating point number between 0 and 1. Default: 0.75, corresponding to minimum 75% similarity in the aligned overlap region.
+#' @param min_sim Minimum similarity to accept an alignment. A floating point number between 0 and 1. Default: 0.75, corresponding to minimum 75\% similarity in the aligned overlap region.
 #' @param min_aln_len Minimum alignment length. Ignore alignments below this alignment length.
 #' @param match Score for character match in the alignment (default: 5.
 #' @param mismatch Score for character mismatch in the alignment (default: -5)
