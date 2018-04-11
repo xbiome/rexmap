@@ -1,5 +1,9 @@
 
 #' Shortcut IF/ELSE function
+#'
+#' if \code{test} evaluates to TRUE, return \code{yes}. Otherwise return \code{no}.
+#'
+#' @export
 ie = function(test, yes, no) {
   if (test) yes
   else no
@@ -11,12 +15,27 @@ ie = function(test, yes, no) {
 #' @param filenames A character vector of filenames.
 #' @param separator A single character used delimiting sample id from the
 #' rest of FASTQ filename.
+#'
+#' @export
 sampleids_from_filenames = function (filenames, separator='_') {
   # Get sample ids from FASTQ filenames
   sapply(strsplit(basename(filenames), separator, fixed=T), `[`, 1)
 }
 
-
+#' Read files from a folder satisfying a pattern.
+#'
+#' Shortcut for \code{sort(dir(path, pattern, full.names=T))}
+#'
+#' @param path Full path to the folder to list files in.
+#' @param pattern Pattern for pattern matching. If '' then
+#' list all files.
+#'
+#' @examples
+#' read_files('~/data/diabimmune/fastq_tutorial', 'R1') # Get forward reads
+#' read_files('~/data/diabimmune/fastq_tutorial', 'R@') # Get reverse reads
+#'
+#'
+#' @export
 read_files = function (path, pattern='') {
   sort(dir(path, pattern, full.names=T))
 }
@@ -25,6 +44,8 @@ read_files = function (path, pattern='') {
 #'
 #' Condense a character vector of strain names to a more managable
 #' shorter string.
+#'
+#' @export
 print_strains = function (strains, raw=T) {
   # Input: vector of strains
   # Prints a single string with reduced list of strains
@@ -105,6 +126,15 @@ print.data.table2 = function (dt, width=himap_option('string_maxwidth'),
 }
 
 #' Reverse complement sequence string
+#'
+#' Take a character string \code{seq_string} and reverse complement it using
+#' Biostrings package function \code{reverseComplement}. Supports extended
+#' nucleotide code, so good for reverse complementing PCR primer sequences.
+#'
+#' Shortcut for the monstrostity of:
+#' \code{as.character(Biostrings::reverseComplement(Biostrings::DNAString(seq_string)))}
+#'
+#' @export
 reverse_complement = function (seq_string) {
    as.character(Biostrings::reverseComplement(Biostrings::DNAString(seq_string)))
 }

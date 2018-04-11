@@ -82,7 +82,8 @@ assign('taxonomy_file',
 # Data.table adjustments
 assign('string_maxwidth', 50, env=himap_opts)
 options('datatable.prettyprint.char'=30)
-assign('maxrows', 12, env=himap_opts)
+
+# assign('maxrows', 12, env=himap_opts)
 #' HiMAP options
 #'
 #' @param option_names A string or a vector of strings with available options. If
@@ -123,17 +124,28 @@ himap_setoption = function (option_name, value) {
   assign(option_name, )
 }
 
-
-#' Generate a frequency table of sequence lengths in FASTQ files
+#' Frequency table of sequence lengths
+#'
+#' Generate a frequency table of sequence lengths from FASTQ files.
+#' The resulting table object can be visuaized with base plot function.
 #'
 #' @param fastq_files A character vector of FASTQ filenames.
-#' The resulting "table" object can be visuaized with base plot function.
+#' @examples
+#'
+#'
+#' @export
 sequence_length_table = function (fastq_files) {
   return(
     table(unlist(sapply(fastq_files, function (f) nchar(sfastq_reader(f)$seqs))))
   )
 }
 
+#' Quantile from frequency table
+#'
+#' Outputs a quantile corresponding to a given probability \code{prob}
+#' from a frequency table \code{ft}. Like the base R code \code{}
+#'
+#'
 ftquantile = function (ft, prob) {
   # Return a quantile from a frequency table ft at given probability prob.
   ft_relsum = cumsum(ft)/sum(ft)
@@ -143,13 +155,38 @@ ftquantile = function (ft, prob) {
 
 #' DADA2 denoising
 #'
-#' @param pvalth P-value threshold (OMEGA_A) for DADA2 function. If left as NULL
-#' defaults
+#' Uses DADA2 algorithm to denoise trimmed FASTQ files \code{fastq_trimmed}.
+#' DADA2 partitions sequences based on their quality score profiles, using a
+#' \code{pvalue_adjusted} parameter (\code{OMEGA_A} in the paper) as a cutoff
+#' for forming new partitions. (See DADA2 paper
+#' [Callahan et al. Nature Methods 2016] for details.)
+#' If \code{pvalue}
+#' is given (default), then the \code{pvalue_threshold} is calculated by dividing
+#' the \code{pvalue} by the maximum number of unique sequences from all samples.
+#' Otherwise \code{pvalue_threshold} is used directly.
+#'
+#' After denoising, the untrimmed parts of sequences are retrieved from
+#' \code{fastq_untrimmed} files and for each partition a consensus sequence
+#' of that part is concatenaded to its end, omitting everything after
+#' (and including) any indel and N.
+#'
+#' @param pvalue P-value threshold before Bonferroni correction for DADA2.
+#' @param pvalue_adjusted P-value threshold after Bonferroni correction for DADA2.
+#' If left as NULL, adjusted pvalue is calculated by taking \code{pvalue} and
+#' dividing it by the maximum number of unique sequences across all samples.
+#' @param multithread TRUE/FALSE or the number of CPU threads to use for multithreading.
+#' Does not work on Windows due to \code{parallel} package implementation.
 #' @param use_intermediate Use saved intermediate files. Used for resuming very
 #' long runs.
+#' @param verbose TRUE/FALSE: display of status messages.
 #'
-dada_denoise = function (fq_fil, fq_tri, trunclen, pvalth=NULL, save_intermediate=TRUE,
-                         use_intermediate=FALSE, base_pvalue=1e-4, multithread=himap_option('ncpu'),
+#' @export
+dada_denoise = function (fastq_trimmed, fastq_untrimmed,
+                         trim_length, pvalue=1e-4,
+                         pvalue_adjusted=NULL,
+                         save_intermediate=TRUE,
+                         use_intermediate=FALSE,
+                         multithread=himap_option('ncpu'),
                          verbose=T, error_estimation_nsamples=3) {
   # Dereplicate reads into a derep object
   # Check whether intermediate folder exists
@@ -157,23 +194,28 @@ dada_denoise = function (fq_fil, fq_tri, trunclen, pvalth=NULL, save_intermediat
 
   # Learn errors
   if (verbose) cat('* learn errors')
-  dada_derep = dada2::derepFastq(fq_fil[1:min(length(fq_fil), error_estimation_nsamples)])
+  dada_derep = dada2::derepFastq(
+    fastq_trimmed[1:min(length(fastq_trimmed), error_estimation_nsamples)])
   if (class(dada_derep) != 'list') dada_derep = list(dada_derep)
   cat('...')
-  if (is.null(pvalth)) {
+  if (is.null(pvalue_adjusted)) {
     # Find the maximum number of unique sequences across all samples
-    max_num_uniques = max(sapply(fq_fil, function (f) length(dada2::derepFastq(f)$uniques)))
-    pvalth = base_pvalue/max_num_uniques
+    max_num_uniques = max(
+      sapply(fastq_trimmed, function (f) length(dada2::derepFastq(f)$uniques))
+    )
+    pvalue_adjusted = pvalue/max_num_uniques
   }
-  dada_errors = suppressWarnings(dada2::learnErrors(fq_fil, multithread=multithread, OMEGA_A=pvalth))
+  dada_errors = suppressWarnings(dada2::learnErrors(
+    fastq_trimmed, multithread=multithread, OMEGA_A=pvalue_adjusted
+  ))
   if (verbose) cat(' OK.', fill=T)
   dada_results = list()
-  for (i in 1:length(fq_fil)) {
-    fq = fq_fil[i]
-    fqt = fq_tri[i]
+  for (i in 1:length(fastq_trimmed)) {
+    fq = fastq_trimmed[i]
+    fqt = fastq_untrimmed[i]
     if (verbose) cat('* processing ', fq, fill=T)
     dada_derep = list(dada2::derepFastq(fq))
-    dada_res = list(suppressWarnings(dada2::dada(dada_derep, err=dada_errors, OMEGA_A=pvalth, multithread=T)))
+    dada_res = list(suppressWarnings(dada2::dada(dada_derep, err=dada_errors, OMEGA_A=pvalue_adjusted, multithread=T)))
     dada_res = add_consensus(dada_res, dada_derep, fqt, fq, truncLen=trunclen,
                               ncpu=max(1, as.integer(multithread)), verbose=verbose)
     dada_results[[length(dada_results)+1]] = dada_res[[1]]
@@ -252,8 +294,11 @@ ab_mat_to_dt = function (ab_tab_nochim, fq_prefix_split='_') {
 
 #' Saves sequences from HiMAP sequence abundance table to FASTA file
 #'
+#' @param abundance_table Output from \code{\link{sequence_abundance}} function.
 #' @param remove_from_table If TRUE, column with sequences (names sequences)
 #' is removed from the data table after the FASTA file is written to disk.
+#'
+#' @export
 sequences_to_fasta = function (abundance_table, fasta_out, remove_from_table=F) {
   if ('sequence' %in% names(abundance_table)) {
     with(unique(abundance_table[, .(qseqid, sequence)])[order(qseqid)],
@@ -275,6 +320,14 @@ pctsim_range = function (p) return(max(p, na.rm=T))
 
 #' Combine BLAST object and a sequence abundance table into OSU table
 #'
+#' @param abundance_table Sequence abundance table
+#' @param blast_object BLAST output class, output from \code{\link{blast}} function.
+#' @param verbose TRUE/FALSE: display status messages
+#' @param raw_strains TRUE/FALSE: whether to report full strain information for each OSU
+#' @param ncpu Integer specifying number of CPU threads to use. This uses R package "parallel"
+#' (TRUE) or to simplify the output when multiple strains of the same species are in the
+#' same OSU (FALSE).
+#'
 #' @importFrom igraph make_empty_graph
 #' @importFrom igraph add_vertices
 #' @importFrom igraph add_edges
@@ -284,6 +337,7 @@ pctsim_range = function (p) return(max(p, na.rm=T))
 #' @importFrom limSolve lsei
 #' @importFrom pso psoptim
 #'
+#' @export
 abundance = function (abundance_table, blast_object, ncpu=himap_option('ncpu'), verbose=T,
                       raw_strains=FALSE) {
   # Generate OSU data table first
@@ -503,6 +557,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
 #' @param remove_bimeras_method Method to remove bimeras. See ?dada2::removeBimeraDenovo
 #' for more options.
 #'
+#' @export
 sequence_abundance = function (dada_result, remove_bimeras=T, collapse_sequences=T,
                                verbose=T, remove_bimeras_method='consensus',
                                remove_bimeras_oneoff=T, fq_prefix_split='.') {
