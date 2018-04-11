@@ -582,15 +582,23 @@ sequence_abundance = function (dada_result, remove_bimeras=T, collapse_sequences
                                verbose=T, remove_bimeras_method='consensus',
                                remove_bimeras_oneoff=T, fq_prefix_split='.') {
   # Extract sequences and their counts from the dada class result
+  if (verbose) cat('* generating sequence table...')
   ab_tab = dada2::makeSequenceTable(dada_result)
+  if (verbose) cat(' OK.', fill=T)
   if (remove_bimeras) {
+    if (verbose) cat('* removing bimeras...')
     ab_tab_nochim = dada2::removeBimeraDenovo(
       ab_tab, method=remove_bimeras_method, allowOneOff=remove_bimeras_oneoff,
       multithread=ie(himap_option('ncpu') > 1, T, F), verbose=verbose)
+    if (verbose) cat(' OK.', fill=T)
   } else {
     ab_tab_nochim = ab_tab
   }
-  if (collapse_sequences) ab_tab_nochim_coll = collapse(ab_tab_nochim, verbose=verbose)
+  if (collapse_sequences) {
+    if (verbose) cat('* adding together sequences that differ in shifts on lengths...')
+    ab_tab_nochim_coll = collapse(ab_tab_nochim, verbose=verbose)
+    if (verbose) cat(' OK.', fill=T)
+  }
   else ab_tab_nochim_coll = ab_tab_nochim
   return(ab_mat_to_dt(ab_tab_nochim_coll, fq_prefix_split=fq_prefix_split))
 }
