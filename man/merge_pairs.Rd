@@ -16,8 +16,7 @@ merge_pairs(fq_fwd, fq_rev, fq_mer, min_sim = 0.75, min_aln_len = 50,
 
 \item{fq_mer}{A character vector for output merged FASTQ files.}
 
-\item{min_sim}{Minimum similarity to accept an alignment. A floating point number between
-0 and 1. Default: 0.75, corresponding to minimum 75% similarity in the aligned overlap region.}
+\item{min_sim}{Minimum similarity to accept an alignment. A floating point number between 0 and 1. Default: 0.75, corresponding to minimum 75% similarity in the aligned overlap region.}
 
 \item{min_aln_len}{Minimum alignment length. Ignore alignments below this alignment length.}
 
