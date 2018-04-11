@@ -141,4 +141,9 @@ reverse_complement = function (seq_string) {
 
 all_exist = function (files) all(file.exists(files))
 
-
+#' Generate random sequence of given length
+#'
+#' @export
+random_sequences = function(len=50, n=10, dictionary=c('A', 'C', 'G', 'T')) {
+  do.call(paste0, replicate(len, sample(dictionary, n, TRUE), FALSE))
+}

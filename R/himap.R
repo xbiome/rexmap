@@ -210,13 +210,13 @@ dada_denoise = function (fastq_trimmed, fastq_untrimmed,
     fastq_trimmed[1:min(length(fastq_trimmed), error_estimation_nsamples)])
   if (class(dada_derep) != 'list') dada_derep = list(dada_derep)
   cat('...')
-  # if (is.null(pvalue_adjusted)) {
-  #   # Find the maximum number of unique sequences across all samples
-  #   max_num_uniques = max(
-  #     sapply(fastq_trimmed, function (f) length(dada2::derepFastq(f)$uniques))
-  #   )
-  #   pvalue_adjusted = pvalue/max_num_uniques
-  # }
+  if (is.null(pvalue_adjusted)) {
+    # Find the maximum number of unique sequences across all samples
+    max_num_uniques = max(
+      sapply(fastq_trimmed, function (f) length(dada2::derepFastq(f)$uniques))
+    )
+    pvalue_adjusted = pvalue/max_num_uniques
+  }
   dada_errors = suppressWarnings(dada2::learnErrors(
     fastq_trimmed, multithread=multithread, OMEGA_A=pvalue_adjusted
   ))

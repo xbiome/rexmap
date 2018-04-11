@@ -87,6 +87,8 @@ collapse = function (ab_in, verbose=T) {
   # Collapse sequences that are exact matches, up to shifts and/or length
   # Provide ab_tab_nochim as an input argument
 
+  # To do: Check that collapse pulls together more than 2 sequences.
+
   # Generate temp files, this automatically generates file names
   if (verbose) cat('collapse:\n')
   if (verbose) cat('* generating temporary files...')
