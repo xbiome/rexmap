@@ -1,8 +1,30 @@
-# HiMAP merge pairs function
-himap_merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_pct_sim=0.75, min_aln_len=50,
+#' Merge paired-end reads
+#'
+#' Merges reads using overlap version of the Needleman-Wunsch alignment algorithm and calculate
+#' merged quality scores based on the posterior probabilities (cite: Edgar, Fyelberg)
+#'
+#' @param fq_fwd A character vector for input forward FASTQ files (can be gzipped).
+#' @param fq_rev A character vector for input reverse FASTQ files (can be gzipped).
+#' @param fq_mer A character vector for output merged FASTQ files.
+#' @param min_sim Minimum similarity to accept an alignment. A floating point number between
+#' 0 and 1. Default: 0.75, corresponding to minimum 75% similarity in the aligned overlap region.
+#' @param min_aln_len Minimum alignment length. Ignore alignments below this alignment length.
+#' @param match Score for character match in the alignment (default: 5.
+#' @param mismatch Score for character mismatch in the alignment (default: -5)
+#' @param gap_p Score for gap penalty, either gap opening on gap extension (default: -7).
+#' @param rc_reverse TRUE/FALSE Reverse complement reverse reads? (default: TRUE)
+#' @param threads Number of CPU threads to use for multithreading.
+#' @param verbose TRUE/FALSE Display of status messages.
+#' @param timing TRUE/FALSE Time merging.
+#' @param path_posterior Path to two files with pre-computed posterior quality scores for read merging.
+#' Don't need to ever change this.
+#'
+#' @export
+merge_pairs = Vectorize(function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
                               match=5L, mismatch=-5L, gap_p=-7L, rc_reverse=TRUE,
-                              threads = 10, verbose=FALSE, timing=FALSE,
-                              path_posterior = '/data1/igor/himap/data/') {
+                              threads = himap_option('ncpu'),
+                              verbose=FALSE, timing=FALSE,
+                              path_posterior = dirname(himap_option('mergepairs_matchqs'))) {
   # fq_fwd = vector of filenames (incl. paths) to forward reads
   # fq_rev = vector of filenames (incl. paths) to reverse reads
   # fq_mer = vector of filenames (incl. paths) to write merged reads
@@ -56,7 +78,7 @@ himap_merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_pct_sim=0.75, min_aln_
   m('Merging pairs...')
   merged_list = parallel::mcmapply(C_mergepairs, read_fwd, read_rev, qual_fwd, qual_rev,
                          match=match, mismatch=mismatch, gap_p=gap_p,
-                         min_pct_sim=min_pct_sim, min_aln_len=min_aln_len,
+                         min_sim=min_sim, min_aln_len=min_aln_len,
                          posterior_match_file=himap_option('mergepairs_matchqs'),
                          posterior_mismatch_file=himap_option('mergepairs_mismatchqs'),
                          mc.cores=threads
@@ -98,8 +120,6 @@ himap_merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_pct_sim=0.75, min_aln_
       round(as.numeric(diff_time)%%60, 1), ' s.\n')
   }
   return(stats)
-}
+}, c('fq_fwd', 'fq_rev', 'fq_mer'))
 
-# Vectorized himap merge pairs
-merge_pairs = Vectorize(himap_merge_pairs, c('fq_fwd', 'fq_rev', 'fq_mer'))
 
