@@ -59,6 +59,8 @@ osuab_genuses = function (osuab) {
 #' Generate taxonomy for each OSU
 #'
 #' @param osu_abundance_table Data table with OSU abundances. Output from abundance().sssss
+#'
+#' @export
 taxonomy = function (osu_abundance_table) {
   taxonomy.dt = load_taxonomy()
   taxonomy.dt[, c('tax_id', 'species') := NULL]

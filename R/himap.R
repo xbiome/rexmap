@@ -6,6 +6,7 @@
 #' @importFrom data.table as.data.table
 #' @importFrom data.table setkey
 #' @importFrom data.table setcolorder
+#' @importFrom data.table setorder
 #' @importFrom data.table key
 #' @importFrom data.table copy
 #' @importFrom dada2 filterAndTrim
@@ -380,7 +381,8 @@ abundance = function (abundance_table, blast_object, ncpu=himap_option('ncpu'), 
                                 osu_data_m.dt,
                                 ncpu=ncpu, verbose=verbose,
                                 raw=raw_strains)
-
+  setcolorder(osu_ab.dt, c('sample_id', 'osu_id', 'osu_count', 'pctsim', 'species'))
+  setorder(osu_ab.dt, sample_id, -osu_count)
   return(osu_ab.dt)
 }
 
