@@ -251,7 +251,7 @@ blast = function (sequences, blast_output, region=NULL, ref_db=NULL,
   # that is a list of sequences.
   sequences_type = NULL
   if ('data.table' %in% class(sequences)) {
-    if ('sequences' %in% names(sequences)) {
+    if ('sequence' %in% names(sequences)) {
       # It's an abundance table. Create temporary FASTA file to run BLAST then
       # delete it afterwards.
       sequences_type = 'dt'
@@ -260,7 +260,7 @@ blast = function (sequences, blast_output, region=NULL, ref_db=NULL,
       sequences_to_fasta(sequences, fasta_file)
       if (verbose) cat('* blast input type: abundance table', fill=T)
     } else {
-      stop('blast: input abundance table does not have \"sequences\" column.')
+      stop('blast: input abundance table does not have \"sequence\" column.')
     }
   } else {
     # First check that the class is character
@@ -270,7 +270,8 @@ blast = function (sequences, blast_output, region=NULL, ref_db=NULL,
         sequences_type = 'DNA'
         rand_id = sample(LETTERS, 10)
         fasta_file = file.path(tempdir(), paste(c('blast_', rand_id, '.fasta'), collapse=''))
-        sequences_to_fasta(data.table(qseqid=1:length(sequences)), fasta_file)
+        sequences_to_fasta(data.table(qseqid=1:length(sequences),
+                                      sequence=sequences), fasta_file)
         if (verbose) cat('* blast input type: character vector', fill=T)
       } else {
         # Looks like a FASTA file. Just check that it exists.
