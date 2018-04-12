@@ -7,7 +7,6 @@
 #' @importFrom data.table setcolorder
 #' @importFrom data.table key
 #' @importFrom data.table copy
-#' @importFrom data.table melt
 #' @importFrom dada2 filterAndTrim
 #' @importFrom stringr str_sub
 #' @useDynLib himap
@@ -302,7 +301,7 @@ ab_mat_to_dt = function (ab_tab_nochim, fq_prefix_split='_') {
    ab_tab_nochim.dt = as.data.table(unname(ab_tab_nochim))
    ab_tab_nochim.dt[, sample_id := sapply(strsplit(dimnames(ab_tab_nochim)[[1]],
                                                    fq_prefix_split, fixed=T), `[`, 1)]
-   ab_tab_nochim_m.dt = melt(ab_tab_nochim.dt, id.vars = 'sample_id',
+   ab_tab_nochim_m.dt = data.table::melt(ab_tab_nochim.dt, id.vars = 'sample_id',
                                variable.name = 'dada2_seqid', value.name = 'raw_count')
    ab_tab_nochim_m.dt[, qseqid := as.integer(gsub('V', '', dada2_seqid))]
    ab_tab_nochim_m.dt[, dada2_seqid := NULL]
