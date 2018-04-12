@@ -3,6 +3,7 @@
 
 # Import these functions for everything
 #' @importFrom data.table data.table
+#' @importFrom data.table as.data.table
 #' @importFrom data.table setkey
 #' @importFrom data.table setcolorder
 #' @importFrom data.table key
