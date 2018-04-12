@@ -7,7 +7,7 @@
 blast(sequences, blast_output, region = NULL, ref_db = NULL,
   ref_cp = NULL, max_target_seqs = himap_option("blast_max_seqs"),
   word_size = himap_option("blast_word_size"),
-  verbose = himap_option("verbose"))
+  verbose = himap_option("verbose"), show_args = F)
 }
 \arguments{
 \item{sequences}{(Required) Either a FASTA file, a character vector of DNA sequences, or

@@ -4,7 +4,7 @@
 \alias{collapse}
 \title{Collapse sequences that are exact matches, up to shifts and/or length}
 \usage{
-collapse(ab_in, verbose = T)
+collapse(ab_in, verbose = himap_option("verbose"))
 }
 \description{
 Collapse sequences that are exact matches, up to shifts and/or length
