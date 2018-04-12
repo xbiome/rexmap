@@ -70,7 +70,7 @@ blastn = function (
       '-max_target_seqs', max_target_seqs, '-perc_identity', perc_identity
       # '-qcov_hsp_perc', query_coverage_pct
   )
-  # cat(paste(blast_args, sep=' '), fill=T)
+  if (output_err != F) cat(paste(blast_args, sep=' '), fill=T)
   x = system2(blast_path, args=blast_args, stdout=output, stderr=output_err)
   return(x)
 }
@@ -82,13 +82,16 @@ ts = function () return(sub(' ', '_', gsub(':', '-', Sys.time())))
 min_seq_len = function (fasta_files, n=50) {
    return(min(sapply(fasta_files, function (f) {
      return(nchar(fasta_reader(f)$seqs[1:n]))
-   })))
+   }), na.rm=T))
 }
 
 #' Collapse sequences that are exact matches, up to shifts and/or length
 #'
+#' @importFrom igraph make_graph
+#' @importFrom igraph groups
+#' @importFrom igraph clusters
 #' @export
-collapse = function (ab_in, verbose=T) {
+collapse = function (ab_in, verbose=himap_option('verbose')) {
   # Provide ab_tab_nochim as an input argument
 
   # To do: Check that collapse pulls together more than 2 sequences.
@@ -105,7 +108,7 @@ collapse = function (ab_in, verbose=T) {
   # Generate temp output file
   if (verbose) cat('* blast word size: ')
   blast_out = paste0(db, '_blast_output.txt')
-  ws = min_seq_len(fasta) - 50
+  ws = max(round(min_seq_len(fasta) * 0.8), 7)
   if (verbose) cat(ws, '\n')
 
   # BLAST fasta_in vs db
@@ -114,6 +117,7 @@ collapse = function (ab_in, verbose=T) {
                         output=blast_out, max_target_seqs=50,
                         outfmt=paste0('6 ', himap_option('blast_coll_fmt')),
                         perc_identity=100, word_size=ws)
+  cat('blast status: ', blast_status, fill=T)
   if (blast_status != 0) {
      stop('\nError in BLAST alignment step.')
   }
@@ -140,35 +144,28 @@ collapse = function (ab_in, verbose=T) {
     if (verbose) cat('* returning input.\n')
     return(ab_in)
   }
-  blast3.dt[, pair := paste0(min(.BY[[1]], .BY[[2]]), ',',
-                             max(.BY[[1]], .BY[[2]])), by=.(qseqid, sseqid)]
-  # Select only 1 alignment from each pair
-  blast3.dt = blast3.dt[, .SD[1], by=pair]
-  if (verbose) cat('OK.\n')
 
-  # Addup counts to the sequence with more total reads
-  if (verbose) cat('* adding up abundances...')
-  qs_names = names(blast.dt)[1:2]
+  # Find all connected clusters of sequence IDs
+  g = make_graph(as.vector(t(blast3.dt[, .(qseqid, sseqid)])), directed=F)
+  # Find all connected clusters
+  cls = groups(clusters(g))
   filtered_columns = c()
-  for (i in 1:nrow(blast3.dt)) {
-    num_reads = c(sum(ab[, blast3.dt[i, qseqid]]), sum(ab[, blast3.dt[i, sseqid]]))
-    seq1 = qs_names[which.max(num_reads)]
-    seq2 = qs_names[which.min(num_reads)]
-    if (seq1 == seq2) { # In the unlikely case of tie, doesn't matter which to use
-       seq1 = qs_names[1]
-       seq2 = qs_names[2]
+  for (cl in cls) {
+    if (length(cl) > 1) {
+      column_sums = colSums(ab[, cl])
+      # max_column is the sequence with max total number of reads
+      max_column = cl[which(column_sums==max(column_sums))]
+      # add all other columns to that one
+      for (id in cl[cl != max_column]) {
+        ab[, max_column] = ab[, max_column] + ab[, id]
+        filtered_columns = c(filtered_columns, id)
+      }
     }
-    ab[, blast3.dt[i, get(seq1)]] = ab[, blast3.dt[i, get(seq1)]] + ab[, blast3.dt[i, get(seq1)]]
-    filtered_columns = c(filtered_columns, blast3.dt[i, get(seq2)])
   }
   ab = ab[, setdiff(1:ncol(ab), sort(filtered_columns))]
+
   ab_colsums = unname(colSums(ab))
   if (verbose) cat('OK.\n')
-
-
-  # How to collapse
-  # Add the first sequence to the queue (or list)
-
 
   # Cleanup the temp database
   if (verbose) cat('* cleaning up temporary files...')
@@ -177,6 +174,8 @@ collapse = function (ab_in, verbose=T) {
   cleanup_blastdb(db)
   if (verbose) cat('OK.\n')
 
+  # Output abundance table sorted by total abundance (add up samples) in
+  # descending order.
   return(ab[, order(-ab_colsums), drop=F])
 }
 
