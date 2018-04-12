@@ -83,14 +83,16 @@ min_seq_len = function (fasta_files, n=50) {
    })))
 }
 
+#' Collapse sequences that are exact matches, up to shifts and/or length
+#'
+#' @export
 collapse = function (ab_in, verbose=T) {
-  # Collapse sequences that are exact matches, up to shifts and/or length
   # Provide ab_tab_nochim as an input argument
 
   # To do: Check that collapse pulls together more than 2 sequences.
 
   # Generate temp files, this automatically generates file names
-  if (verbose) cat('collapse:\n')
+  if (verbose) cat('collapse:', fill=T)
   if (verbose) cat('* generating temporary files...')
   ab = copy(ab_in)
   out_files = ab_to_files(ab, verbose=verbose)
@@ -116,7 +118,7 @@ collapse = function (ab_in, verbose=T) {
   if (verbose) cat('OK.\n')
   # Load blast output and remove the temp blast output file
   if (verbose) cat('* selecting ends-free alignments...')
-  blast.dt = fread(blast_out)
+  blast.dt = data.table::fread(blast_out)
 
   names(blast.dt) = strsplit(himap_option('blast_coll_fmt'), ' ', fixed=T)[[1]]
   blast2.dt = blast.dt[(qseqid != sseqid) & (pident==100)]

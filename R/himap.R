@@ -297,6 +297,8 @@ add_consensus = function (dada_res, derep, fq_tri, fq_fil, truncLen,
 #'
 #' Each row in abundance matrix is a different sample, each column is a different
 #' sequence.
+#'
+#' @export
 ab_mat_to_dt = function (ab_tab_nochim, fq_prefix_split='_') {
    ab_tab_nochim.dt = as.data.table(unname(ab_tab_nochim))
    ab_tab_nochim.dt[, sample_id := sapply(strsplit(dimnames(ab_tab_nochim)[[1]],
