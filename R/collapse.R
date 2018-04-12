@@ -62,15 +62,17 @@ blastn = function (
       stop('blast: missing database file(s).')
     }
   }
-   x = system2(blast_path, args = c(
+  blast_args = c(
       '-dust', shQuote(dust), '-word_size', word_size,
       '-reward', match, '-penalty', mismatch, '-gapopen', gapopen,
       '-gapextend', gapextend, '-outfmt', shQuote(outfmt),
       '-query', seqs_fa, '-db', ref_db, '-num_threads', ncpu,
       '-max_target_seqs', max_target_seqs, '-perc_identity', perc_identity
       # '-qcov_hsp_perc', query_coverage_pct
-   ), stdout = output, stderr = output_err)
-   return(x)
+  )
+  cat(paste(blast_args, sep=' '), fill=T)
+  x = system2(blast_path, args=blast_args, stdout=output, stderr=output_err)
+  return(x)
 }
 
 # Normally formatted timestamp (to be used in file names)
