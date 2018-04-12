@@ -42,3 +42,24 @@ fasta_writer = function (meta, seqs, output) {
             output, eos=NULL)
 }
 
+#' Saves sequences from HiMAP sequence abundance table to FASTA file
+#'
+#' @param abundance_table Output from \code{\link{sequence_abundance}} function.
+#' @param remove_from_table If TRUE, column with sequences (names sequences)
+#' is removed from the data table after the FASTA file is written to disk.
+#'
+#' @export
+sequences_to_fasta = function (abundance_table, fasta_out, remove_from_table=F) {
+  if ('sequence' %in% names(abundance_table)) {
+    with(unique(abundance_table[, .(qseqid, sequence)])[order(qseqid)],
+      fasta_writer(
+        1:length(sequence),
+        sequence,
+        fasta_out
+      )
+    )
+    if (remove_from_table) abundance_table[, sequence := NULL]
+  } else {
+    warning('No sequences column in the table. Nothing to do.')
+  }
+}

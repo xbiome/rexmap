@@ -86,6 +86,9 @@ assign('taxonomy_file',
 # Data.table adjustments
 assign('string_maxwidth', 50, env=himap_opts)
 
+# Display progress of each function
+assign('verbose', FALSE, env=himap_opts)
+
 # assign('maxrows', 12, env=himap_opts)
 #' HiMAP options
 #'
@@ -315,28 +318,6 @@ ab_mat_to_dt = function (ab_tab_nochim, fq_prefix_split='_') {
    )
    setcolorder(ab_tab_nochim_m.dt, c('sample_id', 'qseqid', 'raw_count', 'sequence'))
    return(ab_tab_nochim_m.dt[])
-}
-
-#' Saves sequences from HiMAP sequence abundance table to FASTA file
-#'
-#' @param abundance_table Output from \code{\link{sequence_abundance}} function.
-#' @param remove_from_table If TRUE, column with sequences (names sequences)
-#' is removed from the data table after the FASTA file is written to disk.
-#'
-#' @export
-sequences_to_fasta = function (abundance_table, fasta_out, remove_from_table=F) {
-  if ('sequence' %in% names(abundance_table)) {
-    with(unique(abundance_table[, .(qseqid, sequence)])[order(qseqid)],
-      fasta_writer(
-        1:length(sequence),
-        sequence,
-        fasta_out
-      )
-    )
-    if (remove_from_table) abundance_table[, sequence := NULL]
-  } else {
-    warning('Sequences already removed. Nothing to do.')
-  }
 }
 
 

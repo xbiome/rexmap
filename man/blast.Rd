@@ -2,14 +2,16 @@
 % Please edit documentation in R/blast.R
 \name{blast}
 \alias{blast}
-\title{BLAST FASTA file against a 16S database}
+\title{BLAST sequences against a reference database}
 \usage{
-blast(fasta_file, blast_output, region = NULL, ref_db = NULL,
+blast(sequences, blast_output, region = NULL, ref_db = NULL,
   ref_cp = NULL, max_target_seqs = himap_option("blast_max_seqs"),
-  word_size = himap_option("blast_word_size"))
+  word_size = himap_option("blast_word_size"),
+  verbose = himap_option("verbose"))
 }
 \arguments{
-\item{fasta_file}{FASTA file to BLAST.}
+\item{sequences}{(Required) Either a FASTA file, a character vector of DNA sequences, or
+an abundance table (output from \code{\link{sequence_abundance}})}
 
 \item{region}{Hyper-variable region. If this is not NULL, \code{ref_db} is ignored. Possible
 values: 'V4', 'V3-V4'.}
@@ -24,7 +26,8 @@ Note that the temporary output file will be large if this is set > 1000.}
 \item{word_size}{Word size used for BLAST alignment.}
 }
 \description{
-Aligns each sequence from the FASTA file against a reference database.
+Aligns each sequence from the FASTA file, a character vector of DNA sequences,
+or an abundance table, against a reference database.
 Either \code{region} or both \code{ref_db} and \code{ref_cp} arguments must be specificed.
 If \code{region}
 is specified, then the \code{ref_db} and \code{ref_cp} arguments are ignored and a

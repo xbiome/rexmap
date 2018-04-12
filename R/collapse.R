@@ -183,7 +183,7 @@ collapse = function (ab_in, verbose=T) {
 
 ab_to_files = function (ab, verbose=T) {
    # Convert the abundance table matrix into a FASTA file, together
-   # with the read counts. Used by collapse().
+   # with the read counts. Internal function used by collapse().
    meta = colnames(ab)
    colnames(ab) = 1:ncol(ab)
 

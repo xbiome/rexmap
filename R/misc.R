@@ -147,3 +147,20 @@ all_exist = function (files) all(file.exists(files))
 random_sequences = function(len=50, n=10, dictionary=c('A', 'C', 'G', 'T')) {
   do.call(paste0, replicate(len, sample(dictionary, n, TRUE), FALSE))
 }
+
+
+#' Write data table to file
+#'
+#' Like base function \code{\link{write.table}} but with normal defaults.
+#'
+#' @export
+write_table = function (table, output, sep='\t', verbose=F) {
+  if (verbose) cat('* writing ', output, '...')
+  write.table(table, output, sep=sep, quote=F, row.names=F)
+  if (verbose) cat('OK.', fill=T)
+}
+
+
+
+
+
