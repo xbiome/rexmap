@@ -201,7 +201,7 @@ ab_to_files = function (ab, verbose=T) {
 
    tab.dt = data.table(ab)
    tab.dt[, sample_id := rownames(ab)]
-   tab_m.dt = melt(tab.dt, variable.name='seq_id', value.name='count',
+   tab_m.dt = data.table::melt(tab.dt, variable.name='seq_id', value.name='count',
                    id.vars='sample_id')
 
    # Write a temp fasta
