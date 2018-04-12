@@ -44,7 +44,7 @@ blast_out_to_best_cp = function (
   blast_out.dt = data.table::fread(blast_output)
   names(blast_out.dt) = strsplit(blast_out_fmt, ' ')[[1]]
   # Calculate BLAST scores.
-  blast_out.dt[, c('score', 'match', 'mismatch', 'gapopen', 'gapextend') := transpose(
+  blast_out.dt[, c('score', 'match', 'mismatch', 'gapopen', 'gapextend') := data.table::transpose(
     unname(parallel::mcmapply(function (q,s) {
     aln = compare_alignment(q,s)
     as.integer(c(sum(aln_params*aln), aln[1], aln[2], aln[3], aln[4]))
