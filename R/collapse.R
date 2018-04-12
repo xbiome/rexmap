@@ -49,7 +49,7 @@ blastn = function (
       if (dbs[Hypervariable_region==region, DB] == '') {
         stop('blast: no database listed for this hypervariable region.')
       } else {
-        ref_db = system.file('inst', 'database',
+        ref_db = system.file('database',
                              paste0(dbs[Hypervariable_region==region, DB], '.nhr'),
                              package='himap')
         if (ref_db == '') stop('blast: missing database.')
