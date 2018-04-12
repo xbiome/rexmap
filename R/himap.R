@@ -15,6 +15,7 @@ NULL
 
 
 .onAttach = function (libname, pkgname) {
+  options('datatable.prettyprint.char'=30)
   packageStartupMessage('HiMAP v1.0 loaded.')
 }
 
@@ -83,7 +84,6 @@ assign('taxonomy_file',
 
 # Data.table adjustments
 assign('string_maxwidth', 50, env=himap_opts)
-options('datatable.prettyprint.char'=30)
 
 # assign('maxrows', 12, env=himap_opts)
 #' HiMAP options
@@ -360,6 +360,7 @@ pctsim_range = function (p) return(max(p, na.rm=T))
 #' @importFrom igraph clusters
 #' @importFrom limSolve lsei
 #' @importFrom pso psoptim
+#' @importFrom data.table dcast
 #'
 #' @export
 abundance = function (abundance_table, blast_object, ncpu=himap_option('ncpu'), verbose=T,
@@ -416,7 +417,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
   osu_sp.dt = cp.dt[, .(species = print_strains(strain, raw=raw)), by=osu_id]
 
   sample_ids = ab_tab_nochim_m.dt[, unique(sample_id)]
-  all_abs.dt = rbindlist(parallel::mclapply(sample_ids, function (s) {
+  all_abs.dt = data.table::rbindlist(parallel::mclapply(sample_ids, function (s) {
 
       Ab.dt = dcast(
          osu_data_m.dt[sample_id==s], variant_id ~ osu_id,
@@ -442,7 +443,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
       osu_count = as.integer(osu_ab[which(osu_ab > osu_th)])
       osu_ids   = as.integer(names(osu_ab[which(osu_ab > osu_th)]))
       osu_ab.dt = data.table(osu_id=osu_ids, osu_count=osu_count)
-      setorder(osu_ab.dt, osu_id)
+      data.table::setorder(osu_ab.dt, osu_id)
 
       # Try optimizing the full table first?
       x0 = osu_ab.dt[, osu_count]
@@ -544,7 +545,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
       # Join table to OSU abundances
       osu_ab4.dt = merge(osu_ab2.dt, osu_sp.dt, by='osu_id',
                         all.x=T)
-      setorder(osu_ab4.dt, -osu_count)
+      data.table::setorder(osu_ab4.dt, -osu_count)
 
 
       ab_tab2.dt = merge(
@@ -564,7 +565,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
                         all=T)
       # Recalculate abundances
       all_ab.dt[, sample_id := s]
-      setcolorder(all_ab.dt, c('sample_id', 'osu_id', 'osu_count', 'species',
+      data.table::setcolorder(all_ab.dt, c('sample_id', 'osu_id', 'osu_count', 'species',
                                'pctsim'))
       # all_ab.dt[order(-pctsim)]
       all_ab.dt[osu_count>0]

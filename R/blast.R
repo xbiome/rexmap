@@ -33,7 +33,7 @@ blast_out_to_best_cp = function (
   # Select region all ref_cp from file
   if (!is.null(region)) { # If region is given, ignore ref_cp
     ref_cp = himap_option('blast_dbs')[Hypervariable_region==region, table]
-    ref_cp = system.file('inst', 'database', ref_cp, package='himap')
+    ref_cp = system.file('database', ref_cp, package='himap')
     if (length(ref_cp) == 0) stop('blast: invalid hyper-variable region.')
   } else { # Region is not given, just check if ref_cp file exist
     if (is.null(ref_cp)) stop('blast: reference copy number table argument missing.')
@@ -181,7 +181,7 @@ blast_cp_to_osu_dt = function (
   # Optimized osu_data_m2.dt
   osu_data2.dt = copy(osu_data.dt)
   osu_data2.dt = osu_data.dt[,
-   transpose(
+   data.table::transpose(
       strsplit(strsplit(spectrum, ',', fixed=T)[[1]], ':', fixed=T)),
    by=.(osu_id, strain, no_strains_in_osu, no_variants)]
   names(osu_data2.dt)[5:6] = c('copy_number', 'variant_id')
@@ -199,7 +199,7 @@ blast_cp_to_osu_dt = function (
 
   # Fill in zeros for some OSUs where we have some, but not all variants
   sample_ids = ab_tab_nochim_m.dt[, unique(sample_id)]
-  ab_tab_nochim_m_fill.dt = rbindlist(list(
+  ab_tab_nochim_m_fill.dt = data.table::rbindlist(list(
      ab_tab_nochim_m.dt,
      data.table(sample_id=sample_ids, qseqid=NA, raw_count=0L)
   ))

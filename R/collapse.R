@@ -70,7 +70,7 @@ blastn = function (
       '-max_target_seqs', max_target_seqs, '-perc_identity', perc_identity
       # '-qcov_hsp_perc', query_coverage_pct
   )
-  cat(paste(blast_args, sep=' '), fill=T)
+  # cat(paste(blast_args, sep=' '), fill=T)
   x = system2(blast_path, args=blast_args, stdout=output, stderr=output_err)
   return(x)
 }
