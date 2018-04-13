@@ -1,6 +1,9 @@
 # Read FASTA and FASTQ files regardless of number of characters in a row
 # (a limitation of ShortRead::readFastq()).
 
+#' Read file into a character vector
+#'
+#' @export
 file_reader = function (file_name) {
   # read entire file at once into a list. used for reading our FASTA database
   # Basically same runtime as C++ code.

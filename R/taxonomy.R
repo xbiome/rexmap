@@ -121,7 +121,7 @@ taxonomy = function (osu_abundance_table) {
     family_num = .SD[!is.na(family), .(family_num = sum(strain_count)),
                      by=family][order(-family_num)][, paste(family,
                         family_num, sep='_[', collapse='],')]
-    genus_num = .SD[!is.na(genus) & !(genus %like% '^[a-z]'),
+    genus_num = .SD[!is.na(genus) & !grepl('^[a-z]', genus),
                     .(genus_num = sum(strain_count)),
                      by=genus][order(-genus_num)][, paste(genus,
                         genus_num, sep='_[', collapse='],')]
@@ -129,11 +129,11 @@ taxonomy = function (osu_abundance_table) {
          'order'=paste0(order_num, ']'), 'family'=paste0(family_num, ']'),
          'genus'=paste0(genus_num, ']'))
   }, by=.(osu_id, pctsim)]
-  osu_ab_ranks.dt[!(phylum %like% '^[A-Z]'), phylum := NA]
-  osu_ab_ranks.dt[!(class %like% '^[A-Z]'), class := NA]
-  osu_ab_ranks.dt[!(order %like% '^[A-Z]'), order := NA]
-  osu_ab_ranks.dt[!(family %like% '^[A-Z]'), family := NA]
-  osu_ab_ranks.dt[!(genus %like% '^[A-Z]'), genus := NA]
+  osu_ab_ranks.dt[!(grepl('^[A-Z]', phylum)), phylum := NA]
+  osu_ab_ranks.dt[!(grepl('^[A-Z]', class)), class := NA]
+  osu_ab_ranks.dt[!(grepl('^[A-Z]', order)), order := NA]
+  osu_ab_ranks.dt[!(grepl('^[A-Z]', family)), family := NA]
+  osu_ab_ranks.dt[!(grepl('^[A-Z]', genus)), genus := NA]
   return(osu_ab_ranks.dt)
 }
 
