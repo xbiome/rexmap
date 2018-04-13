@@ -90,9 +90,9 @@ pcr_primer_trimmer = Vectorize(function (fq_in, fq_out, region=NULL,
     # Search for forward primer.
     aln = C_nwalign(pr_fwd, seq, match=1, mismatch=-1, indel=-1)
 
-
     pr_fwd_left = max(regexpr('[^-]', aln[1])[1],
                       regexpr('[^-]', aln[2])[1])
+    # pr_fwd_left = regexpr('[^-]', aln[1])[1]
     pr_fwd_right = regexpr('[-]{1,}$', aln[1])[1]-1
     pr_fwd_n = lengths(regmatches(pr_fwd, gregexpr('N', pr_fwd)))
     pr_rev_n = lengths(regmatches(pr_rev, gregexpr('N', pr_rev)))
@@ -126,7 +126,7 @@ pcr_primer_trimmer = Vectorize(function (fq_in, fq_out, region=NULL,
     # Trim if needed
     start = 1L
     end = -1L
-    if (pr_fwd_found) start = pr_fwd_right
+    if (pr_fwd_found) start = pr_fwd_right - regexpr('[^-]', aln[2])[1] + 2
     if (pr_rev_found) end = pr_rev_left
 
     return(list('meta' = meta,

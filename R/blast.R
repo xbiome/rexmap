@@ -241,7 +241,7 @@ blast_cp_to_osu_dt = function (
 #' @param word_size Word size used for BLAST alignment.
 #'
 #' @export
-blast = function (sequences, blast_output, region=NULL, ref_db=NULL,
+blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
                   ref_cp=NULL, max_target_seqs=himap_option('blast_max_seqs'),
                   word_size=himap_option('blast_word_size'),
                   verbose=himap_option('verbose'),
@@ -276,12 +276,22 @@ blast = function (sequences, blast_output, region=NULL, ref_db=NULL,
                                       sequence=sequences), fasta_file)
         if (verbose) cat('* blast input type: character vector', fill=T)
       } else {
-        # Looks like a FASTA file. Just check that it exists.
-        if (!grepl('\\.f[n]?a|\\.fasta', sequences)) stop('blast: file needs to be in FASTA format. If it is, use normal file extensions: .fa and .fasta.')
-        if (!file.exists(sequences)) stop('blast: sequence FASTA file does not exits.')
-        fasta_file = sequences
-        sequences_type = 'fasta'
-        if (verbose) cat('* blast input type: FASTA file', fill=T)
+        if (grepl('[ACGTN]+', sequences)) {
+          # Looks like a single sequence
+          sequences_type = 'DNA'
+          rand_id = sample(LETTERS, 10)
+          fasta_file = file.path(tempdir(), paste(c('blast_', rand_id, '.fasta'), collapse=''))
+          sequences_to_fasta(data.table(qseqid=1:length(sequences),
+                                        sequence=sequences), fasta_file)
+          if (verbose) cat('* blast input type: character vector', fill=T)
+        } else {
+          # Looks like a FASTA file. Just check that it exists.
+          if (!grepl('\\.f[n]?a|\\.fasta', sequences)) stop('blast: file needs to be in FASTA format. If it is, use normal file extensions: .fa and .fasta.')
+          if (!file.exists(sequences)) stop('blast: sequence FASTA file does not exits.')
+          fasta_file = sequences
+          sequences_type = 'fasta'
+          if (verbose) cat('* blast input type: FASTA file', fill=T)
+        }
       }
     } else {
       # The class is neither character or data.table / data.frame.
@@ -292,6 +302,12 @@ blast = function (sequences, blast_output, region=NULL, ref_db=NULL,
   # Run Blastn
   # Run blast_out_to_best_cp
   # Return himap object
+  if (is.null(blast_output)) {
+    # Generate temporary blast output file
+    rand_id = sample(LETTERS, 10)
+    blast_output = file.path(tempdir(), paste(c('blast_output_', rand_id, '.txt'),
+                                              collapse=''))
+  }
   blast_status = blastn(fasta_file, blast_output, region=region,
                         max_target_seqs=max_target_seqs,
                         word_size=word_size)
@@ -308,6 +324,8 @@ blast = function (sequences, blast_output, region=NULL, ref_db=NULL,
 
   # If we made a temp fasta file, remove it
   if (sequences_type %in% c('dt', 'DNA')) file.remove(fasta_file)
+  # If we made temp blast file, remove it as well
+  if (dirname(blast_output) == tempdir()) file.remove(blast_output)
   return(as(blast_cp, 'blast'))
 }
 
