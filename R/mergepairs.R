@@ -17,7 +17,7 @@
 #' @param timing TRUE/FALSE Time merging.
 #'
 #' @export
-merge_pairs = mergeout_to_table(Vectorize(function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
+merge_pairs = Vectorize(function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
                               match=5L, mismatch=-5L, gap_p=-7L, rc_reverse=TRUE,
                               ncpu = himap_option('ncpu'),
                               verbose=FALSE, timing=FALSE
@@ -124,9 +124,11 @@ merge_pairs = mergeout_to_table(Vectorize(function (fq_fwd, fq_rev, fq_mer, min_
       round(as.numeric(diff_time)%%60, 1), ' s.\n')
   }
   return(stats)
-}, c('fq_fwd', 'fq_rev', 'fq_mer')))
+}, c('fq_fwd', 'fq_rev', 'fq_mer'))
 
 #' Convert mergestats table to a normal data.table
+#'
+#' @export
 mergeout_to_table = function (mergestats) {
   mergestats.dt = data.table::data.table(
     matrix(
