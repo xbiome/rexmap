@@ -21,7 +21,7 @@ values: 'V4', 'V3-V4'.}
 \item{ref_cp}{Full path to a copy number table for a custom database.}
 
 \item{max_target_seqs}{Maximum number of target sequences to return for each query.
-Note that the temporary output file will be large if this is set > 1000.}
+Note that the temporary output file can be large if this is set > 1000.}
 
 \item{word_size}{Word size used for BLAST alignment.}
 }
@@ -32,6 +32,7 @@ Either \code{region} or both \code{ref_db} and \code{ref_cp} arguments must be s
 If \code{region}
 is specified, then the \code{ref_db} and \code{ref_cp} arguments are ignored and a
 reference database is chosen
-from the pre-computed set matching that hyper-variable region.
+from the pre-computed set for that hyper-variable region. For available databases
+see columns DB and table in \code{himap_option('blast_dbs')}.
 This function returns a blast-class object (named list; see ?blast-class for info).
 }

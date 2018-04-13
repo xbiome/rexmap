@@ -155,7 +155,7 @@ sequence_length_table = function (fastq_files) {
 #' Similar to the base R code \code{\link{quantile}}, but works with
 #' frequency table instead of the raw list.
 #'
-#' @param ft Frequency table of sequence lengths. Output from \code{link{{sequence_length_table}}.
+#' @param ft Frequency table of sequence lengths. Output from \code{link{sequence_length_table}}.
 #' @param prob Probability.
 #'
 #' @examples

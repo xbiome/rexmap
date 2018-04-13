@@ -7,6 +7,8 @@
 ftquantile(ft, prob)
 }
 \arguments{
+\item{ft}{Frequency table of sequence lengths. Output from \code{link{sequence_length_table}}.}
+
 \item{prob}{Probability.}
 }
 \description{
