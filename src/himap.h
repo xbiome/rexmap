@@ -8,4 +8,3 @@ using namespace Rcpp;
 
 void nt2int(char *oseq, const char *iseq);
 void int2nt(char *oseq, const char *iseq);
-

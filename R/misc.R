@@ -160,7 +160,14 @@ write_table = function (table, output, sep='\t', verbose=F) {
   if (verbose) cat('OK.', fill=T)
 }
 
-
-
+#' Filter and trim reads. Wrapper for dada2::filterAndTrim
+#'
+#' @export
+filter_and_trim = function (fq_in, fq_out, maxEE=2,
+                            multithread=himap_option('ncpu'),
+                            verbose=himap_option('verbose'), ...) {
+  dada2::filterAndTrim(fq_in, fq_out, maxEE=maxEE, multithread=multithread,
+                       verbose=verbose, ...)
+}
 
 

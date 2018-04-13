@@ -29,9 +29,10 @@
 pcr_primer_trimmer = Vectorize(function (fq_in, fq_out, region=NULL,
                               pr_fwd=NULL,
                               pr_rev=NULL,
-                              pr_fwd_maxoff=10, pr_rev_maxoff=10, return_noprimer=T,
+                              pr_fwd_maxoff=10, pr_rev_maxoff=10,
+                              return_noprimer=T,
                               ncpu=himap_option('ncpu'), max_mismatch=2,
-                              timing=F) {
+                              timing=F, verbose=himap_option('verbose')) {
   # fq_in = input fastq file
   # fq_out = output fastq file (without primers)
   # pr_fwd = forward primer 5'->3'
@@ -39,26 +40,35 @@ pcr_primer_trimmer = Vectorize(function (fq_in, fq_out, region=NULL,
   #
 
   # Check input
-  if (!all_exist(fq_in)) stop('PCR primer filter: some input files are missing.')
+  if (!all_exist(fq_in)) stop('PCR primer trimmer: some input files are missing.')
   if (is.null(region) & (is.null(pr_fwd) | is.null(pr_rev))) {
-    stop('PCR primer filter: either region of pr_fwd and pr_rev need to be specified.')
+    stop('PCR primer trimmer: either region of pr_fwd and pr_rev need to be specified.')
   }
   # if region is specified, check that primers exist in the reference table
   if (!is.null(region)) {
     if (nrow(himap_option('blast_dbs')[Hypervariable_region==region]) == 0) {
       # Missing hypervariable region
-      stop('PCR primer filter: hypervariable region \"', region, '\" not found.')
+      stop('PCR primer trimmer: hypervariable region \"', region, '\" not found.')
     }
     pr_fwd = himap_option('blast_dbs')[Hypervariable_region==region, Primer1_sequence_5to3]
     pr_rev = reverse_complement(
       himap_option('blast_dbs')[Hypervariable_region==region, Primer2_sequence_3to5]
     )
+    if (verbose) cat('* PCR trimmer mode: region', region, paste0('(fwd: ',
+      pr_fwd, ', rev: ', pr_rev, ')'), fill=T)
+  } else {
+    if (verbose) cat('* PCR trimmer mode: primers', paste0('(fwd: ',
+      pr_fwd, ', rev: ', pr_rev, ')'), fill=T)
+
   }
 
   # Check if all output folders exist, and if not create them
   output_folders = unique(dirname(fq_out))
   for (out_f in output_folders) {
-    if (!dir.exists(out_f)) dir.create(out_f, recursive=T)
+    if (!dir.exists(out_f)) {
+      if (verbose) cat('* created output folder.', fill=T)
+      dir.create(out_f, recursive=T)
+    }
   }
 
   # Load Input FASTQ file
@@ -67,7 +77,9 @@ pcr_primer_trimmer = Vectorize(function (fq_in, fq_out, region=NULL,
   # Ignore any extended DNA symbols. Shouldn't have too many of them anyway.
   pr_fwd = gsub('[^ACGT-]', 'N', pr_fwd)
   pr_rev = gsub('[^ACGT-]', 'N', pr_rev)
+  if (verbose) cat('* loading file...')
   in_fq = sfastq_reader(fq_in)
+  if (verbose) cat('OK.', fill=T)
   # max_mismatch = 2
 
   seq = in_fq[['seqs']][1]
@@ -75,8 +87,10 @@ pcr_primer_trimmer = Vectorize(function (fq_in, fq_out, region=NULL,
 
   fastq_trimmer = function (meta, seq, qual, return_noprimer=return_noprimer) {
 
-    # Search for forward primer
+    # Search for forward primer.
     aln = C_nwalign(pr_fwd, seq, match=1, mismatch=-1, indel=-1)
+
+
     pr_fwd_left = max(regexpr('[^-]', aln[1])[1],
                       regexpr('[^-]', aln[2])[1])
     pr_fwd_right = regexpr('[-]{1,}$', aln[1])[1]-1
@@ -123,18 +137,22 @@ pcr_primer_trimmer = Vectorize(function (fq_in, fq_out, region=NULL,
   }
 
   # Apply fastq_trimmer() to each sequence in this file
+  if (verbose) cat('* trimming...')
   out_trimmed = unname(
     parallel::mcmapply(
       fastq_trimmer, in_fq[['meta']], in_fq[['seqs']], in_fq[['qual']],
       mc.cores=ncpu, SIMPLIFY=FALSE
     )
   )
+  if (verbose) cat('OK.', fill=T)
 
   fwd_trimmed = sum(sapply(out_trimmed, function (x) x$trim_fwd))
   rev_trimmed = sum(sapply(out_trimmed, function (x) x$trim_rev))
 
   # Save results in a new file
+  if (verbose) cat('* saving output...')
   fastq_list_writer(out_trimmed, fq_out, ncpu=ncpu)
+  if (verbose) cat('OK.', fill=T)
   if (timing) {
     end_time = Sys.time()
     diff_time = difftime(end_time, start_time, units='secs')

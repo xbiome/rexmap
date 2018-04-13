@@ -289,8 +289,8 @@ char **nw_fitting_align(const char *s1, const char *s2, int score[5][5],
 
   // Fill out left columns of d, p.
   for (i = 0; i <= len1; i++) {
-    //d[i*ncol] = 0; // ends-free gap
-    d[i*ncol] = i*indel;
+    d[i*ncol] = 0; // ends-free gap
+    // d[i*ncol] = i*indel;
     p[i*ncol] = 3;
   }
 
@@ -312,7 +312,7 @@ char **nw_fitting_align(const char *s1, const char *s2, int score[5][5],
 
       // Score for the up move.
       if (j == len2) {
-        up = d[(i-1)*ncol + j] + indel; // Ends-free gap.
+        up = d[(i-1)*ncol + j]; // Ends-free gap.
       } else {
         up = d[(i-1)*ncol + j] + indel;
       }
