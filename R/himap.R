@@ -9,6 +9,7 @@
 #' @importFrom data.table setorder
 #' @importFrom data.table key
 #' @importFrom data.table copy
+#' @importFrom data.table like
 #' @importFrom dada2 filterAndTrim
 #' @importFrom stringr str_sub
 #' @useDynLib himap
