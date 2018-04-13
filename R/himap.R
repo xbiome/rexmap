@@ -221,7 +221,7 @@ dada_denoise = function (fastq_trimmed, fastq_untrimmed,
     max_num_uniques = max(
       sapply(fastq_trimmed, function (f) length(dada2::derepFastq(f)$uniques))
     )
-    pvalue_adjusted = pvalue/max_num_uniques
+    pvalue_adjusted = pvalue/max_num_uniques^2
   }
   dada_errors = suppressWarnings(dada2::learnErrors(
     fastq_trimmed, multithread=multithread, OMEGA_A=pvalue_adjusted
