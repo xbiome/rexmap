@@ -106,7 +106,7 @@ assign('verbose', FALSE, env=himap_opts)
 himap_option = function (option_names=NULL) {
   if (is.null(option_names)) {
     cat('HiMAP: available options', fill=T)
-    return(ls(himap_opts))
+    return(sapply(ls(himap_opts), himap_option))
   }
   if(!all(option_names %in% ls(himap_opts))) {
     warning("Invalid  option: ", option_names[!(option_names %in% ls(himap_opts))])
@@ -198,18 +198,19 @@ ftquantile = function (ft, prob) {
 #' dividing it by the maximum number of unique sequences across all samples.
 #' @param multithread TRUE/FALSE or the number of CPU threads to use for multithreading.
 #' Does not work on Windows due to \code{parallel} package implementation.
-#' @param use_intermediate Use saved intermediate files. Used for resuming very
-#' long runs.
 #' @param verbose TRUE/FALSE: display of status messages.
 #'
 #' @export
+# @param use_intermediate Use saved intermediate files. Used for resuming very
+# long runs.
 dada_denoise = function (fastq_trimmed, fastq_untrimmed,
                          pvalue=1e-4,
                          pvalue_adjusted=NULL,
-                         save_intermediate=TRUE,
-                         use_intermediate=FALSE,
+                         # save_intermediate=TRUE,
+                         # use_intermediate=FALSE,
                          multithread=himap_option('ncpu'),
-                         verbose=T, error_estimation_nsamples=3) {
+                         verbose=himap_option('verbose'),
+                         error_estimation_nsamples=3) {
   # Dereplicate reads into a derep object
   # Check whether intermediate folder exists
   # Load 1 sample at a time, process it, then combine
