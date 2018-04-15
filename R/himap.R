@@ -246,8 +246,9 @@ dada_denoise = function (fastq_trimmed, fastq_untrimmed,
     dada_res = list(suppressWarnings(dada2::dada(dada_derep, err=dada_errors, OMEGA_A=pvalue_adjusted, multithread=T)))
     # Extract length to which reads have been truncated
     trunclen = nchar(dada_res[[1]]$sequence[1])
-    dada_res = add_consensus(dada_res, dada_derep, fqt, fq, truncLen=trunclen,
-                              ncpu=max(1, as.integer(multithread)), verbose=verbose)
+    #dada_res = add_consensus(dada_res, dada_derep, fqt, fq, truncLen=trunclen,
+    #                          ncpu=max(1, as.integer(multithread)), verbose=verbose)
+    dada_res = untrim(dada_res, fq, fqt, ncpu=multithread, verbose=verbose)
     dada_results[[length(dada_results)+1]] = dada_res[[1]]
     names(dada_results)[length(dada_results)] = basename(fq)
   }
@@ -294,6 +295,57 @@ add_consensus = function (dada_res, derep, fq_tri, fq_fil, truncLen,
     # Concatenate dada2 middle partition sequence and right consensus
     dada_res[[s_id]]$sequence = paste(dada_res[[s_id]]$sequence,
                                      pid_to_seq,
+                                     sep='')
+    names(dada_res[[s_id]]$denoised) = dada_res[[s_id]]$sequence
+    if (verbose) cat('OK.\n')
+  }
+  return(dada_res)
+}
+
+
+#' Un-trim trimmed sequences
+#'
+#' Use all pre-trimmed sequences to find the consensus of the trimmed part.
+#'
+#' This function modifies dada result \code{dada_res}.
+#'
+untrim = function (dada_res, fq_trimmed, fq_pretrimmed,
+                   verbose=himap_option('verbose'),
+                   ncpu=himap_option('ncpu')) {
+  trim_len = nchar(dada_res[[1]]$sequence[1])
+  if (verbose) cat('Trimmed length: ', trim_len, ' nt.', fill=T)
+  if (verbose) cat('Retrieving full-length sequences...\n')
+  for (s_id in 1:length(dada_res)) { # For each sample s_id
+    seqs = dada_res[[s_id]]$sequence
+    num_partitions = length(seqs)
+    if (verbose) cat('Sample ', s_id, '. Load...')
+    # x = partid_to_fastqid(dada_res[[s_id]]$map-1, derep[[s_id]]$map-1)
+    # Load both merged (for retrieval) and filtered sequences for referencing
+    # Filtered sequences are enumerated in dada2, so this file is used to
+    # extract meta-data information for each read that we need to look up
+    # in the merged file.
+    fq_trimmed_data = sfastq_reader(fq_trimmed[s_id])
+    fq_pretrimmed_data = sfastq_reader(fq_pretrimmed[s_id])
+    if (verbose) cat('OK. Consensus...')
+    part_to_seq = unlist(parallel::mclapply(1:length(seqs), function (i) {
+      # Retrieve meta-data for each exact trimmed seq that maps to the same unique
+      metas = fq_trimmed_data[['meta']][fq_trimmed_data[['seqs']]==seqs[i]]
+      # Now get the untrimmed sequences with these IDs, they will differ only untrim
+      # part
+      untrim_seqs = fq_pretrimmed_data[['seqs']][fq_pretrimmed_data[['meta']] %in% metas]
+      untrim_seqs_right = str_sub(untrim_seqs, start=trim_len+1)
+      untrim_seqs_right_cons = gsub('[-|N]{1,}.*', '',
+                                    consensus_sequence(untrim_seqs_right))
+      # Retrieve the untrimmed extesions
+      names(untrim_seqs_right_cons) = as.character(i)
+      return(untrim_seqs_right_cons)
+    }, mc.cores=ncpu))
+
+    part_to_seq = part_to_seq[order(as.integer(names(part_to_seq)))]
+    if (verbose) cat('OK. Update...')
+    # Concatenate dada2 middle partition sequence and right consensus
+    dada_res[[s_id]]$sequence = paste(dada_res[[s_id]]$sequence,
+                                     part_to_seq,
                                      sep='')
     names(dada_res[[s_id]]$denoised) = dada_res[[s_id]]$sequence
     if (verbose) cat('OK.\n')

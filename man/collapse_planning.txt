@@ -1,25 +1,37 @@
 r:	--------------------
      |||||||||||||||
 q:   ---------------
-q1a == q1 & q2a == q2
+q1a == 1 & q2a == qlen
 
 
 r:    ----------------
       ||||||||||||||||
 q:  --------------------
-r1a == r1 & r2a == r2
+r1a == 1 & r2a == rlen
 
 r:  ------------------
       ||||||||||||||||
 q:    ------------------
-q1a == q1 & r2a == r2
+q1a == 1 & r2a == rlen
 
 r:    -----------------
       ||||||||||||||
 q:  ----------------
-r1a == r1 & q2a == q2
+r1a == 1 & q2a == qlen
 
 r:    --------------
       ||||||||||||||
 q:  ----------------
 r1a == r1 & q2a == q2 & r2a == r2
+
+
+Test:
+
+
+1		CTTTACAAATATAACGGTAA
+2		GCGGTGCTTTACCGTGGGGT
+3		GGAGAGAGTCACCATAAGCA
+4	 	  AGAGAGTCACCATAAGCACA
+5	 GCTGGAGAGAGTCACCATAA
+6		  AGAGAGTCACCATAAG
+7         TTACAAATATAACGGTAAGG

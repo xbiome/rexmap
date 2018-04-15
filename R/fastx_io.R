@@ -56,7 +56,7 @@ sequences_to_fasta = function (abundance_table, fasta_out, remove_from_table=F) 
   if ('sequence' %in% names(abundance_table)) {
     with(unique(abundance_table[, .(qseqid, sequence)])[order(qseqid)],
       fasta_writer(
-        1:length(sequence),
+        qseqid,
         sequence,
         fasta_out
       )
