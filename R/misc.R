@@ -45,29 +45,44 @@ read_files = function (path, pattern='') {
 #' Condense a character vector of strain names to a more managable
 #' shorter string.
 #'
+#' @param strains (Required) A character vector of strain names, with underscore _ instead of space
+#' to separate genus, species and strain designations.
+#' @param raw FALSE/TRUE If TRUE, then the output is just a list of concatenated strain
+#' names (can be very large!). Default: FALSE.
+#' @param deduplicate FALSE/TRUE If strain name occurs multiple times, count only unique names.
+#' Default: TRUE.
+#' @param nmax Integer. If the number of strains is below \code{nmax}, just list all the strain names.
+#'
 #' @export
-print_strains = function (strains, raw=T) {
+print_strains = function (strains, raw=T, deduplicate=T,
+                          nmax=himap_option('print_strains_nmax')) {
   # Input: vector of strains
   # Prints a single string with reduced list of strains
   # such that any non-_bacterium or _sp. strain is shown
   # on a species level.
-  if (raw) return(paste(strains, collapse=','))
+
+  if (deduplicate) uniq_strains = unique(strains)
+  else uniq_strains = strains
+
+  if (raw | length(uniq_strains) <= nmax) return(paste(uniq_strains, collapse=','))
 
   # Also add strains for species that occur only once!!
   if (length(strains)==1) return(strains)
   else {
-    genuses = gsub('^[ ]*([^_]+)_.*', '\\1', strains)
-    species = gsub('^[^_]+_([^_]+)[_]?.*', '\\1', strains)
+    genuses = gsub('^[ ]*([^_]+)_.*', '\\1', uniq_strains)
+    species = gsub('^[^_]+_([^_]+)[_]?.*', '\\1', uniq_strains)
     na_filter = grepl('^(sp\\.|bacterium)', species)
+    # sp1 is the list of species that does not end with sp. or bacterium
     sp1 = paste(genuses[!na_filter], species[!na_filter], sep='_')
-    sp2 = strains[na_filter]
-    ft = as.table(sort(table(unique(c(sp1, sp2))), decreasing=T))
+    # sp2 is the list of strains which do not have a species name (sp. or bacterium)
+    sp2 = uniq_strains[na_filter]
+    ft = as.table(sort(table(c(sp1, sp2)), decreasing=T))
     ft2 = ft[ft>1]
     # Get full strain names for species that occur only once
     sp_once = names(ft[ft==1])
     st_once = c()
     for (sp in sp_once) {
-      st_once = c(st_once, grep(sp, strains, fixed=T, value=T))
+      st_once = c(st_once, grep(sp, uniq_strains, fixed=T, value=T))
     }
     out = c()
     if (length(ft2) > 0) {

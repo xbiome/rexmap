@@ -86,9 +86,9 @@ assign('taxonomy_file',
        system.file('database', 'lineages-2017-03-17_bacteria_archaea',
                    package='himap'),
        env=himap_opts)
-
-# Data.table adjustments
+# Printing and Data.table adjustments
 assign('string_maxwidth', 50, env=himap_opts)
+assign('print_strains_nmax', 10, env=himap_opts)
 
 # Display progress of each function
 assign('verbose', FALSE, env=himap_opts)

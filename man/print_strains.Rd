@@ -4,7 +4,20 @@
 \alias{print_strains}
 \title{Strain vector to shorter strain string}
 \usage{
-print_strains(strains, raw = T)
+print_strains(strains, raw = T, deduplicate = T,
+  nmax = himap_option("print_strains_nmax"))
+}
+\arguments{
+\item{strains}{(Required) A character vector of strain names, with underscore _ instead of space
+to separate genus, species and strain designations.}
+
+\item{raw}{FALSE/TRUE If TRUE, then the output is just a list of concatenated strain
+names (can be very large!). Default: FALSE.}
+
+\item{deduplicate}{FALSE/TRUE If strain name occurs multiple times, count only unique names.
+Default: TRUE.}
+
+\item{nmax}{Integer. If the number of strains is below \code{nmax}, just list all the strain names.}
 }
 \description{
 Condense a character vector of strain names to a more managable

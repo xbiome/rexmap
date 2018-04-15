@@ -5,9 +5,8 @@
 \title{DADA2 denoising}
 \usage{
 dada_denoise(fastq_trimmed, fastq_untrimmed, pvalue = 1e-04,
-  pvalue_adjusted = NULL, save_intermediate = TRUE,
-  use_intermediate = FALSE, multithread = himap_option("ncpu"),
-  verbose = T, error_estimation_nsamples = 3)
+  pvalue_adjusted = NULL, multithread = himap_option("ncpu"),
+  verbose = himap_option("verbose"), error_estimation_nsamples = 3)
 }
 \arguments{
 \item{pvalue}{P-value threshold before Bonferroni correction for DADA2.}
@@ -15,9 +14,6 @@ dada_denoise(fastq_trimmed, fastq_untrimmed, pvalue = 1e-04,
 \item{pvalue_adjusted}{P-value threshold after Bonferroni correction for DADA2.
 If left as NULL, adjusted pvalue is calculated by taking \code{pvalue} and
 dividing it by the maximum number of unique sequences across all samples.}
-
-\item{use_intermediate}{Use saved intermediate files. Used for resuming very
-long runs.}
 
 \item{multithread}{TRUE/FALSE or the number of CPU threads to use for multithreading.
 Does not work on Windows due to \code{parallel} package implementation.}
