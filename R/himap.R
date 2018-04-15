@@ -220,38 +220,53 @@ dada_denoise = function (fastq_trimmed, fastq_untrimmed,
     fastq_trimmed[1:min(length(fastq_trimmed), error_estimation_nsamples)])
   if (class(dada_derep) != 'list') dada_derep = list(dada_derep)
   cat('...')
+
+  # Get or calculate the Bonferroni adjusted p-value
   if (is.null(pvalue_adjusted)) {
     # Find the maximum number of unique sequences across all samples
     max_num_uniques = max(
       sapply(fastq_trimmed, function (f) length(dada2::derepFastq(f)$uniques))
     )
-    pvalue_adjusted = pvalue/max_num_uniques^2
+    pvalue_adjusted_calc = pvalue/max_num_uniques^2
+  } else {
+    pvalue_adjusted_calc = pvalue_adjusted
   }
+
+  # Learn errors first, then use those downstream
   dada_errors = suppressWarnings(dada2::learnErrors(
-    fastq_trimmed, multithread=multithread, OMEGA_A=pvalue_adjusted
+    fastq_trimmed, multithread=multithread, OMEGA_A=pvalue_adjusted_calc
   ))
   if (verbose) cat(' OK.', fill=T)
   dada_results = list()
+
+  # Iterate over each sample sequentially
   for (i in 1:length(fastq_trimmed)) {
     fq = fastq_trimmed[i]
     fqt = fastq_untrimmed[i]
-    if (verbose) cat('* processing ', fq, fill=T)
+    if (verbose) cat('* processing ', basename(fq), fill=T)
     dada_derep = list(dada2::derepFastq(fq))
-    if (is.null(pvalue_adjusted)) {
-      # Find the maximum number of unique sequences across all samples
-      num_uniques = length(dada_derep[[1]]$uniques)
-      # Adjust the p-value by an estimate for the total number of comparisons in dada2
-      pvalue_adjusted = pvalue/num_uniques^2
-    }
-    dada_res = list(suppressWarnings(dada2::dada(dada_derep, err=dada_errors, OMEGA_A=pvalue_adjusted, multithread=T)))
+    pvalue_adjusted_calc = ie(is.null(pvalue_adjusted),
+                              pvalue/length(dada_derep[[1]]$uniques)^2,
+                              pvalue_adjusted)
+    # if (is.null(pvalue_adjusted)) {
+    #   # Adjust the p-value by an estimate for the total number of comparisons in dada2
+    #   pvalue_adjusted_calc = pvalue/length(dada_derep[[1]]$uniques)^2
+    # } else {
+    #   pvalue_adjusted_calc = pvalue_adjusted
+    # }
+    dada_res = list(suppressWarnings(dada2::dada(dada_derep, err=dada_errors,
+                                                 OMEGA_A=pvalue_adjusted_calc,
+                                                 multithread=T)))
     # Extract length to which reads have been truncated
     trunclen = nchar(dada_res[[1]]$sequence[1])
     #dada_res = add_consensus(dada_res, dada_derep, fqt, fq, truncLen=trunclen,
     #                          ncpu=max(1, as.integer(multithread)), verbose=verbose)
     dada_res = untrim(dada_res, fq, fqt, ncpu=multithread, verbose=verbose)
+    # Add the dada2 denoised object of this sample to the list
     dada_results[[length(dada_results)+1]] = dada_res[[1]]
     names(dada_results)[length(dada_results)] = basename(fq)
   }
+
   return(dada_results)
 }
 
