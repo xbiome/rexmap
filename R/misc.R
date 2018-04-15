@@ -61,7 +61,7 @@ print_strains = function (strains, raw=T) {
     na_filter = grepl('^(sp\\.|bacterium)', species)
     sp1 = paste(genuses[!na_filter], species[!na_filter], sep='_')
     sp2 = strains[na_filter]
-    ft = as.table(sort(table(c(sp1, sp2)), decreasing=T))
+    ft = as.table(sort(table(unique(c(sp1, sp2))), decreasing=T))
     ft2 = ft[ft>1]
     # Get full strain names for species that occur only once
     sp_once = names(ft[ft==1])
