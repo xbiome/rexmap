@@ -309,6 +309,7 @@ add_consensus = function (dada_res, derep, fq_tri, fq_fil, truncLen,
 #'
 #' This function modifies dada result \code{dada_res}.
 #'
+#' @export
 untrim = function (dada_res, fq_trimmed, fq_pretrimmed,
                    verbose=himap_option('verbose'),
                    ncpu=himap_option('ncpu')) {
