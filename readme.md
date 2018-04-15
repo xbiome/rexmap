@@ -9,4 +9,4 @@ devtools::install_github('taolonglab/himap'
 
 ## Tutorials
 
-* [mock community](tutorial_mock.ipny)
+* [mock community](tutorial_mock.ipynb)
