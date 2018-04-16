@@ -15,6 +15,7 @@
 NULL
 
 
+#' Run this when the package is loaded and attached in R
 .onAttach = function (libname, pkgname) {
   options('datatable.prettyprint.char'=30)
   packageStartupMessage('HiMAP v1.0 loaded.')
@@ -30,6 +31,7 @@ detect_os = function () {
   )
 }
 
+#' Auto-select precompiled binaries for the detected OS
 exec_file = function (filename) {
   platform = detect_os()
   if (platform == 'osx') return(filename)
@@ -418,7 +420,9 @@ pctsim_range = function (p) return(max(p, na.rm=T))
 #' @importFrom data.table dcast
 #'
 #' @export
-abundance = function (abundance_table, blast_object, ncpu=himap_option('ncpu'), verbose=T,
+abundance = function (abundance_table, blast_object,
+                      ncpu=himap_option('ncpu'),
+                      verbose=himap_option('verbose'),
                       raw_strains=FALSE) {
   # Generate OSU data table first
   osu_data_m.dt = blast_cp_to_osu_dt(

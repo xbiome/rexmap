@@ -20,6 +20,11 @@ lineagecsv_to_robj = function (lincsv, out) {
    saveRDS(taxonomy.dt, file=out, compress=T)
 }
 
+#' Load HiMAP taxonomy reference file
+#'
+#' This is a NCBI Taxonomy database, exported as a tab-delimited file.
+#'
+#' @export
 load_taxonomy = function (tax_file=himap_option('taxonomy_file')) {
    readRDS(tax_file)
 }
