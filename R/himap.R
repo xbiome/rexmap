@@ -17,7 +17,7 @@ NULL
 
 #' Run this when the package is loaded and attached in R
 .onAttach = function (libname, pkgname) {
-  options('datatable.prettyprint.char'=30)
+  options('datatable.prettyprint.char'=50)
   packageStartupMessage('HiMAP v1.0 loaded.')
 }
 
@@ -49,7 +49,7 @@ assign('himap_path', '', env=himap_opts)
 assign('blast_out_fmt',
        'qseqid sseqid qlen length qstart qend sstart send slen qseq sseq',
        env=himap_opts)
-# BLAST collapse() format
+# BLAST collapse() format. Changing this might break collapse function
 assign('blast_coll_fmt',
        'qseqid sseqid qlen slen length qstart qend sstart send pident',
        env=himap_opts)
@@ -69,7 +69,6 @@ assign('ncpu', parallel::detectCores(), env=himap_opts)
 assign('blast_dbs',
        data.table::fread(
          system.file('extdata', 'pcr_primers_table.txt', package='himap')
-         # data('pcr_primers_table.txt', package='himap')
        ),
        env=himap_opts)
 assign('blast_max_seqs', 2000, env=himap_opts)
@@ -127,13 +126,19 @@ himap_setoption = function (option_name, value) {
   if (option_name == 'ncpu') {
     # Check that it is an integer
     if (!(class(value) == 'integer')) stop('ncpu must be an integer.')
-  }
-  if (option_name == 'datatable.prettyprint.char') {
+  } else if (option_name == 'datatable.prettyprint.char') {
     # Check that value is integer
     options('datatable.prettyprint.char'=value)
+    assign('string_maxwidth', 50, env=himap_opts)
+  } else if (option_name == 'verbose') {
+    if (!(value %in% c(TRUE, FALSE))) stop('verbose can only be TRUE or FALSE.')
+    else assign('verbose', value, env=himap_opts)
+  } else if (option_name %in% c('blast_out_fmt', 'blast_coll_fmt')) {
+
+  } else {
+    # Else just assign stuff
+    assign(option_name, value, env=himap_opts)
   }
-  # Else just assign stuff
-  assign(option_name, )
 }
 
 #' Frequency table of sequence lengths
@@ -423,7 +428,8 @@ pctsim_range = function (p) return(max(p, na.rm=T))
 abundance = function (abundance_table, blast_object,
                       ncpu=himap_option('ncpu'),
                       verbose=himap_option('verbose'),
-                      raw_strains=FALSE) {
+                      raw_strains=FALSE,
+                      pso_n=1000) {
   # Generate OSU data table first
   osu_data_m.dt = blast_cp_to_osu_dt(
     blast_best.dt=blast_object$alignments,
@@ -438,6 +444,7 @@ abundance = function (abundance_table, blast_object,
                                 blast_object$cp,
                                 osu_data_m.dt,
                                 ncpu=ncpu, verbose=verbose,
+                                pso_n=pso_n,
                                 raw=raw_strains)
   setcolorder(osu_ab.dt, c('sample_id', 'osu_id', 'osu_count', 'pctsim', 'species'))
   setorder(osu_ab.dt, sample_id, -osu_count)
@@ -449,7 +456,8 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
                               blast_best.dt,
                               cp.dt,
                               osu_data_m.dt,
-                              ncpu=himap_option('ncpu'), verbose=T, seed=42,
+                              ncpu=himap_option('ncpu'), verbose=T,
+                              pso_n=1000,
                               raw=T) {
 
   pctsim_min = 100
@@ -580,7 +588,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
           x0_w = rep(0.3, length(x0))
           ar3 = copy(Ar3)
           for (r in 1:nrow(Ar3)) ar3[r,] = ar3[r,] / Br3[r]
-          tmp = lapply(1:1000, function (it) {
+          tmp = lapply(1:pso_n, function (it) {
             pso = psoptim(
               rep(0, length(x0)),
               f, lower=rep(0, length(x0)), upper=rep(max(Br3), length(x0)),

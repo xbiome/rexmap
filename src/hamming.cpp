@@ -65,13 +65,3 @@ IntegerVector compare_alignment (std::string s1, std::string s2) {
   return IntegerVector::create(match, mismatch, gapopen, gapextend);
 }
 
-// input: vector: [1, 2, 3, 4, 1, 2, 5, 1, 6, 4, 7, 8, 8]
-//                 0  1  2  3  4  5  6  7  8  9 10 11 12
-// output: 1,
-
-
-
-/*** R
-x1 = 'CCGT---ATGCAT'
-x2 = 'CCGTAAAAT--AT'
-*/
