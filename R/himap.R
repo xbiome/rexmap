@@ -71,8 +71,8 @@ assign('blast_dbs',
          system.file('extdata', 'pcr_primers_table.txt', package='himap')
        ),
        env=himap_opts)
-assign('blast_max_seqs', 2000, env=himap_opts)
-assign('blast_word_size', 13, env=himap_opts)
+assign('blast_max_seqs', 500, env=himap_opts)
+assign('blast_word_size', 50, env=himap_opts)
 # Read merging
 assign('mergepairs_matchqs',
        system.file('merge_tables', 'himap_mergepairs_match_qs.txt',
