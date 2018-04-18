@@ -308,14 +308,25 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
     blast_output = file.path(tempdir(), paste(c('blast_output_', rand_id, '.txt'),
                                               collapse=''))
   }
-  blast_status = blastn(fasta_file, blast_output, region=region,
-                        max_target_seqs=max_target_seqs,
-                        word_size=word_size)
+  if (!is.null(region)) {
+    blast_status = blastn(fasta_file, blast_output, region=region,
+                          max_target_seqs=max_target_seqs,
+                          word_size=word_size)
+  } else {
+    blast_status = blastn(fasta_file, blast_output, ref_db=ref_db,
+                          max_target_seqs=max_target_seqs,
+                          word_size=word_size)
+  }
   if (blast_status != 0) stop('blast: error running blastn.')
   # Load BLAST results (can take a while if there are lots of sequences and max_target_seqs
   # is large.
   if (!file.exists(blast_output)) stop('blast: ', blast_output, ' file does not exist.')
-  blast_cp = blast_out_to_best_cp(blast_output, region=region)
+  if (!is.null(region)) {
+    blast_cp = blast_out_to_best_cp(blast_output, region=region)
+  } else {
+    blast_cp = blast_out_to_best_cp(blast_output, ref_cp=ref_cp)
+  }
+
   names(blast_cp) = c('alignments', 'cp')
   blast_cp$parameters = list(
     'max_target_seqs'=max_target_seqs, 'word_size'=word_size, 'alignment_parameters'=
@@ -329,3 +340,49 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
   return(as(blast_cp, 'blast'))
 }
 
+
+blastn = function (
+  seqs_fa, output, region=NULL, ref_db=NULL,
+  blast_path=himap_option('path_blastn'),
+  match=himap_option('aln_params')[1], mismatch=himap_option('aln_params')[2],
+  gapopen=-himap_option('aln_params')[3], gapextend=-himap_option('aln_params')[4],
+  word_size=himap_option('blast_word_size'), ncpu=himap_option('ncpu'),
+  max_target_seqs=himap_option('blast_max_seqs'),
+  perc_identity=75, outfmt=paste0('6 ', himap_option('blast_out_fmt')),
+  dust='20 64 1',
+  output_err=F) {
+
+  dbs = himap_option('blast_dbs')
+  if (!is.null(region)) {
+    # Region is specificed, ignore ref_db
+    if (!(region %in% dbs[, Hypervariable_region])) {
+      stop('blast: wrong hypervariable region specified.')
+    } else {
+      if (dbs[Hypervariable_region==region, DB] == '') {
+        stop('blast: no database listed for this hypervariable region.')
+      } else {
+        ref_db = system.file('database',
+                             paste0(dbs[Hypervariable_region==region, DB], '.nhr'),
+                             package='himap')
+        if (ref_db == '') stop('blast: missing database.')
+        else ref_db = sub('.nhr$', '', ref_db)
+      }
+    }
+  } else {
+    # ref_db is specified so just use that and check if the files are there.
+    missing_files = file.exists(paste0(ref_db, c('.nin', '.nhr', '.nsq')))
+    if (any(!missing_files)) {
+      stop('blast: missing database file(s).')
+    }
+  }
+  blast_args = c(
+      '-dust', shQuote(dust), '-word_size', word_size,
+      '-reward', match, '-penalty', mismatch, '-gapopen', gapopen,
+      '-gapextend', gapextend, '-outfmt', shQuote(outfmt),
+      '-query', seqs_fa, '-db', ref_db, '-num_threads', ncpu,
+      '-max_target_seqs', max_target_seqs, '-perc_identity', perc_identity
+  )
+  if (output_err != F) cat(paste(blast_args, sep=' '), fill=T)
+  x = system2(blast_path, args=blast_args, stdout=output, stderr=output_err)
+  return(x)
+}

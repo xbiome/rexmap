@@ -5,7 +5,7 @@
 \title{hybrid'=F, 'rand.order'=F}
 \usage{
 osu_cp_to_all_abs(ab_tab_nochim_m.dt, blast_best.dt, cp.dt, osu_data_m.dt,
-  ncpu = himap_option("ncpu"), verbose = T, seed = 42, raw = T)
+  ncpu = himap_option("ncpu"), verbose = T, pso_n = 1000, raw = T)
 }
 \description{
 hybrid'=F, 'rand.order'=F
