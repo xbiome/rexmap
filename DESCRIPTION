@@ -1,10 +1,10 @@
 Package: himap
 Type: Package
-Title: High resolution Microbial Analysis Pipeline
+Title: High-resolution Microbial Analysis Pipeline
 Version: 1.0.0
-Author: Igor Segota
+Author: Igor Segota <is246@cornell.edu>, Tao Long <tlong@sbpdiscovery.org>
 Maintainer: Igor Segota <is246@cornell.edu>
-Description: More about what it does (maybe more than one line)
+Description: High resolution pipeline aimed at accurate species and strain 
     Use four spaces when indenting paragraphs within the Description.
 License: What license is it under?
 Encoding: UTF-8

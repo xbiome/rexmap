@@ -41,16 +41,15 @@ min_seq_len = function (fasta_files, n=50) {
 
 #' Collapse sequences that are exact matches, up to shifts and/or length
 #'
+#' Like \code{\link{dada2::collapseNoMismatch}} but a lot faster, multithreaded
+#' and scales well to a very large number of unique sequences (100,000 and more).
+#'
 #' @importFrom igraph make_graph
 #' @importFrom igraph groups
 #' @importFrom igraph clusters
 #' @export
 collapse = function (ab_in, verbose=himap_option('verbose')) {
-  # Provide ab_tab_nochim as an input argument
-
-  # To do: Check that collapse pulls together more than 2 sequences.
-
-  # Generate temp files, this automatically generates file names
+  # Provide ab_tab_nochim as an input argument, same as dada2::collapseNoMismatch
   if (verbose) cat('collapse:', fill=T)
   if (verbose) cat('* generating temporary files...')
   ab = copy(ab_in)
@@ -62,6 +61,8 @@ collapse = function (ab_in, verbose=himap_option('verbose')) {
   # Generate temp output file
   if (verbose) cat('* blast word size: ')
   blast_out = paste0(db, '_blast_output.txt')
+
+  # Automatically generate a good BLAST word size
   ws = max(round(min_seq_len(fasta) * 0.8), 7)
   if (verbose) cat(ws, '\n')
 
@@ -76,6 +77,7 @@ collapse = function (ab_in, verbose=himap_option('verbose')) {
      stop('\nError in BLAST alignment step.')
   }
   if (verbose) cat('OK.\n')
+
   # Load blast output and remove the temp blast output file
   if (verbose) cat('* selecting ends-free alignments...')
   blast.dt = data.table::fread(blast_out)

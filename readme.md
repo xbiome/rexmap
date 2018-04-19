@@ -2,9 +2,8 @@
 
 ## Installation
 
-In R, install devtools package, then use `install_github`:
+In R, install devtools package, then use `install_github` to install the package from source:
 
-From source:
 ```R
 install.packages('devtools')
 devtools::install_github('taolonglab/himap', auth_token='99f22e14f4ed6ec6899bebe79dbf6fd7fbf9bac6')
@@ -12,7 +11,7 @@ devtools::install_github('taolonglab/himap', auth_token='99f22e14f4ed6ec6899bebe
 
 Every dependency should install automatically. If DADA2 fails install the latest version from source, before HiMAP:
 ```R
-devtools.install_github('benjjneb/dada2')
+devtools::install_github('benjjneb/dada2')
 ```
 
 ## Tutorials

@@ -87,12 +87,14 @@ assign('taxonomy_file',
        system.file('database', 'lineages-2017-03-17_bacteria_archaea',
                    package='himap'),
        env=himap_opts)
+
 # Printing and Data.table adjustments
 assign('string_maxwidth', 50, env=himap_opts)
 assign('print_strains_nmax', 10, env=himap_opts)
 
-# Display progress of each function
+# Display progress and timing of each function that supports these arguments
 assign('verbose', FALSE, env=himap_opts)
+assign('timing', FALSE, env=himap_opts)
 
 # assign('maxrows', 12, env=himap_opts)
 #' HiMAP options
@@ -213,14 +215,16 @@ ftquantile = function (ft, prob) {
 dada_denoise = function (fastq_trimmed, fastq_untrimmed,
                          pvalue=1e-4,
                          pvalue_adjusted=NULL,
-                         # save_intermediate=TRUE,
-                         # use_intermediate=FALSE,
                          multithread=himap_option('ncpu'),
                          verbose=himap_option('verbose'),
+                         timing=himap_option('timing'),
                          error_estimation_nsamples=3) {
   # Dereplicate reads into a derep object
   # Check whether intermediate folder exists
   # Load 1 sample at a time, process it, then combine
+
+  # Time execution
+  if (timing) start_time = Sys.time()
 
   # Learn errors
   if (verbose) cat('* learn errors')
@@ -273,6 +277,13 @@ dada_denoise = function (fastq_trimmed, fastq_untrimmed,
     # Add the dada2 denoised object of this sample to the list
     dada_results[[length(dada_results)+1]] = dada_res[[1]]
     names(dada_results)[length(dada_results)] = basename(fq)
+  }
+
+  if (timing) {
+    end_time = Sys.time()
+    diff_time = difftime(end_time, start_time, units='secs')
+    cat('Finished in ', round(as.numeric(diff_time)/60), ' m ',
+      round(as.numeric(diff_time)%%60, 1), ' s.\n')
   }
 
   return(dada_results)

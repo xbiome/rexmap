@@ -7,5 +7,6 @@
 collapse(ab_in, verbose = himap_option("verbose"))
 }
 \description{
-Collapse sequences that are exact matches, up to shifts and/or length
+Like \code{\link{dada2::collapseNoMismatch}} but a lot faster, multithreaded
+and scales well to a very large number of unique sequences (100,000 and more).
 }
