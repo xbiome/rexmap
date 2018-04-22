@@ -29,7 +29,7 @@ sfastq_reader = function (file_name) {
        'qual'=as.character(Biostrings::quality(Biostrings::quality(x))))
 }
 
-fastq_list_writer = function (fastq_list, output, ncpu=detectCores()-1) {
+fastq_list_writer = function (fastq_list, output, ncpu=himap_option('ncpu')) {
   # Write FASTQ file at once. Input is a list where each element is a list
   # with names 'meta', 'seq' and 'qual'. I use this to save the result from (mc)mapply.
   list_paste = function (l) {
@@ -52,7 +52,8 @@ fasta_writer = function (meta, seqs, output) {
 #' is removed from the data table after the FASTA file is written to disk.
 #'
 #' @export
-sequences_to_fasta = function (abundance_table, fasta_out, remove_from_table=F) {
+sequences_to_fasta = function (abundance_table, fasta_out,
+                               remove_from_table=F) {
   if ('sequence' %in% names(abundance_table)) {
     with(unique(abundance_table[, .(qseqid, sequence)])[order(qseqid)],
       fasta_writer(

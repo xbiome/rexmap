@@ -5,7 +5,7 @@ Version: 1.0.0
 Author: Igor Segota <is246@cornell.edu>, Tao Long <tlong@sbpdiscovery.org>
 Maintainer: Igor Segota <is246@cornell.edu>
 Description: High resolution pipeline aimed at accurate species and strain 
-    Use four spaces when indenting paragraphs within the Description.
+    identification from 16S amplicon data.
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true

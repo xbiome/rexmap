@@ -18,3 +18,7 @@ devtools::install_github('benjjneb/dada2')
 
 * [Human gut microbiome data tutorial](tutorial.ipynb)
 * [mock community tutorial](tutorial_mock.ipynb)
+
+## Notes
+
+By default, multithreading is enabled and supported only on Linux and macOS, through R
