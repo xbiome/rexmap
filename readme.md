@@ -11,13 +11,12 @@ In R, install devtools package, then use `install_github` to install the package
 
 ```R
 install.packages('devtools')
+devtools::install_github('benjjneb/dada2')
+# Select 1 when prompted to install biocLite
 devtools::install_github('taolonglab/himap', auth_token='99f22e14f4ed6ec6899bebe79dbf6fd7fbf9bac6')
 ```
 
-Every dependency should install automatically. If DADA2 fails install the latest version from source:
-```R
-devtools::install_github('benjjneb/dada2')
-```
+This may take about 15 minutes to install.
 
 
 ## Tutorials

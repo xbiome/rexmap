@@ -581,16 +581,22 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
           Ar2 = Ar[variant_ids, osu_ids]
           Br2 = Br[variant_ids]
 
-          x = as.matrix(dcast(osu_data_m_single.dt[variant_id %in% variant_ids],
-                              variant_id ~ as.character(osu_id), value.var='copy_number')[, -1])
-          rownames(x) = osu_data_m_single.dt[variant_id %in% variant_ids, variant_id]
-          x[is.na(x)] = 0
-          Ar3.dt = merge(as.data.table(Ar2, keep.rownames=T),
-                         as.data.table(x, keep.rownames=T), all.x=T)
-          Ar3.dt[is.na(Ar3.dt)] = 0
-          Ar3 = as.matrix(Ar3.dt[, -1])
-          Ar3 = Ar3[, order(as.integer(colnames(Ar3)))]
-          rownames(Ar3) = Ar3.dt[, rn]
+          if (nrow(osu_data_m_single.dt[variant_id %in% variant_ids]) > 0) {
+            # If we have any that need to be added
+            x = as.matrix(dcast(osu_data_m_single.dt[variant_id %in% variant_ids],
+                                variant_id ~ as.character(osu_id), value.var='copy_number')[, -1])
+            rownames(x) = osu_data_m_single.dt[variant_id %in% variant_ids, variant_id]
+            x[is.na(x)] = 0
+            Ar3.dt = merge(as.data.table(Ar2, keep.rownames=T),
+                           as.data.table(x, keep.rownames=T), all.x=T)
+            Ar3.dt[is.na(Ar3.dt)] = 0
+            Ar3 = as.matrix(Ar3.dt[, -1])
+            Ar3 = Ar3[, order(as.integer(colnames(Ar3)))]
+            rownames(Ar3) = Ar3.dt[, rn]
+          } else {
+            # If not just use the Ar2 matrix
+            Ar3 = Ar2
+          }
 
           Br3 = as.matrix(B[rownames(Ar3),])
           osu_ab3.dt = merge(osu_ab.dt, data.table(osu_id=as.integer(colnames(Ar3))), by='osu_id', all.y=T)
