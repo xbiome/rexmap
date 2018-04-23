@@ -6,7 +6,8 @@
 \usage{
 dada_denoise(fastq_trimmed, fastq_untrimmed, pvalue = 1e-04,
   pvalue_adjusted = NULL, multithread = himap_option("ncpu"),
-  verbose = himap_option("verbose"), error_estimation_nsamples = 3)
+  verbose = himap_option("verbose"), timing = himap_option("timing"),
+  error_estimation_nsamples = 3)
 }
 \arguments{
 \item{pvalue}{P-value threshold before Bonferroni correction for DADA2.}

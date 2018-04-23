@@ -490,8 +490,11 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
     (t(eps) %*% eps) + ((x0^2) %*% H(x))
   }
 
-  osu_data_m_single.dt = unique(osu_data_m.dt[, if (length(unique(variant_id)) == 1) .SD,
-                                              by=osu_id][raw_count > 0, .(osu_id, variant_id, copy_number)])
+  osu_data_m_single.dt = unique(
+    osu_data_m.dt[,
+      if (length(unique(variant_id)) == 1) .SD,
+      by=osu_id][raw_count > 0, .(osu_id, variant_id, copy_number)]
+  )
 
   osu_sp.dt = cp.dt[, .(species = print_strains(strain, raw=raw)), by=osu_id]
 
@@ -615,7 +618,12 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
           res = tmp[which.min(sapply(tmp, function (x) x[[2]]))]
 
           osu_ab3.dt[, osu_count := as.integer(res[[1]][[1]])]
-          osu_ab2.dt = merge(osu_ab2.dt[!(osu_id %in% colnames(Ar3))], osu_ab3.dt, all=T, by=names(osu_ab3.dt))
+          osu_ab2.dt = merge(
+            osu_ab2.dt[!(osu_id %in% colnames(Ar3))],
+            osu_ab3.dt,
+            all=T,
+            by=names(osu_ab3.dt)
+          )
         }
       }
 
@@ -640,7 +648,9 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
                         by='osu_id')
 
       # Merge OSU analysis with low sim sequences
-      all_ab.dt = merge(osu_ab5.dt, ab_tab2.dt, by=intersect(names(osu_ab5.dt), names(ab_tab2.dt)),
+      all_ab.dt = merge(osu_ab5.dt,
+                        ab_tab2.dt,
+                        by=intersect(names(osu_ab5.dt), names(ab_tab2.dt)),
                         all=T)
       # Recalculate abundances
       all_ab.dt[, sample_id := s]
