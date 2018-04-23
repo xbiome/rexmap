@@ -4,21 +4,17 @@
 
 ### Linux
 
-For Linux, make sure you have development version of OpenSSL installed, so e.g. for Ubuntu run from terminal:
+For Linux, we need to make sure you have development version of OpenSSL installed, so e.g. for Ubuntu run from terminal:
 ```
 sudo apt-get -y install libssl-dev libcurl4-openssl-dev
 ```
-Add these lines to the end of `/etc/apt/sources.list`, e.g. `sudo nano /etc/apt/sources.list`:
+Then to install R need to add the repository, authentication key and install it:
 ```
-deb http://cloud.r-project.org/bin/linux/ubuntu xenial/
+sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
+sudo add-apt-repository 'deb [arch=amd64,i386] https://cran.rstudio.com/bin/linux/ubuntu xenial/'
+sudo apt-get update
+sudo apt-get -y install r-base
 ```
-Install the latest version of R:
-```
-sudo apt-get --allow-unauthenticated update
-sudo apt-get -y --allow-unauthenticated install r-base
-```
-(ignore any warnings about packages that cannot be authenticated). At this point you can install RStudio.
-
 
 In R, install devtools package, then use `install_github` to install the package from source:
 
