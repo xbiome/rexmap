@@ -26,7 +26,7 @@
 #' @param timing Display run-time at the end of trimming (default: FALSE).
 #'
 #' @export
-pcr_primer_trimmer = Vectorize(function (fq_in, fq_out, region=NULL,
+remove_pcr_primers = Vectorize(function (fq_in, fq_out, region=NULL,
                               pr_fwd=NULL,
                               pr_rev=NULL,
                               pr_fwd_maxoff=10, pr_rev_maxoff=10,

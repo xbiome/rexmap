@@ -231,7 +231,7 @@ dada_denoise = function (fastq_trimmed, fastq_untrimmed,
   dada_derep = dada2::derepFastq(
     fastq_trimmed[1:min(length(fastq_trimmed), error_estimation_nsamples)])
   if (class(dada_derep) != 'list') dada_derep = list(dada_derep)
-  cat('...')
+  if (verbose) cat('...')
 
   # Get or calculate the Bonferroni adjusted p-value
   if (is.null(pvalue_adjusted)) {
@@ -647,6 +647,10 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
       data.table::setcolorder(all_ab.dt, c('sample_id', 'osu_id', 'osu_count', 'species',
                                'pctsim'))
       # all_ab.dt[order(-pctsim)]
+      # Cleanup other variables
+      rm(osu_ab.dt, osu_ab2.dt, osu_ab3.dt, osu_ab4.dt, osu_ab5.dt, ab_tab2.dt,
+         Ab.dt, Ar, Br, Ar2, Br2, Ar3.dt, sol, A, B, g, cls, x, tmp)
+
       all_ab.dt[osu_count>0]
   }, mc.cores=ncpu))
   return(unique(all_abs.dt))
