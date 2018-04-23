@@ -578,8 +578,8 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
           variant_ids = vxs[cl[cl>ncol(Ar)]]
           # osu_ids = c(osu_ids, osu_data_m_single.dt[variant_id %in% variant_ids][, osu_id])
           # variant_ids = c(variant_ids, osu_data_m_single.dt[variant_id %in% variant_ids][, osu_id])
-          Ar2 = Ar[variant_ids, osu_ids]
-          Br2 = Br[variant_ids]
+          Ar2 = Ar[variant_ids, osu_ids, drop=F]
+          Br2 = Br[variant_ids, drop=F]
 
           if (nrow(osu_data_m_single.dt[variant_id %in% variant_ids]) > 0) {
             # If we have any that need to be added
