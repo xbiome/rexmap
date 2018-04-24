@@ -4,6 +4,10 @@
 #' if \code{test} evaluates to TRUE, return \code{yes}. Otherwise return \code{no}.
 #'
 #' @export
+#'
+#' @examples
+#' ie(1==2, '1 equals 2', '1 does not equal 2')
+#' # Output: '1 does not equal 2'
 ie = function(test, yes, no) {
   if (test) yes
   else no
@@ -32,7 +36,7 @@ sampleids_from_filenames = function (filenames, separator='_') {
 #'
 #' @examples
 #' read_files('~/data/diabimmune/fastq_tutorial', 'R1') # Get forward reads
-#' read_files('~/data/diabimmune/fastq_tutorial', 'R@') # Get reverse reads
+#' read_files('~/data/diabimmune/fastq_tutorial', 'R2') # Get reverse reads
 #'
 #'
 #' @export

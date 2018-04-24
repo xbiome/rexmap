@@ -441,6 +441,7 @@ abundance = function (abundance_table, blast_object,
                       verbose=himap_option('verbose'),
                       raw_strains=FALSE,
                       pso_n=1000) {
+
   # Generate OSU data table first
   osu_data_m.dt = blast_cp_to_osu_dt(
     blast_best.dt=blast_object$alignments,
@@ -501,7 +502,14 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
   sample_ids = ab_tab_nochim_m.dt[, unique(sample_id)]
   all_abs.dt = data.table::rbindlist(parallel::mclapply(sample_ids, function (s) {
 
-      Ab.dt = dcast(
+    # Numbers of rows for optimized and non-optimized OSUs
+    n_opt = 0
+    n_non = 0
+
+    # First prepare < 100% matches
+    if (nrow(osu_data_m.dt[sample_id==s & raw_count > 0]) > 0) {
+
+            Ab.dt = dcast(
          osu_data_m.dt[sample_id==s], variant_id ~ osu_id,
          value.var='copy_number', fill=0
       )
@@ -639,8 +647,18 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
       osu_ab4.dt = merge(osu_ab2.dt, osu_sp.dt, by='osu_id',
                         all.x=T)
       data.table::setorder(osu_ab4.dt, -osu_count)
+      osu_ab5.dt = merge(osu_ab4.dt,
+                        unique(osu_data_m.dt[, .(osu_id, pctsim=pctsim_range(pctsim))]),
+                        by='osu_id')
 
+      # Cleanup other variables
+      rm(osu_ab.dt, osu_ab2.dt, osu_ab3.dt, osu_ab4.dt,
+         Ab.dt, Ar, Br, Ar2, Br2, Ar3.dt, sol, A, B, g, cls, x, tmp)
+      n_opt = nrow(osu_ab5.dt)
+    }
 
+    # Check < 100% matches
+    if (nrow(blast_best2.dt) > 0) {
       ab_tab2.dt = merge(
         ab_tab_nochim_m.dt[sample_id==s],
         blast_best2.dt,
@@ -649,25 +667,28 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
       ab_tab2.dt[, osu_id := osu_offset+qseqid]
       ab_tab2.dt[, osu_count := raw_count]
       ab_tab2.dt[, c('raw_count', 'qseqid') := NULL]
-      osu_ab5.dt = merge(osu_ab4.dt,
-                        unique(osu_data_m.dt[, .(osu_id, pctsim=pctsim_range(pctsim))]),
-                        by='osu_id')
+      n_non = nrow(ab_tab2.dt)
+    }
 
+    if (n_opt > 0 & n_non > 0) {
       # Merge OSU analysis with low sim sequences
       all_ab.dt = merge(osu_ab5.dt,
                         ab_tab2.dt,
                         by=intersect(names(osu_ab5.dt), names(ab_tab2.dt)),
                         all=T)
-      # Recalculate abundances
-      all_ab.dt[, sample_id := s]
-      data.table::setcolorder(all_ab.dt, c('sample_id', 'osu_id', 'osu_count', 'species',
-                               'pctsim'))
-      # all_ab.dt[order(-pctsim)]
-      # Cleanup other variables
-      rm(osu_ab.dt, osu_ab2.dt, osu_ab3.dt, osu_ab4.dt, osu_ab5.dt, ab_tab2.dt,
-         Ab.dt, Ar, Br, Ar2, Br2, Ar3.dt, sol, A, B, g, cls, x, tmp)
-
-      all_ab.dt[osu_count>0]
+    } else if (n_opt == 0 & n_non > 0) {
+      all_ab.dt = ab_tab2.dt
+    } else if (n_opt > 0 & n_non == 0) {
+      all_ab.dt = osu_ab5.dt
+    } else {
+      # Both optimized and non-optimized sequences are zero
+      # Return empty data.table
+      return(data.table())
+    }
+    all_ab.dt[, sample_id := s]
+    data.table::setcolorder(all_ab.dt, c('sample_id', 'osu_id', 'osu_count', 'species',
+                             'pctsim'))
+    return(all_ab.dt[osu_count>0])
   }, mc.cores=ncpu))
   return(unique(all_abs.dt))
 }

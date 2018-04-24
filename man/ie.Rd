@@ -9,3 +9,7 @@ ie(test, yes, no)
 \description{
 if \code{test} evaluates to TRUE, return \code{yes}. Otherwise return \code{no}.
 }
+\examples{
+ie(1==2, '1 equals 2', '1 does not equal 2')
+# Output: '1 does not equal 2'
+}

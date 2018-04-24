@@ -17,7 +17,7 @@ Shortcut for \code{sort(dir(path, pattern, full.names=T))}
 }
 \examples{
 read_files('~/data/diabimmune/fastq_tutorial', 'R1') # Get forward reads
-read_files('~/data/diabimmune/fastq_tutorial', 'R@') # Get reverse reads
+read_files('~/data/diabimmune/fastq_tutorial', 'R2') # Get reverse reads
 
 
 }

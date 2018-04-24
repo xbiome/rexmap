@@ -28,8 +28,12 @@ devtools::install_github('taolonglab/himap', auth_token='99f22e14f4ed6ec6899bebe
 This may take up to about 30 minutes to install on a fresh R installation.
 
 ### macOS
-
-
+```R
+install.packages('devtools')
+devtools::install_github('benjjneb/dada2')
+# Select 1 when prompted to install biocLite
+devtools::install_github('taolonglab/himap', auth_token='99f22e14f4ed6ec6899bebe79dbf6fd7fbf9bac6')
+```
 
 ## Tutorials
 
