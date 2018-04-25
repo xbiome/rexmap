@@ -51,8 +51,6 @@ devtools::install_github('benjjneb/dada2')
 devtools::install_github('taolonglab/himap', auth_token='99f22e14f4ed6ec6899bebe79dbf6fd7fbf9bac6')
 ```
 
-If you don't have the Xcode command line tools, you will be prompted to install them. After that's completed, re-run `devtools::install_github` commands.
-
 
 ## Tutorials
 
