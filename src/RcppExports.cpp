@@ -111,36 +111,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// fitting_alignment_fast
-Rcpp::CharacterVector fitting_alignment_fast(std::string s1s, std::string s2s, int match, int mismatch, int indel);
-RcppExport SEXP _himap_fitting_alignment_fast(SEXP s1sSEXP, SEXP s2sSEXP, SEXP matchSEXP, SEXP mismatchSEXP, SEXP indelSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< std::string >::type s1s(s1sSEXP);
-    Rcpp::traits::input_parameter< std::string >::type s2s(s2sSEXP);
-    Rcpp::traits::input_parameter< int >::type match(matchSEXP);
-    Rcpp::traits::input_parameter< int >::type mismatch(mismatchSEXP);
-    Rcpp::traits::input_parameter< int >::type indel(indelSEXP);
-    rcpp_result_gen = Rcpp::wrap(fitting_alignment_fast(s1s, s2s, match, mismatch, indel));
-    return rcpp_result_gen;
-END_RCPP
-}
-// fit_align_fast
-Rcpp::List fit_align_fast(Rcpp::CharacterVector q, Rcpp::CharacterVector s, int match, int mismatch, int indel);
-RcppExport SEXP _himap_fit_align_fast(SEXP qSEXP, SEXP sSEXP, SEXP matchSEXP, SEXP mismatchSEXP, SEXP indelSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::CharacterVector >::type q(qSEXP);
-    Rcpp::traits::input_parameter< Rcpp::CharacterVector >::type s(sSEXP);
-    Rcpp::traits::input_parameter< int >::type match(matchSEXP);
-    Rcpp::traits::input_parameter< int >::type mismatch(mismatchSEXP);
-    Rcpp::traits::input_parameter< int >::type indel(indelSEXP);
-    rcpp_result_gen = Rcpp::wrap(fit_align_fast(q, s, match, mismatch, indel));
-    return rcpp_result_gen;
-END_RCPP
-}
 // C_nwalign
 Rcpp::CharacterVector C_nwalign(std::string s1, std::string s2, int match, int mismatch, int indel);
 RcppExport SEXP _himap_C_nwalign(SEXP s1SEXP, SEXP s2SEXP, SEXP matchSEXP, SEXP mismatchSEXP, SEXP indelSEXP) {
@@ -166,8 +136,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_himap_load_posterior", (DL_FUNC) &_himap_load_posterior, 1},
     {"_himap_nwalign_endsfree_test", (DL_FUNC) &_himap_nwalign_endsfree_test, 6},
     {"_himap_C_mergepairs", (DL_FUNC) &_himap_C_mergepairs, 11},
-    {"_himap_fitting_alignment_fast", (DL_FUNC) &_himap_fitting_alignment_fast, 5},
-    {"_himap_fit_align_fast", (DL_FUNC) &_himap_fit_align_fast, 5},
     {"_himap_C_nwalign", (DL_FUNC) &_himap_C_nwalign, 5},
     {NULL, NULL, 0}
 };

@@ -1,4 +1,3 @@
-// [[Rcpp::depends(RcppParallel)]]
 #include <Rcpp.h>
 #include "himap.h"
 
