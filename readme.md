@@ -25,7 +25,7 @@ devtools::install_github('benjjneb/dada2')
 devtools::install_github('taolonglab/himap', auth_token='99f22e14f4ed6ec6899bebe79dbf6fd7fbf9bac6')
 ```
 
-This may take up to about 30 minutes to install on a fresh R installation.
+This may take up to about 10 minutes to install on a fresh R installation.
 
 ### macOS
 
@@ -34,7 +34,9 @@ First, install Xcode command line tools. To do this, open a macOS Terminal, then
 xcode-select --install
 ```
 
+Then open either R console or RStudio and run this:
 ```R
+# Install devtools first
 options('install.packages.compile.from.source'='never')
 install.packages('devtools')
 
@@ -44,7 +46,6 @@ biocLite('GenomeInfoDbData', suppressUpdates=T)
 
 # DADA2
 devtools::install_github('benjjneb/dada2')
-# Select 1 when prompted to install biocLite
 
 # Finally install HiMAP
 devtools::install_github('taolonglab/himap', auth_token='99f22e14f4ed6ec6899bebe79dbf6fd7fbf9bac6')
