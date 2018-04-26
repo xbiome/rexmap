@@ -8,7 +8,7 @@ For Linux, we need to make sure you have development version of OpenSSL installe
 ```
 sudo apt-get -y install libssl-dev libcurl4-openssl-dev
 ```
-Then to install R, we need to add the repository, authentication key and install it:
+Then to install the latest version of R, we need to add the repository, authentication key and install it:
 ```
 sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
 sudo add-apt-repository 'deb [arch=amd64,i386] https://cran.rstudio.com/bin/linux/ubuntu xenial/'
