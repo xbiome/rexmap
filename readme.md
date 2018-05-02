@@ -51,6 +51,15 @@ devtools::install_github('benjjneb/dada2')
 devtools::install_github('taolonglab/himap', auth_token='99f22e14f4ed6ec6899bebe79dbf6fd7fbf9bac6')
 ```
 
+### Alternatively without devtools
+
+```sh
+source("https://bioconductor.org/biocLite.R")
+biocLite("dada2")
+
+install.packages('data.table', 'igraph', 'limSolve', 'parallel', 'pso', 'Rcpp', 'ShortRead', 'stringr', 'utils')
+```
+
 
 ## Tutorials
 

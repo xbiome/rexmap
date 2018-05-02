@@ -614,6 +614,8 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
           x0 = osu_ab3.dt[, osu_count]
 
           x0_w = rep(0.3, length(x0))
+          # x0_w = x0
+
           ar3 = copy(Ar3)
           for (r in 1:nrow(Ar3)) ar3[r,] = ar3[r,] / Br3[r]
           tmp = lapply(1:pso_n, function (it) {
