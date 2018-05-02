@@ -57,9 +57,10 @@ devtools::install_github('taolonglab/himap', auth_token='99f22e14f4ed6ec6899bebe
 source("https://bioconductor.org/biocLite.R")
 biocLite("dada2")
 
-options('install.packages.compile.from.source'='never')
 install.packages(c('data.table', 'igraph', 'limSolve', 'pso', 'stringr'))
-install.packages('~/Downloads/himap_0.99.tar.gz')
+# Manually download https://github.com/taolonglab/himap/blob/master/RBuild/himap_0.99.tar.gz
+# to e.g. ~/Downloads
+install.packages('~/Downloads/himap_0.99.tar.gz', repos=NULL)
 ```
 
 
