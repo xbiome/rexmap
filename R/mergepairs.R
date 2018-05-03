@@ -61,7 +61,7 @@ merge_pairs = Vectorize(function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_
   }
 
   # Load reads using ShortRead::FastqStreamer
-  m('Loading FASTQ reads...')
+  m(paste0('Loading FASTQ reads: ', basename(fq_fwd), ', ', basename(fq_rev), ' ...'))
   f_fwd = ShortRead::FastqStreamer(fq_fwd)
   f_rev = ShortRead::FastqStreamer(fq_rev)
   # Go through each read entry, do alignment
