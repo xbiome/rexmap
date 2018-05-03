@@ -29,7 +29,7 @@ This may take up to about 10 minutes to install on a fresh R installation.
 
 ### macOS
 
-First, install Xcode command line tools. To do this, open a macOS Terminal, then type
+First, make sure you have the latest Xcode and [latest R](https://cran.r-project.org/bin/macosx/R-3.5.0.pkg) (> 3.4) installed. Then, install Xcode command line tools. To do this, open a macOS Terminal, then type
 ```
 xcode-select --install
 ```
