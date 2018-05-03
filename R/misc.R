@@ -41,7 +41,7 @@ sampleids_from_filenames = function (filenames, separator='_') {
 #'
 #' @export
 read_files = function (path, pattern='') {
-  sort(dir(path, pattern, full.names=T))
+  sort(dir(path.expand(path), pattern, full.names=T))
 }
 
 #' Strain vector to shorter strain string
