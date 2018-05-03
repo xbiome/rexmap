@@ -10,7 +10,7 @@ License: What license is it under?
 Encoding: UTF-8
 LazyData: true
 Imports:
-   dada2 (>= 1.6),
+   dada2 (>= 1.8.0),
    data.table (>= 1.10),
    igraph (>= 1.2.1),
    limSolve (>= 1.5.5.3),

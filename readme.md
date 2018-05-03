@@ -51,18 +51,6 @@ devtools::install_github('benjjneb/dada2')
 devtools::install_github('taolonglab/himap', auth_token='99f22e14f4ed6ec6899bebe79dbf6fd7fbf9bac6')
 ```
 
-### Alternatively without devtools on macOS
-
-```sh
-source("https://bioconductor.org/biocLite.R")
-biocLite("dada2")
-
-install.packages(c('data.table', 'igraph', 'limSolve', 'pso', 'stringr'))
-# Manually download https://github.com/taolonglab/himap/blob/master/RBuild/himap_0.99.tar.gz
-# to e.g. ~/Downloads
-install.packages('~/Downloads/himap_0.99.tar.gz', repos=NULL)
-```
-
 
 ## Tutorials
 
