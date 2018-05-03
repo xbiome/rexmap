@@ -40,24 +40,24 @@ remove_pcr_primers = Vectorize(function (fq_in, fq_out, region=NULL,
   #
 
   # Check input
-  if (!all_exist(fq_in)) stop('PCR primer trimmer: some input files are missing.')
+  if (!all_exist(fq_in)) stop('PCR primer remover: some input files are missing.')
   if (is.null(region) & (is.null(pr_fwd) | is.null(pr_rev))) {
-    stop('PCR primer trimmer: either region of pr_fwd and pr_rev need to be specified.')
+    stop('PCR primer remover: either region of pr_fwd and pr_rev need to be specified.')
   }
   # if region is specified, check that primers exist in the reference table
   if (!is.null(region)) {
     if (nrow(himap_option('blast_dbs')[Hypervariable_region==region]) == 0) {
       # Missing hypervariable region
-      stop('PCR primer trimmer: hypervariable region \"', region, '\" not found.')
+      stop('PCR primer remover: hypervariable region \"', region, '\" not found.')
     }
     pr_fwd = himap_option('blast_dbs')[Hypervariable_region==region, Primer1_sequence_5to3]
     pr_rev = reverse_complement(
       himap_option('blast_dbs')[Hypervariable_region==region, Primer2_sequence_3to5]
     )
-    if (verbose) cat('* PCR trimmer mode: region', region, paste0('(fwd: ',
+    if (verbose) cat('* PCR primer remover mode: region', region, paste0('(fwd: ',
       pr_fwd, ', rev: ', pr_rev, ')'), fill=T)
   } else {
-    if (verbose) cat('* PCR trimmer mode: primers', paste0('(fwd: ',
+    if (verbose) cat('* PCR primer remover mode: primers', paste0('(fwd: ',
       pr_fwd, ', rev: ', pr_rev, ')'), fill=T)
 
   }
@@ -138,7 +138,7 @@ remove_pcr_primers = Vectorize(function (fq_in, fq_out, region=NULL,
   }
 
   # Apply fastq_trimmer() to each sequence in this file
-  if (verbose) cat('* trimming...')
+  if (verbose) cat('* removing primers...')
   out_trimmed = unname(
     parallel::mcmapply(
       fastq_trimmer, in_fq[['meta']], in_fq[['seqs']], in_fq[['qual']],
