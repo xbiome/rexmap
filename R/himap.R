@@ -480,7 +480,8 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
   common_variant_ids = var_count.dt[, if (all(raw_count > 0)) .SD, by=variant_id][, unique(variant_id)]
   blast_best2.dt = blast_best.dt[
     pctsim < pctsim_min,
-    .(pctsim=pctsim_range(pctsim), species=print_strains(strain, raw=raw)), by=qseqid]
+    .(pctsim=pctsim_range(pctsim),
+      species=print_strains(strain, raw=raw)), by=qseqid]
   if (verbose) cat('OK.\n')
 
   # Optimization function
@@ -509,7 +510,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
     # First prepare < 100% matches
     if (nrow(osu_data_m.dt[sample_id==s & raw_count > 0]) > 0) {
 
-            Ab.dt = dcast(
+      Ab.dt = dcast(
          osu_data_m.dt[sample_id==s], variant_id ~ osu_id,
          value.var='copy_number', fill=0
       )
