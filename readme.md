@@ -54,7 +54,7 @@ devtools::install_github('taolonglab/himap', auth_token='99f22e14f4ed6ec6899bebe
 
 ## Tutorials
 
-* [Human gut microbiome data tutorial](tutorial.ipynb)
+* [Human gut microbiome data tutorial](tutorial.ipynb) (main tutorial with all explanations)
 * [mock community tutorial](tutorial_mock.ipynb)
 
 ## Notes

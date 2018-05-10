@@ -138,7 +138,7 @@ blast_out_to_best_cp = function (
   # Generate species names
   cp.dt[, species := gsub('^([^_]+)_([^_]+)_.*', '\\1_\\2', strain)]
   # Count unique number of species per OSU
-  cp.dt[, no_species_in_osu := length(unique(species)), by=osu_id]
+  # cp.dt[, no_species_in_osu := length(unique(species)), by=osu_id]
   if (verbose) cat('OK.\n')
   return(list(blast_best.dt, cp.dt))
 }
