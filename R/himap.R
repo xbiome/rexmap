@@ -1,5 +1,4 @@
-# For this pipeline to work we will need to provide filenames for forward and
-# reverse reads for each sample.
+# HiMAP: High-resolution Microbial Amplicon-sequencing Pipeline
 
 # Import these functions for everything
 #' @importFrom data.table data.table
@@ -42,6 +41,9 @@ exec_file = function (filename) {
 
 # Default options -------------------------------------------------------------
 himap_opts = new.env()
+allowed_options = c('aln_params', 'blast_max_seqs', 'blast_word_size',
+                    'ncpu', 'print_strains_nmax', 'string_maxwidth',
+                    'timing', 'verbose')
 assign('himap_path', '', env=himap_opts)
 # FUll current path is obtained by:
 # assign()
@@ -122,21 +124,29 @@ himap_option = function (option_names=NULL) {
 }
 
 
-
+#' HiMAP set default options
+#'
+#' @param option_name Name of the option to be changed.
+#' @param value New value.
+#'
+#' Options that can be changed:
+#'
+#'
 himap_setoption = function (option_name, value) {
   # Simply set option_name to value. Used to change HiMAP defaults. Not finished yet.
+  # Allowed options
   if (option_name == 'ncpu') {
     # Check that it is an integer
     if (!(class(value) == 'integer')) stop('ncpu must be an integer.')
-  } else if (option_name == 'datatable.prettyprint.char') {
+  } else if (option_name == 'string_maxwidth') {
     # Check that value is integer
     options('datatable.prettyprint.char'=value)
-    assign('string_maxwidth', 50, env=himap_opts)
-  } else if (option_name == 'verbose') {
-    if (!(value %in% c(TRUE, FALSE))) stop('verbose can only be TRUE or FALSE.')
-    else assign('verbose', value, env=himap_opts)
-  } else if (option_name %in% c('blast_out_fmt', 'blast_coll_fmt')) {
-
+    assign('string_maxwidth', value, env=himap_opts)
+  } else if (option_name %in% c('verbose', 'timing')) {
+    if (!(value %in% c(TRUE, FALSE))) stop(option_name, ' can only be TRUE or FALSE.')
+    else assign(option_name, value, env=himap_opts)
+  } else if (option_name == 'aln_params') {
+    # Check each possible combination for megablast
   } else {
     # Else just assign stuff
     assign(option_name, value, env=himap_opts)
