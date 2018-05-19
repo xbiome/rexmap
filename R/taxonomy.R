@@ -75,7 +75,7 @@ taxonomy = function (osu_abundance_table) {
   tax_class.dt = unique(taxonomy.dt[, .(superkingdom, phylum, class, order=NA, family=NA)])
   tax_phylum.dt = unique(taxonomy.dt[, .(superkingdom, phylum, class=NA, order=NA, family=NA)])
 
-  osu_ab_g.dt = osuab_genuses(osu_ab.dt)
+  osu_ab_g.dt = osuab_genuses(osu_abundance_table)
   osu_ab_g2.dt = merge(osu_ab_g.dt, taxonomy.dt, by='genus', all.x=T) # Genus matches
   col_order = c('osu_id', 'strain_count', 'pctsim', 'superkingdom', 'phylum',
                 'class', 'order', 'family', 'genus')
