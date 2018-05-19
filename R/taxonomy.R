@@ -139,6 +139,6 @@ taxonomy = function (osu_abundance_table) {
   osu_ab_ranks.dt[!(grepl('^[A-Z]', order)), order := NA]
   osu_ab_ranks.dt[!(grepl('^[A-Z]', family)), family := NA]
   osu_ab_ranks.dt[!(grepl('^[A-Z]', genus)), genus := NA]
-  return(osu_ab_ranks.dt)
+  return(osu_ab_ranks.dt[])
 }
 
