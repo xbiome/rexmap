@@ -14,30 +14,44 @@
 NULL
 
 
-#' Run this when the package is loaded and attached in R
-.onAttach = function (libname, pkgname) {
-  options('datatable.prettyprint.char'=50)
-  packageStartupMessage('HiMAP v1.0 loaded.')
-}
-
 #' Detect operating system
 detect_os = function () {
   switch(
     Sys.info()[['sysname']],
       Windows= {'win'},
       Linux  = {'linux'},
-      Darwin = {'osx'}
+      Darwin = {'macos'}
   )
 }
 
 #' Auto-select precompiled binaries for the detected OS
 exec_file = function (filename) {
   platform = detect_os()
-  if (platform == 'osx') return(filename)
+  if (platform == 'macos') return(paste0(filename, '_macos'))
   else if (platform == 'linux') return(paste0(filename, '_linux'))
   else if (platform == 'win') return(paste0(sub('.exe', '', filename),
                                             '_win.exe'))
 }
+
+#' Run this when the package is loaded and attached in R
+.onAttach = function (libname, pkgname) {
+  options('datatable.prettyprint.char'=50)
+
+  # Check if the executable files are missing. If so, download them.
+  blastn_file = system.file('exec', exec_file('blastn'), package='himap')
+  makedb_file = system.file('exec', exec_file('makeblastdb'), package='himap')
+  if (blastn_file=='' | makedb_file=='') {
+    download_blast()
+  }
+
+  # Check if database files are missing. Need at least one set of blastdb
+  # files and 1 table with matching primers...
+
+  packageStartupMessage('HiMAP v1.0 loaded.')
+}
+
+
+
 
 # Default options -------------------------------------------------------------
 himap_opts = new.env()
