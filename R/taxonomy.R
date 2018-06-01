@@ -22,7 +22,7 @@ lineagecsv_to_robj = function (lincsv, out) {
 
 #' Load HiMAP taxonomy reference file
 #'
-#' This is a NCBI Taxonomy database, exported as a tab-delimited file.
+#' This is a NCBI Taxonomy database, exported as an compressed R object.
 #'
 #' @export
 load_taxonomy = function (tax_file=himap_option('taxonomy_file')) {

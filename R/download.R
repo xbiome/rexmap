@@ -1,7 +1,8 @@
 #' Download blastn and makeblastdb executables
 #'
 #' Downloads NCBI blastn and makeblastdb executables for the Operating System
-#' running R and copies it to the HiMAP package folder.
+#' running R and copies it to the HiMAP package folder. This is executed automatically
+#' if blastn and makeblastdb executables are missing upon attaching HiMAP package.
 #'
 #' @param verbose (default: TRUE) Whether or not to print progress during download.
 #'
@@ -16,6 +17,11 @@ download_blast = function (verbose=T) {
       blast_url = 'ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+//2.7.1/ncbi-blast-2.7.1+-x64-macosx.tar.gz'
    } else {
       stop('Error: Unsupported OS.')
+   }
+
+   # Check internet connection
+   if (!internet_connection()) {
+      stop('Error: Internet connection unavailable.')
    }
 
    # Download into temp folder
@@ -55,9 +61,50 @@ download_blast = function (verbose=T) {
    if (verbose) cat(' OK.\nDone.\n')
 }
 
+#' Check if there's an active internet connection
+#'
+#' Return TRUE or FALSE
+internet_connection = function(url='https://cran.r-project.org') {
+    out = tryCatch(
+       readChar(con=url, nchars=1),
+       error = function(e) return(FALSE),
+       warning = function(w) return(FALSE)
+    )
+    if (class(out) == 'logical') return(FALSE)
+    else return(TRUE)
+}
+
+#' curl path for system2 call
+curl_path = function () {
+   # Try system path first
+   curl_sys_path = system2(c('which', 'curl'), stdout=T)
+   if (curl_sys_path != 1) return(curl_sys_path)
+   # Curl not found in system path use the one bundled in HiMAP
+}
+   return()
+
+#' Download a "large" (>1 MB) file from a Github repository
+download_github = function (url, destfile, private=T) {
+   # Implements this method:
+   # https://medium.com/@caludio/how-to-download-large-files-from-github-4863a2dbba3b
 
 
+   # Extra headers
+   extra_headers = c("--header 'Accept: application/vnd.github.v3.raw'",
+                     "--remote-name")
+   if (private) extra_headers = c("--header 'Authorization: token 99f22e14f4ed6ec6899bebe79dbf6fd7fbf9bac6'",
+                                  extra_headers)
+   download.file(url, destfile, method='curl', extra=extra_headers)
+}
 
 
-
+#' Update the HiMAP database
+update = function (verbose=T) {
+   if (verbose) cat('HiMAP database update\n')
+   if (verbose) cat('* check internet connection... ')
+   if (!internet_connection()) stop('\nError: Internet connection unavailable.')
+   if (verbose) cat('OK.\n')
+   if (verbose) cat('* downloading database files:')
+   himap_database_path = file.path(find.package('himap'), 'database')
+}
 
