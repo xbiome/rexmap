@@ -77,34 +77,52 @@ internet_connection = function(url='https://cran.r-project.org') {
 #' curl path for system2 call
 curl_path = function () {
    # Try system path first
-   curl_sys_path = system2(c('which', 'curl'), stdout=T)
-   if (curl_sys_path != 1) return(curl_sys_path)
+   curl_sys_path = suppressWarnings(system2(c('which', 'curl'), stdout=T, stderr=F))
+   if (length(curl_sys_path) > 0) return(curl_sys_path)
    # Curl not found in system path use the one bundled in HiMAP
-}
-   return()
-
-#' Download a "large" (>1 MB) file from a Github repository
-download_github = function (url, destfile, private=T) {
-   # Implements this method:
-   # https://medium.com/@caludio/how-to-download-large-files-from-github-4863a2dbba3b
-
-
-   # Extra headers
-   extra_headers = c("--header 'Accept: application/vnd.github.v3.raw'",
-                     "--remote-name")
-   if (private) extra_headers = c("--header 'Authorization: token 99f22e14f4ed6ec6899bebe79dbf6fd7fbf9bac6'",
-                                  extra_headers)
-   download.file(url, destfile, method='curl', extra=extra_headers)
+   return(file.path(find.package('himap'), 'exec', paste0('curl_', detect_os())))
 }
 
 
 #' Update the HiMAP database
-update = function (verbose=T) {
+#'
+#' Updates the database from HiMAP GitHub repository.
+#'
+#' @export
+update_database = function (verbose=T) {
    if (verbose) cat('HiMAP database update\n')
    if (verbose) cat('* check internet connection... ')
    if (!internet_connection()) stop('\nError: Internet connection unavailable.')
    if (verbose) cat('OK.\n')
-   if (verbose) cat('* downloading database files:')
+   if (verbose) cat('* downloading database files:\n')
    himap_database_path = file.path(find.package('himap'), 'database')
+   # Implements this method:
+   # https://medium.com/@caludio/how-to-download-large-files-from-github-4863a2dbba3b
+   json_out = paste(system2(curl_path(), c(
+      '-H', '"Authorization: token 99f22e14f4ed6ec6899bebe79dbf6fd7fbf9bac6"',
+      '-L', 'https://api.github.com/repos/taolonglab/himap/contents/inst/database/'
+   ), stdout=T, stderr=F), collapse='')
+
+   db.dt = as.data.table(as.list(jsonlite::fromJSON(json_out)))[, c(1,4,11)]
+   # Select only database files for hypervariable regions
+   db.dt = db.dt[name %like% 'V[0-9][-]?(V[0-9])?']
+   for (i in 1:nrow(db.dt)) {
+      f = db.dt[i, `_links.git`]
+      if (verbose) cat('* -', db.dt[i, name], '\n')
+      # download.file(f, file.path(himap_database_path, basename(f)), extra=c(
+      system2(curl_path(), c(
+         '-s',
+         '-H', '"Accept: application/vnd.github.v3.raw"',
+         '-H', '"Authorization: token 99f22e14f4ed6ec6899bebe79dbf6fd7fbf9bac6"',
+         '-L', f,
+         '-o', file.path(himap_database_path, db.dt[i, name])
+      ), stdout=F, stderr=F)
+   }
+   if (verbose) cat('* OK.\n')
+   if (verbose) cat('* downloading reference table...')
+
+   if (verbose) cat('OK.\n')
+   if (verbose) cat('Done.\n')
+
 }
 

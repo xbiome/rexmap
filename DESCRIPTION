@@ -13,6 +13,7 @@ Imports:
    dada2 (>= 1.8.0),
    data.table (>= 1.10),
    igraph (>= 1.2.1),
+   jsonlite (>= 1.5),
    limSolve (>= 1.5.5.3),
    parallel (>= 3.4.4),
    pso (>= 1.0.3),

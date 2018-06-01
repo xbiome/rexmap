@@ -7,5 +7,5 @@
 load_taxonomy(tax_file = himap_option("taxonomy_file"))
 }
 \description{
-This is a NCBI Taxonomy database, exported as a tab-delimited file.
+This is a NCBI Taxonomy database, exported as an compressed R object.
 }
