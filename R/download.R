@@ -98,7 +98,8 @@ update_database = function (verbose=T) {
    himap_database_path = file.path(find.package('himap'), 'database')
    # Implements this method:
    # https://medium.com/@caludio/how-to-download-large-files-from-github-4863a2dbba3b
-   json_out = paste(system2(curl_path(), c(
+   curlpath = curl_path()
+   json_out = paste(system2(curlpath, c(
       '-H', '"Authorization: token 99f22e14f4ed6ec6899bebe79dbf6fd7fbf9bac6"',
       '-L', 'https://api.github.com/repos/taolonglab/himap/contents/inst/database/'
    ), stdout=T, stderr=F), collapse='')
@@ -110,7 +111,7 @@ update_database = function (verbose=T) {
       f = db.dt[i, `_links.git`]
       if (verbose) cat('* -', db.dt[i, name], '\n')
       # download.file(f, file.path(himap_database_path, basename(f)), extra=c(
-      system2(curl_path(), c(
+      system2(curlpath, c(
          '-s',
          '-H', '"Accept: application/vnd.github.v3.raw"',
          '-H', '"Authorization: token 99f22e14f4ed6ec6899bebe79dbf6fd7fbf9bac6"',
@@ -120,16 +121,13 @@ update_database = function (verbose=T) {
    }
    if (verbose) cat('* OK.\n')
    if (verbose) cat('* downloading reference table...')
-   download.file(
-      url = 'https://api.github.com/repos/taolonglab/himap/contents/inst/extdata/pcr_primers_table.txt',
-      destfile = file.path(find.package('himap'), 'inst', 'extdata', 'pcr_primers_table.txt'),
-      method = 'curl',
-      extra = c(
-         '-s',
-         '-H', '"Accept: application/vnd.github.v3.raw"',
-         '-H', '"Authorization: token 99f22e14f4ed6ec6899bebe79dbf6fd7fbf9bac6"'
-      )
-   )
+   system2(curlpath, c(
+      '-s',
+      '-H', '"Accept: application/vnd.github.v3.raw"',
+      '-H', '"Authorization: token 99f22e14f4ed6ec6899bebe79dbf6fd7fbf9bac6"',
+      '-L', 'https://api.github.com/repos/taolonglab/himap/contents/inst/extdata/pcr_primers_table.txt',
+      '-o', file.path(dirname(himap_database_path), 'inst', 'extdata', 'pcr_primers_table.txt')
+   ), stdout=F, stderr=F)
    if (verbose) cat('OK.\n')
    if (verbose) cat('Done.\n')
 
