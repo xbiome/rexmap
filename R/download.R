@@ -105,7 +105,7 @@ update_database = function (verbose=T) {
 
    db.dt = as.data.table(as.list(jsonlite::fromJSON(json_out)))[, c(1,4,11)]
    # Select only database files for hypervariable regions
-   db.dt = db.dt[name %like% 'V[0-9][-]?(V[0-9])?']
+   db.dt = db.dt[grepl('V[0-9][-]?(V[0-9])?', name)]
    for (i in 1:nrow(db.dt)) {
       f = db.dt[i, `_links.git`]
       if (verbose) cat('* -', db.dt[i, name], '\n')
