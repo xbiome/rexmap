@@ -120,7 +120,16 @@ update_database = function (verbose=T) {
    }
    if (verbose) cat('* OK.\n')
    if (verbose) cat('* downloading reference table...')
-
+   download.file(
+      url = 'https://api.github.com/repos/taolonglab/himap/contents/inst/extdata/pcr_primers_table.txt',
+      destfile = file.path(find.package('himap'), 'inst', 'extdata', 'pcr_primers_table.txt'),
+      method = 'curl',
+      extra = c(
+         '-s',
+         '-H', '"Accept: application/vnd.github.v3.raw"',
+         '-H', '"Authorization: token 99f22e14f4ed6ec6899bebe79dbf6fd7fbf9bac6"'
+      )
+   )
    if (verbose) cat('OK.\n')
    if (verbose) cat('Done.\n')
 
