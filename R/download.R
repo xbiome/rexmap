@@ -126,7 +126,7 @@ update_database = function (verbose=T) {
       '-H', '"Accept: application/vnd.github.v3.raw"',
       '-H', '"Authorization: token 99f22e14f4ed6ec6899bebe79dbf6fd7fbf9bac6"',
       '-L', 'https://api.github.com/repos/taolonglab/himap/contents/inst/extdata/pcr_primers_table.txt',
-      '-o', file.path(dirname(himap_database_path), 'inst', 'extdata', 'pcr_primers_table.txt')
+      '-o', system.file('extdata', 'pcr_primers_table.txt', package='himap')
    ), stdout=F, stderr=F)
    if (verbose) cat('OK.\n')
    if (verbose) cat('Done.\n')
