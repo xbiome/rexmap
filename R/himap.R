@@ -755,3 +755,24 @@ sequence_abundance = function (dada_result, remove_bimeras=T, collapse_sequences
   return(ab_mat_to_dt(ab_tab_nochim_coll, fq_prefix_split=fq_prefix_split))
 }
 
+#' Generate a table with sequences for each OSU
+#'
+#' @export
+osu_sequences = function (osu_abundances, blast_output) {
+  # First do 100% OSUs. For these combine blast output tables
+  osu_var.dt = merge(
+    unique(osu_abundances[, .(osu_id, species)]),
+    blast_output$sequences,
+    by='osu_id'
+  )
+  osu_var.dt[, c('spectrum', 'variant_id') := NULL]
+  osu_var.dt = merge(
+    osu_var.dt,
+    unique(blast_output$alignments[, .(qseqid, pctsim)]),
+    all.x=T,
+    by='qseqid'
+  )
+  return(osu_var.dt[order(osu_id), .(osu_id, species, qseqid, pctsim, sequence)])
+}
+
+

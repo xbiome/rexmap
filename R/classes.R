@@ -18,5 +18,6 @@ setMethod('show', 'blast', function(object){
   cat('Contains data.tables:', fill=T)
   cat('* BLAST reference database alignments: $alignments', fill=T)
   cat('* Copy number table: $cp', fill=T)
+  cat('* Sequence table: $sequences', fill=T)
   cat('* BLAST alignment parameters: $parameters', fill=T)
 })

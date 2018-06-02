@@ -70,6 +70,7 @@ blast_out_to_best_cp = function (
   blast_best.dt[, variant_id := gsub('^([0-9]+)-.*', '\\1', sseqid)]
   # Remove sequence alignment columns since we already calculated alignment score
   blast_best.dt[, c('qseq', 'sseq') := NULL]
+  # blast_best.dt[, c('qseq') := NULL]
   blast_best.dt[, c('sseqid') := NULL]
   # Calculate percentage similarity
   blast_best.dt[, pctsim := round(100*match/(match+mismatch+gapopen+gapextend), 2)]
@@ -332,6 +333,29 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
     'max_target_seqs'=max_target_seqs, 'word_size'=word_size, 'alignment_parameters'=
     paste(c('match', 'mismatch', 'gap_open', 'gap_extend'), himap_option('aln_params'),
           collapse=', ', sep=': '))
+
+  blast_cp$sequences = unique(blast_cp$cp[, .(osu_id, variant_id, spectrum)])
+  blast_cp$sequences = merge(
+    blast_cp$sequences,
+    unique(blast_cp$alignments[pctsim==100, .(variant_id, qseqid)]),
+    by='variant_id', all.x=T
+  )
+  blast_cp$sequences = data.table::rbindlist(list(
+    blast_cp$sequences,
+    unique(blast_cp$alignments[
+      pctsim<100,
+      .(variant_id=NA, osu_id=qseqid+1000000L, spectrum=NA, qseqid)])
+  ))
+  blast_cp$sequences[, copy_number := 1L]
+  blast_cp$sequences[osu_id < 1000000L, copy_number := as.integer(
+    gsub('^([0-9]+):.*', '\\1', strsplit(spectrum[1], ',', fixed=T)[[1]])
+  ), by=osu_id]
+
+  blast_cp$sequences = merge(
+    blast_cp$sequences,
+    unique(sequences[, .(qseqid, sequence)]),
+    by='qseqid', all.x=T
+  )
 
   # If we made a temp fasta file, remove it
   if (sequences_type %in% c('dt', 'DNA')) file.remove(fasta_file)
