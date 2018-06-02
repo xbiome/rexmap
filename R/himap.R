@@ -772,7 +772,7 @@ osu_sequences = function (osu_abundances, blast_output) {
     all.x=T,
     by='qseqid'
   )
-  return(osu_var.dt[order(osu_id), .(osu_id, species, qseqid, pctsim, sequence)])
+  return(osu_var.dt[order(osu_id), .(osu_id, species, qseqid, copy_number, pctsim, sequence)])
 }
 
 
