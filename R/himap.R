@@ -487,6 +487,11 @@ abundance = function (abundance_table, blast_object,
   return(osu_ab.dt)
 }
 
+#' If var exists, remove it. If not, do nothing.
+rm2 = Vectorize(function (var) {
+
+})
+
 
 osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
                               blast_best.dt,
@@ -665,8 +670,12 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
             all=T,
             by=names(osu_ab3.dt)
           )
+
+          rm(Ar2, ar3, tmp, osu_ab3.dt, Ar3.dt)
         }
       }
+      rm(g, cls, Ar, Br, sol, A, B)
+
 
       osu_ab2.dt = osu_ab2.dt[osu_count > 0]
 
@@ -679,8 +688,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
                         by='osu_id')
 
       # Cleanup other variables
-      rm(osu_ab.dt, osu_ab2.dt, osu_ab3.dt, osu_ab4.dt,
-         Ab.dt, Ar, Br, Ar2, Br2, Ar3.dt, sol, A, B, g, cls, x, tmp)
+      rm(osu_ab.dt, osu_ab2.dt, osu_ab4.dt, Ab.dt)
       n_opt = nrow(osu_ab5.dt)
     }
 
