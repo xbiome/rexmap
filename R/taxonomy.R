@@ -66,20 +66,24 @@ osuab_genuses = function (osuab) {
 #' @param osu_abundance_table Data table with OSU abundances. Output from abundance().sssss
 #'
 #' @export
-taxonomy = function (osu_abundance_table) {
+taxonomy = function (osu_abundance_table, verbose=FALSE) {
+  if (verbose) cat('* load taxonomy...')
   taxonomy.dt = load_taxonomy()
+  if (verbose) cat('OK.\n* generating unique ranks...')
   taxonomy.dt[, c('tax_id', 'species') := NULL]
   taxonomy.dt = unique(taxonomy.dt)
   tax_family.dt = unique(taxonomy.dt[, .(superkingdom, phylum, class, order, family)])
   tax_order.dt = unique(taxonomy.dt[, .(superkingdom, phylum, class, order, family=NA)])
   tax_class.dt = unique(taxonomy.dt[, .(superkingdom, phylum, class, order=NA, family=NA)])
   tax_phylum.dt = unique(taxonomy.dt[, .(superkingdom, phylum, class=NA, order=NA, family=NA)])
-
+  if (verbose) cat('OK.\n* extracting genus/species from OSU table...')
   osu_ab_g.dt = osuab_genuses(osu_abundance_table)
+  if (verbose) cat('OK.\n* matching genus...')
   osu_ab_g2.dt = merge(osu_ab_g.dt, taxonomy.dt, by='genus', all.x=T) # Genus matches
   col_order = c('osu_id', 'strain_count', 'pctsim', 'superkingdom', 'phylum',
                 'class', 'order', 'family', 'genus')
   setcolorder(osu_ab_g2.dt, col_order)
+  if (verbose) cat('OK.\n* matching family...')
   osu_ab_g2.dt[is.na(superkingdom) & genus %in% taxonomy.dt[, family],
                c('superkingdom', 'phylum', 'class', 'order', 'family', 'genus') := {
                  dt = merge(.SD[, .(osu_id, genus)],
@@ -88,6 +92,7 @@ taxonomy = function (osu_abundance_table) {
                  list(dt[, superkingdom], dt[, phylum], dt[, class], dt[, order],
                       dt[, genus], NA)
                }]
+  if (verbose) cat('OK.\n* matching order...')
   osu_ab_g2.dt[is.na(superkingdom) & genus %in% taxonomy.dt[, order],
                c('superkingdom', 'phylum', 'class', 'order', 'family', 'genus') := {
                  dt = merge(.SD[, .(osu_id, genus)],
@@ -96,6 +101,7 @@ taxonomy = function (osu_abundance_table) {
                  list(dt[, superkingdom], dt[, phylum], dt[, class], dt[, genus],
                       NA, NA)
                }]
+  if (verbose) cat('OK.\n* matching class...')
   osu_ab_g2.dt[is.na(superkingdom) & genus %in% taxonomy.dt[, class],
                c('superkingdom', 'phylum', 'class', 'order', 'family', 'genus') := {
                  dt = merge(.SD[, .(osu_id, genus)],
@@ -104,6 +110,7 @@ taxonomy = function (osu_abundance_table) {
                  list(dt[, superkingdom], dt[, phylum], dt[, genus],
                       NA, NA, NA)
                }]
+  if (verbose) cat('OK.\n* matching phylum...')
   osu_ab_g2.dt[is.na(superkingdom) & genus %in% taxonomy.dt[, phylum],
                c('superkingdom', 'phylum', 'class', 'order', 'family', 'genus') := {
                  dt = merge(.SD[, .(osu_id, genus)],
@@ -113,6 +120,7 @@ taxonomy = function (osu_abundance_table) {
                       NA, NA, NA, NA)
                }]
   # Now count unique taxonomic ranks for each osu_id
+  if (verbose) cat('OK.\n* counting uniques...')
   osu_ab_ranks.dt = osu_ab_g2.dt[, {
     phylum_num = .SD[!is.na(phylum), .(phylum_num = sum(strain_count)),
                      by=phylum][order(-phylum_num)][, paste(phylum,
@@ -139,6 +147,7 @@ taxonomy = function (osu_abundance_table) {
   osu_ab_ranks.dt[!(grepl('^[A-Z]', order)), order := NA]
   osu_ab_ranks.dt[!(grepl('^[A-Z]', family)), family := NA]
   osu_ab_ranks.dt[!(grepl('^[A-Z]', genus)), genus := NA]
+  if (verbose) cat('OK.\n* Done.\n')
   return(osu_ab_ranks.dt[])
 }
 
