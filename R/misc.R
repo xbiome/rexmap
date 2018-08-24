@@ -58,7 +58,7 @@ read_files = function (path, pattern='') {
 #' @param nmax Integer. If the number of strains is below \code{nmax}, just list all the strain names.
 #'
 #' @export
-print_strains = function (strains, raw=T, deduplicate=T,
+print_strains = function (strains, raw=F, deduplicate=T,
                           nmax=himap_option('print_strains_nmax')) {
   # Input: vector of strains
   # Prints a single string with reduced list of strains
@@ -101,6 +101,25 @@ print_strains = function (strains, raw=T, deduplicate=T,
     # return(gsub('_[1]', '', out, fixed=T))
   }
 }
+
+#' Summarize OSU labels
+#'
+#' Shorten sometimes long OSU labels which can list many strains or species.
+#' This removes
+summarize_osu_label = Vectorize(function (x, show.sp=FALSE, sep=',') {
+   x_split = strsplit(x, sep, fixed=T)[[1]]
+   if (length(x_split) == 1) return(x)
+   x_split = x_split[!grepl('_sp.', x_split, fixed=T)]
+   if (length(x_split) == 0) {
+      # There are no species without sp. annotation
+      # Return genuses
+      genuses = gsub('^[ ]*([^_]+)_.*', '\\1', strsplit(x, sep, fixed=T)[[1]])
+      return()
+   } else {
+      x_split = print_strains(x_split, raw=F, nmax=1)
+      return(x_split)
+   }
+}, 'x', USE.NAMES=F)
 
 
 print_fixed_length_string = function (x, len=30) {
@@ -173,9 +192,9 @@ random_sequences = function(len=50, n=10, dictionary=c('A', 'C', 'G', 'T')) {
 #' Like base function \code{\link{write.table}} but with normal defaults.
 #'
 #' @export
-write_table = function (table, output, sep='\t', verbose=F) {
+write_table = function (table, output, sep='\t', verbose=F, ...) {
   if (verbose) cat('* writing ', output, '...')
-  write.table(table, output, sep=sep, quote=F, row.names=F)
+  write.table(table, output, sep=sep, quote=F, row.names=F, ...)
   if (verbose) cat('OK.', fill=T)
 }
 

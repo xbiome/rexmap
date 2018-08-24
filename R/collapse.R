@@ -110,7 +110,8 @@ collapse = function (ab_in, verbose=himap_option('verbose')) {
     if (length(cl) > 1) {
       column_sums = colSums(ab[, cl])
       # max_column is the sequence with max total number of reads
-      max_column = cl[which(column_sums==max(column_sums))]
+      # in the case of multiple just pick the first one in the list
+      max_column = cl[which(column_sums==max(column_sums))][1]
       # add all other columns to that one
       for (id in cl[cl != max_column]) {
         ab[, max_column] = ab[, max_column] + ab[, id]
