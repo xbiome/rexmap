@@ -499,7 +499,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
                               osu_data_m.dt,
                               ncpu=himap_option('ncpu'), verbose=T,
                               pso_n=1000,
-                              raw=T) {
+                              raw=TRUE, debug=FALSE) {
 
   pctsim_min = 100
   osu_offset = 1000000L
@@ -507,10 +507,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
   if (verbose) cat('Preparing blast tables...')
   var_count.dt = unique(osu_data_m.dt[, .(variant_id, raw_count, sample_id)])
   common_variant_ids = var_count.dt[, if (all(raw_count > 0)) .SD, by=variant_id][, unique(variant_id)]
-  blast_best2.dt = blast_best.dt[
-    pctsim < pctsim_min,
-    .(pctsim=pctsim_range(pctsim),
-      species=print_strains(strain, raw=raw)), by=qseqid]
+  blast_best2.dt = blast_best.dt[ pctsim < pctsim_min, .(pctsim=pctsim_range(pctsim), species=print_strains(strain, raw=raw)), by=qseqid]
   if (verbose) cat('OK.\n')
 
   # Optimization function
@@ -532,6 +529,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
   sample_ids = ab_tab_nochim_m.dt[, unique(sample_id)]
   all_abs.dt = data.table::rbindlist(parallel::mclapply(sample_ids, function (s) {
 
+    # if (debug) print()
     # Numbers of rows for optimized and non-optimized OSUs
     n_opt = 0
     n_non = 0
@@ -671,10 +669,24 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
             by=names(osu_ab3.dt)
           )
 
-          rm(Ar2, ar3, tmp, osu_ab3.dt, Ar3.dt)
+          # rm(Ar2, ar3, tmp, osu_ab3.dt, Ar3.dt)
+          if (exists('Ar2')) rm(Ar2)
+          if (exists('ar3')) rm(ar3)
+          if (exists('tmp')) rm(tmp)
+          if (exists('osu_ab3.dt')) rm(osu_ab3.dt)
+          if (exists('Ar3.dt')) rm(Ar3.dt)
+
+
         }
       }
-      rm(g, cls, Ar, Br, sol, A, B)
+      # rm(g, cls, Ar, Br, sol, A, B)
+      if (exists('g')) rm(g)
+      if (exists('cls')) rm(cls)
+      if (exists('Ar')) rm(Ar)
+      if (exists('Br')) rm(Br)
+      if (exists('sol')) rm(sol)
+      if (exists('A')) rm(A)
+      if (exists('B')) rm(B)
 
 
       osu_ab2.dt = osu_ab2.dt[osu_count > 0]
@@ -688,7 +700,11 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
                         by='osu_id')
 
       # Cleanup other variables
-      rm(osu_ab.dt, osu_ab2.dt, osu_ab4.dt, Ab.dt)
+      # rm(osu_ab.dt, osu_ab2.dt, osu_ab4.dt, Ab.dt)
+      if (exists('osu_ab.dt')) rm(osu_ab.dt)
+      if (exists('osu_ab2.dt')) rm(osu_ab2.dt)
+      if (exists('osu_ab4.dt')) rm(osu_ab4.dt)
+      if (exists('Ab.dt')) rm(Ab.dt)
       n_opt = nrow(osu_ab5.dt)
     }
 
