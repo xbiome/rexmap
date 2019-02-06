@@ -492,6 +492,18 @@ rm2 = Vectorize(function (var) {
 
 })
 
+#'
+#'
+#' @importFrom igraph make_empty_graph
+#' @importFrom igraph add_vertices
+#' @importFrom igraph add_edges
+#' @importFrom igraph as.undirected
+#' @importFrom igraph groups
+#' @importFrom igraph clusters
+#' @importFrom limSolve lsei
+#' @importFrom pso psoptim
+#' @importFrom data.table dcast
+#'
 #' @export
 osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
                               blast_best.dt,
