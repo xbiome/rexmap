@@ -555,7 +555,11 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
       dimnames(B)[[1]] = Ab.dt[, variant_id]
 
       # Solve
-      sol = lsei(A, B, fulloutput=T, G=diag(ncol(A)), H=matrix(c(0), nrow=ncol(A), ncol=1), type=2)
+      sol = tryCatch(
+         lsei_sol = lsei(A, B, fulloutput=T, G=diag(ncol(A)), H=matrix(c(0), nrow=ncol(A), ncol=1), type=2),
+         error = function (cond) return(NA)
+      )
+      if (is.na(sol)) return(data.table())
       osu_th = 1e-1
       osu_ab = sol$X
       osu_count = as.integer(osu_ab[which(osu_ab > osu_th)])
