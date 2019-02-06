@@ -4,8 +4,8 @@
 \alias{untrim}
 \title{Un-trim trimmed sequences}
 \usage{
-untrim(dada_res, fq_trimmed, fq_pretrimmed, verbose = himap_option("verbose"),
-  ncpu = himap_option("ncpu"))
+untrim(dada_res, fq_trimmed, fq_pretrimmed,
+  verbose = himap_option("verbose"), ncpu = himap_option("ncpu"))
 }
 \description{
 Use all pre-trimmed sequences to find the consensus of the trimmed part.

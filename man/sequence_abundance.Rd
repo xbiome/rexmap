@@ -4,9 +4,10 @@
 \alias{sequence_abundance}
 \title{Return abundances of each sequence from DADA2 result object}
 \usage{
-sequence_abundance(dada_result, remove_bimeras = T, collapse_sequences = T,
-  verbose = T, remove_bimeras_method = "consensus",
-  remove_bimeras_oneoff = T, fq_prefix_split = ".")
+sequence_abundance(dada_result, remove_bimeras = T,
+  collapse_sequences = T, verbose = T,
+  remove_bimeras_method = "consensus", remove_bimeras_oneoff = T,
+  fq_prefix_split = ".")
 }
 \arguments{
 \item{dada_result}{dada() result}

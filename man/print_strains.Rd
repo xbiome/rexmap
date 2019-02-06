@@ -4,7 +4,7 @@
 \alias{print_strains}
 \title{Strain vector to shorter strain string}
 \usage{
-print_strains(strains, raw = T, deduplicate = T,
+print_strains(strains, raw = F, deduplicate = T,
   nmax = himap_option("print_strains_nmax"))
 }
 \arguments{

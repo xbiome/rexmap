@@ -5,7 +5,8 @@
 \title{Combine BLAST object and a sequence abundance table into OSU table}
 \usage{
 abundance(abundance_table, blast_object, ncpu = himap_option("ncpu"),
-  verbose = himap_option("verbose"), raw_strains = FALSE, pso_n = 1000)
+  verbose = himap_option("verbose"), raw_strains = FALSE,
+  pso_n = 1000)
 }
 \arguments{
 \item{abundance_table}{Sequence abundance table}

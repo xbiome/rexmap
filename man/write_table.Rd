@@ -4,7 +4,7 @@
 \alias{write_table}
 \title{Write data table to file}
 \usage{
-write_table(table, output, sep = "\\t", verbose = F)
+write_table(table, output, sep = "\\t", verbose = F, ...)
 }
 \description{
 Like base function \code{\link{write.table}} but with normal defaults.

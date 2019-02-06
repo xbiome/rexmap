@@ -4,7 +4,7 @@
 \alias{taxonomy}
 \title{Generate taxonomy for each OSU}
 \usage{
-taxonomy(osu_abundance_table)
+taxonomy(osu_abundance_table, verbose = FALSE)
 }
 \arguments{
 \item{osu_abundance_table}{Data table with OSU abundances. Output from abundance().sssss}
