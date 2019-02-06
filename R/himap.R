@@ -492,7 +492,7 @@ rm2 = Vectorize(function (var) {
 
 })
 
-
+#' @export
 osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
                               blast_best.dt,
                               cp.dt,
