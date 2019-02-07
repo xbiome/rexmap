@@ -568,7 +568,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
 
       # Solve
       sol = tryCatch(
-         lsei_sol = lsei(A, B, fulloutput=T, G=diag(ncol(A)), H=matrix(c(0), nrow=ncol(A), ncol=1), type=2),
+         lsei(A, B, fulloutput=T, G=diag(ncol(A)), H=matrix(c(0), nrow=ncol(A), ncol=1), type=2),
          error = function (x) NA
       )
       if (is.na(sol)) return(data.table())
