@@ -27,7 +27,8 @@ blast_best_seq_matches = function (dt, id_col='dada_seqid', match_col='match_str
 blast_out_to_best_cp = function (
    blast_output, region=NULL, ref_cp=NULL, aln_params=himap_option('aln_params'),
    blast_out_fmt=himap_option('blast_out_fmt'),
-   verbose=T, ncpu=himap_option('ncpu'), variant_sep='-'
+   verbose=T, ncpu=himap_option('ncpu'), variant_sep='-',
+   show_alignment=F
   )
 {
   # Select region all ref_cp from file
@@ -69,7 +70,9 @@ blast_out_to_best_cp = function (
   )
   blast_best.dt[, variant_id := gsub('^([0-9]+)-.*', '\\1', sseqid)]
   # Remove sequence alignment columns since we already calculated alignment score
-  blast_best.dt[, c('qseq', 'sseq') := NULL]
+  if (!show_alignment) {
+     blast_best.dt[, c('qseq', 'sseq') := NULL]
+  }
   # blast_best.dt[, c('qseq') := NULL]
   blast_best.dt[, c('sseqid') := NULL]
   # Calculate percentage similarity
@@ -246,7 +249,7 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
                   ref_cp=NULL, max_target_seqs=himap_option('blast_max_seqs'),
                   word_size=himap_option('blast_word_size'),
                   verbose=himap_option('verbose'),
-                  show_args=F, output_error=F) {
+                  show_args=F, output_error=F, show_alignment=F) {
 
   # Pre-blastn sequence argument check
   # Sequences can be either FASTA file (ends with either .fa or .fasta),
@@ -323,9 +326,11 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
   # is large.
   if (!file.exists(blast_output)) stop('blast: ', blast_output, ' file does not exist.')
   if (!is.null(region)) {
-    blast_cp = blast_out_to_best_cp(blast_output, region=region)
+    blast_cp = blast_out_to_best_cp(blast_output, region=region,
+                                    show_alignment = show_alignment)
   } else {
-    blast_cp = blast_out_to_best_cp(blast_output, ref_cp=ref_cp)
+    blast_cp = blast_out_to_best_cp(blast_output, ref_cp=ref_cp,
+                                    show_alignment = show_alignment)
   }
 
   names(blast_cp) = c('alignments', 'cp')
