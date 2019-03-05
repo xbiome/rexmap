@@ -48,7 +48,7 @@ biocLite('GenomeInfoDbData', suppressUpdates=T)
 devtools::install_github('benjjneb/dada2')
 
 # Finally install HiMAP
-devtools::install_github('taolonglab/himap', auth_token='99f22e14f4ed6ec6899bebe79dbf6fd7fbf9bac6')
+devtools::install_github('taolonglab/himap')
 ```
 
 
