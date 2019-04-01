@@ -44,6 +44,196 @@ read_files = function (path, pattern='') {
   sort(dir(path.expand(path), pattern, full.names=T))
 }
 
+#' Plot-friendly OSU labels
+#'
+#' Condense a character vector of strain names to a more readable shorter
+#' string, consisting of species names with optional number of strains matched
+#' for each species.
+#'
+#' @param x (Required) A character vector of strain names.
+#' @param xsep A character used for separating strain names in `x`.
+#' Default: ','
+#' @param xws A character used as a whitespace in `x`. Default: '_'
+#' @param ws A character used as a whitespace in output (return value) of this
+#' function. Default: ' ' (space)
+#' @param sep A character string used as a species separator in output of this
+#' function. Default: ', ' (comma followed by a space)
+#' @param include_sp One of {'single', 'always', 'never'}. Controls display of
+#' strains with unassigned species names (having 'sp.' after Genus name). Single
+#' keeps these names when this is the single strain in its Genus. 'Always' keeps
+#' these names always. 'Never' never keeps them in the output. Default: 'single'
+#' @param decreasing Sort order of the output species. Default: TRUE sorts the
+#' output starting with the species that had most strain hits.
+#' @param show_count Display count of strains next to each species name in the
+#' output. Default: TRUE
+#' @param show_single If show_count == TRUE, this controls whether to display
+#' number 1 for species that match only 1 strain. Default: FALSE (i.e. numbers
+#' are only shown for species mapping to > 1 strain).
+#' @param count_wrap A character vector of length 2 controling the string
+#' format of the count output, Wraps the count in the two strings, i.e. 3 will
+#' be shown as [3] by default.
+#' @param group_genera A boolean controling the grouping of species belonging
+#' to the same Genus. Default: TRUE.
+#' @param group_genera_sep A character symbol used for separating different
+#' species in the same Genus group.
+#' @param trim_genera_len An integer controling the trimming length for long
+#' Genus names. Any names longer than `trim_genera_len` will be trimmed to
+#' `trim_general_len` followed by a `trim_symbol`.
+#' Default: NULL (do not trim labels)
+#' @param trim_species_len Same as `trim_genera_len` but for species names
+#' instead of Genus names. Default: NULL (do not trim labels)
+#' @param trim_symbol A character symbol used after trimmed names. Default: '.'
+#' (A natural choice).
+#' @param replace_bacterium A boolean controling the handling of strains with
+#' unassigned species names that are not `sp.` but are `bacterium` or `cf.`. If
+#' this is set to TRUE any names with `bacterium` and `cf.` are substituted
+#' with `sp.` for ease of display. Default: TRUE
+#'
+#' @export
+print_species = Vectorize(function (
+   x, xsep=',', xws='_', ws=' ', sep=', ', include_sp='single', decreasing=TRUE,
+   show_count=TRUE, show_single=FALSE, count_wrap=c('[', ']'),
+   group_genera=TRUE, group_genera_sep='/',
+   trim_genera_len=NULL, trim_species_len=NULL, trim_symbol='.',
+   replace_bacterium=TRUE) {
+
+   # x = input string of strain names
+   #
+   # * Options:
+   # xsep = strain separator symbol in input (default: ,)
+   # xws = whitespace symbol used in input (default: _)
+   # ws = whitespace symbol used in output (default: [space])
+   # include_sp = {'never', 'always', 'single'}
+   #    if the list of species contains "sp." when to output that?
+   #    if set to 'never', it will never show any strains with "sp.", i.e. no
+   #      species name.
+   #    if set to 'always', always keep "sp." strains in the output
+   #    if set to 'single', the "sp." strains will be output only if that strain
+   #      is the only strain in that genus.
+
+   # trim_ = trim Genus and/or species names to specified lengths. Be careful:
+   #    if this is too short, it can collapse multiple labels into one.
+
+   # replace_bacterium = replaces 'bacterium' species annotation with 'sp.'
+
+   # Split string into individual strains
+   x_strains = strsplit(x, xsep, fixed=T)[[1]]
+   # Find all unique genera and group by these
+   genera = sub(paste0('^([^', xws, ']+)', xws, '.*'), '\\1', x_strains)
+   species = sub(paste0('^([^', xws, ']+)', xws, '([^', xws, ']+).*'),
+                 paste0('\\1', ws, '\\2'), x_strains)
+
+   if (replace_bacterium) {
+      species = sub(paste0(ws, 'bacterium'), paste0(ws, 'sp\\.'), species)
+      species = sub(paste0(ws, 'cf\\.'), paste0(ws, 'sp\\.'), species)
+   }
+
+   # Pre-process genus/species names if they need trimming
+   if (!is.null(trim_genera_len)) {
+      if (trim_genera_len > 1) {
+         genera_trimmed = substr(genera, 1, trim_genera_len)
+
+         # genera = paste(genera_trimmed, trim_symbol, sep='')
+         genera = sapply(genera_trimmed, function (s) {
+            if (nchar(s) < trim_genera_len) s
+            else sub('\\.\\.$', '\\.', paste0(s, trim_symbol))
+         })
+      }
+   }
+
+   if (!is.null(trim_species_len)) {
+      if (trim_species_len > 1) {
+         species_trimmed = substr(sub(
+            paste0('^[^', ws, ']+', ws, '([^', ws, ']+)$'), '\\1', species),
+            1,
+            trim_species_len
+         )
+         species_trimmed_wsym = sapply(species_trimmed, function (s) {
+            if (nchar(s) < trim_species_len) s
+            else sub('\\.\\.$', '\\.', paste0(s, trim_symbol))
+         })
+         species = paste(genera, ws, species_trimmed_wsym, sep='')
+      }
+   }
+
+   # Now process include_sp, by generating a T/F filter and applying it
+   if (include_sp == 'never') {
+      sp_filter = !(species %like% 'sp\\.')
+   }
+   # Are we filtering out all species? In this case fall back to single include_sp
+   if (include_sp == 'single' | all(!sp_filter)) {
+      # For each genus, count number of species assignments. If that number is 1
+      # and it's value is 'sp.' then it's a single species, so include it.
+      # sp_filter = c()
+      sp_filter.list = list()
+      for (g in unique(genera)) {
+         g_filter = (genera == g)
+         if (length(unique(species[g_filter])) > 1) {
+            sp_filter.list[[length(sp_filter.list)+1]] = !(
+               (species %like% 'sp\\.') & (species %like% paste0('^', g))
+            )
+         } else {
+            sp_filter.list[[length(sp_filter.list)+1]] = rep(TRUE, length(species))
+         }
+      }
+      sp_filter = sapply(transpose(sp_filter.list), all)
+   }
+   if (include_sp == 'always') {
+      sp_filter = rep(TRUE, length(species))
+   }
+
+
+   # cat('sp_filter: ', paste(as.character(sp_filter), collapse=' '), '\n')
+   # genera = genera[sp_filter]
+   species_f = species[sp_filter]
+   genera_f = genera[sp_filter]
+
+   species.c = unique_sorted(species_f, decreasing=decreasing,
+                             show_count=show_count, count_wrap=count_wrap,
+                             show_single=show_single)
+
+   # If group_genera == TRUE, group display by genus
+   if (group_genera) {
+      genera.c = sub(paste0('^([^', ws, ']+)', ws, '.*'), '\\1', species.c)
+      genera_uniq.c = unique(genera.c)
+      # We need to do this loop again after possible sp/genus omits from
+      # unique_sorted()
+      out.c = c()
+      for (g in genera_uniq.c) {
+         species_only = paste(
+            sub(
+               paste0('^', g, ws), '', species.c[species.c %like% paste0('^', g, ws)]
+            ), collapse=group_genera_sep)
+         out.c[length(out.c)+1] = paste(g, species_only, collapse=ws)
+      }
+      return(paste(out.c, collapse=sep))
+   } else {
+      return(paste(species.c, collapse=sep))
+   }
+
+
+}, vectorize.args=c('x'), USE.NAMES=FALSE)
+
+
+unique_sorted = function (v, decreasing=TRUE, show_count=TRUE,
+                          count_wrap=c('[', ']'), show_single=FALSE) {
+   # Sort vector of values by most common ones (unless decreasing==TRUE, in which
+   # case just invert the output), optionally showing the count within count_wrap
+   # If show_single==FALSE and show_count==TRUE, don't show [1] counts
+   v_tab = sort(table(v), decreasing=decreasing)
+   if (!show_count) {
+      return(names(v_tab))
+   } else {
+      out = paste(
+         names(v_tab), count_wrap[1], as.integer(v_tab), count_wrap[2], sep=''
+      )
+      if (!show_single) {
+         out = gsub(paste0(count_wrap[1], 1, count_wrap[2]), '', out, fixed=T)
+      }
+      return(out)
+   }
+}
+
 #' Strain vector to shorter strain string
 #'
 #' Condense a character vector of strain names to a more managable
@@ -104,8 +294,11 @@ print_strains = function (strains, raw=F, deduplicate=T,
 
 #' Summarize OSU labels
 #'
-#' Shorten sometimes long OSU labels which can list many strains or species.
-#' This removes
+#' Shorten sometimes long OSU labels which can list many strains or species
+#' into a more managable string for printing.
+#'
+#'
+#' @export
 summarize_osu_label = Vectorize(function (x, show.sp=FALSE, sep=',') {
    x_split = strsplit(x, sep, fixed=T)[[1]]
    if (length(x_split) == 1) return(x)
