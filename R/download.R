@@ -100,11 +100,10 @@ update_database = function (verbose=T) {
    # https://medium.com/@caludio/how-to-download-large-files-from-github-4863a2dbba3b
    curlpath = curl_path()
    json_out = paste(system2(curlpath, c(
-      '-H', '"Authorization: token 99f22e14f4ed6ec6899bebe79dbf6fd7fbf9bac6"',
       '-L', 'https://api.github.com/repos/taolonglab/himap/contents/inst/database/'
    ), stdout=T, stderr=F), collapse='')
 
-   db.dt = as.data.table(as.list(jsonlite::fromJSON(json_out)))[, c(1,4,11)]
+   db.dt = data.table::as.data.table(as.list(jsonlite::fromJSON(json_out)))[, c(1,4,11)]
    # Select only database files for hypervariable regions
    db.dt = db.dt[grepl('V[0-9][-]?(V[0-9])?', name)]
    for (i in 1:nrow(db.dt)) {
@@ -114,7 +113,6 @@ update_database = function (verbose=T) {
       system2(curlpath, c(
          '-s',
          '-H', '"Accept: application/vnd.github.v3.raw"',
-         '-H', '"Authorization: token 99f22e14f4ed6ec6899bebe79dbf6fd7fbf9bac6"',
          '-L', f,
          '-o', file.path(himap_database_path, db.dt[i, name])
       ), stdout=F, stderr=F)
@@ -124,7 +122,6 @@ update_database = function (verbose=T) {
    system2(curlpath, c(
       '-s',
       '-H', '"Accept: application/vnd.github.v3.raw"',
-      '-H', '"Authorization: token 99f22e14f4ed6ec6899bebe79dbf6fd7fbf9bac6"',
       '-L', 'https://api.github.com/repos/taolonglab/himap/contents/inst/extdata/pcr_primers_table.txt',
       '-o', system.file('extdata', 'pcr_primers_table.txt', package='himap')
    ), stdout=F, stderr=F)
