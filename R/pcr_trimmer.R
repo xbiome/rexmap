@@ -38,6 +38,7 @@ remove_pcr_primers = Vectorize(function (fq_in, fq_out, region=NULL,
   # pr_fwd = forward primer 5'->3'
   # pr_rev = reverse primer 5'->3'
   #
+  if (verbose) cat('FASTQ input: ', fq_in, fill=T)
 
   # Check input
   if (!all_exist(fq_in)) stop('PCR primer remover: some input files are missing.')
