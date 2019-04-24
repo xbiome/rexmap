@@ -39,6 +39,12 @@ remove_pcr_primers = Vectorize(function (fq_in, fq_out, region=NULL,
   # pr_rev = reverse primer 5'->3'
   #
   if (verbose) cat('FASTQ input: ', fq_in, fill=T)
+  if (file.size(fq_in) == 0) {
+    # Input file has zero size, so no sequences. This can happen if all the reads
+    # are too noisy and have been filtered out in the merging step, if we were
+    # unable to merge anything.
+    return(c('fwd_trim'=0, 'rev_trim'=0))
+  }
 
   # Check input
   if (!all_exist(fq_in)) stop('PCR primer remover: some input files are missing.')
