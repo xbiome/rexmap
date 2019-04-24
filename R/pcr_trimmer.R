@@ -43,6 +43,7 @@ remove_pcr_primers = Vectorize(function (fq_in, fq_out, region=NULL,
     # Input file has zero size, so no sequences. This can happen if all the reads
     # are too noisy and have been filtered out in the merging step, if we were
     # unable to merge anything.
+    file.create(fq_out)
     return(c('fwd_trim'=0, 'rev_trim'=0))
   }
 
