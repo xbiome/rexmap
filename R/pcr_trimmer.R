@@ -147,10 +147,11 @@ remove_pcr_primers = Vectorize(function (fq_in, fq_out, region=NULL,
 
   # Apply fastq_trimmer() to each sequence in this file
   if (verbose) cat('* removing primers...')
+  ncpus = min(ncpu, length(seq))
   out_trimmed = unname(
     parallel::mcmapply(
       fastq_trimmer, in_fq[['meta']], in_fq[['seqs']], in_fq[['qual']],
-      mc.cores=ncpu, SIMPLIFY=FALSE
+      mc.cores=ncpus, SIMPLIFY=FALSE
     )
   )
   if (verbose) cat('OK.', fill=T)
