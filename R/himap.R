@@ -1,5 +1,5 @@
-# HiMAP: High-resolution Microbial Amplicon-sequencing Pipeline
-
+#' @title HiMAP: High-resolution Microbial Amplicon-sequencing Pipeline
+#'
 # Import these functions for everything
 #' @importFrom data.table data.table
 #' @importFrom data.table as.data.table
@@ -33,27 +33,8 @@ exec_file = function (filename) {
                                             '_win.exe'))
 }
 
-#' Run this when the package is loaded and attached in R
-.onAttach = function (libname, pkgname) {
-  options('datatable.prettyprint.char'=50)
 
-  # Check if the executable files are missing. If so, download them.
-  blastn_file = system.file('exec', exec_file('blastn'), package='himap')
-  makedb_file = system.file('exec', exec_file('makeblastdb'), package='himap')
-  if (blastn_file=='' | makedb_file=='') {
-    download_blast()
-  }
-
-  # Check if database files are missing. Need at least one set of blastdb
-  # files and 1 table with matching primers...
-
-  packageStartupMessage('HiMAP v1.0 loaded.')
-}
-
-
-
-
-# Default options -------------------------------------------------------------
+#-- Default options -----------------------------------------------------------
 himap_opts = new.env()
 allowed_options = c('aln_params', 'blast_max_seqs', 'blast_word_size',
                     'ncpu', 'print_strains_nmax', 'string_maxwidth',
@@ -80,6 +61,7 @@ assign('path_blastn',
 assign('aln_params', c(5L, -4L, -8L, -6L), env=himap_opts)
 # Autodetect number of available threads for multithreading parts
 # Set to 1 if you always  want to use only 1 thread.
+assign('osu_offset', 1000000L, env=himap_opts)
 assign('ncpu', parallel::detectCores(), env=himap_opts)
 # BLAST databases
 assign('blast_dbs',
@@ -112,7 +94,11 @@ assign('print_strains_nmax', 10, env=himap_opts)
 assign('verbose', FALSE, env=himap_opts)
 assign('timing', FALSE, env=himap_opts)
 
+
+
+
 # assign('maxrows', 12, env=himap_opts)
+
 #' HiMAP options
 #'
 #' @param option_names A string or a vector of strings with available options. If
@@ -146,6 +132,7 @@ himap_option = function (option_names=NULL) {
 #' Options that can be changed:
 #'
 #'
+#' @export
 himap_setoption = function (option_name, value) {
   # Simply set option_name to value. Used to change HiMAP defaults. Not finished yet.
   # Allowed options
@@ -166,6 +153,37 @@ himap_setoption = function (option_name, value) {
     assign(option_name, value, env=himap_opts)
   }
 }
+
+
+#' Run this when the package is loaded and attached in R
+.onAttach = function (libname, pkgname) {
+  options('datatable.prettyprint.char'=himap_option('string_maxwidth'))
+
+  # Check if the executable files are missing for the system platform.
+  # If they are, download them.
+  blastn_file = system.file('exec', exec_file('blastn'), package='himap')
+  makedb_file = system.file('exec', exec_file('makeblastdb'), package='himap')
+  if (blastn_file=='' | makedb_file=='') {
+    download_blast()
+  }
+
+  # Check if database files are missing. Need at least one set of blastdb
+  # files and 1 table with matching primers...
+  packageStartupMessage('HiMAP v1.0 loaded.')
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #' Frequency table of sequence lengths
 #'
@@ -232,6 +250,8 @@ ftquantile = function (ft, prob) {
 #' @param multithread TRUE/FALSE or the number of CPU threads to use for multithreading.
 #' Does not work on Windows due to \code{parallel} package implementation.
 #' @param verbose TRUE/FALSE: display of status messages.
+#' @dada_errors_path Path to the Rdata object containing previously calcualted
+#' DADA2 error matrix
 #'
 #' @export
 # @param use_intermediate Use saved intermediate files. Used for resuming very
@@ -242,7 +262,8 @@ dada_denoise = function (fastq_trimmed, fastq_untrimmed,
                          multithread=himap_option('ncpu'),
                          verbose=himap_option('verbose'),
                          timing=himap_option('timing'),
-                         error_estimation_nsamples=3) {
+                         error_estimation_nsamples=3,
+                         dada_errors_path=NULL) {
   # Dereplicate reads into a derep object
   # Check whether intermediate folder exists
   # Load 1 sample at a time, process it, then combine
@@ -269,9 +290,13 @@ dada_denoise = function (fastq_trimmed, fastq_untrimmed,
   }
 
   # Learn errors first, then use those downstream
-  dada_errors = suppressWarnings(dada2::learnErrors(
-    fastq_trimmed, multithread=multithread, OMEGA_A=pvalue_adjusted_calc
-  ))
+  if (is.null(dada_errors_path)) {
+    dada_errors = suppressWarnings(dada2::learnErrors(
+      fastq_trimmed, multithread=multithread, OMEGA_A=pvalue_adjusted_calc
+    ))
+  } else {
+    dada_errors = readRDS(dada_errors_path)
+  }
   if (verbose) cat(' OK.', fill=T)
   dada_results = list()
 
@@ -504,7 +529,6 @@ rm2 = Vectorize(function (var) {
 #' @importFrom pso psoptim
 #' @importFrom data.table dcast
 #'
-#' @export
 osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
                               blast_best.dt,
                               cp.dt,
@@ -514,7 +538,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
                               raw=TRUE, debug=FALSE) {
 
   pctsim_min = 100
-  osu_offset = 1000000L
+  osu_offset = himap_option('osu_offset')
 
   if (verbose) cat('Preparing blast tables...')
   var_count.dt = unique(osu_data_m.dt[, .(variant_id, raw_count, sample_id)])
@@ -670,7 +694,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
               x0 = as.numeric(x0_w),
               control=list('maxit'=10,
                            'vectorize'=T
-                           #'hybrid'=F, 'rand.order'=F
+                           # 'hybrid'=F, 'rand.order'=F
               ))
             list(round(pso$par, 2),
                  pso$value)
