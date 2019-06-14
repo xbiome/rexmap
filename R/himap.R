@@ -262,7 +262,7 @@ dada_denoise = function (fastq_trimmed, fastq_untrimmed,
                          multithread=himap_option('ncpu'),
                          verbose=himap_option('verbose'),
                          timing=himap_option('timing'),
-                         error_estimation_nsamples=3,
+                         # error_estimation_nsamples=3,
                          dada_errors_path=NULL) {
   # Dereplicate reads into a derep object
   # Check whether intermediate folder exists
@@ -273,17 +273,19 @@ dada_denoise = function (fastq_trimmed, fastq_untrimmed,
 
   # Learn errors
   if (verbose) cat('* learn errors')
-  dada_derep = dada2::derepFastq(
-    fastq_trimmed[1:min(length(fastq_trimmed), error_estimation_nsamples)])
-  if (class(dada_derep) != 'list') dada_derep = list(dada_derep)
+
+  #dada_derep = dada2::derepFastq(
+  #  fastq_trimmed[1:min(length(fastq_trimmed), error_estimation_nsamples)])
+  #if (class(dada_derep) != 'list') dada_derep = list(dada_derep)
   if (verbose) cat('...')
 
   # Get or calculate the Bonferroni adjusted p-value
   if (is.null(pvalue_adjusted)) {
     # Find the maximum number of unique sequences across all samples
-    max_num_uniques = max(
-      sapply(fastq_trimmed, function (f) length(dada2::derepFastq(f)$uniques))
-    )
+    max_num_uniques = max(unlist(
+      mclapply(fastq_trimmed, function (f) length(dada2::derepFastq(f)$uniques),
+               mc.cores=multithread)
+    ))
     pvalue_adjusted_calc = pvalue/max_num_uniques^2
   } else {
     pvalue_adjusted_calc = pvalue_adjusted
@@ -295,6 +297,7 @@ dada_denoise = function (fastq_trimmed, fastq_untrimmed,
       fastq_trimmed, multithread=multithread, OMEGA_A=pvalue_adjusted_calc
     ))
   } else {
+    cat(' loading pre-existing error file... ')
     dada_errors = readRDS(dada_errors_path)
   }
   if (verbose) cat(' OK.', fill=T)
@@ -317,7 +320,7 @@ dada_denoise = function (fastq_trimmed, fastq_untrimmed,
     # }
     dada_res = list(suppressWarnings(dada2::dada(dada_derep, err=dada_errors,
                                                  OMEGA_A=pvalue_adjusted_calc,
-                                                 multithread=T)))
+                                                 multithread=multithread)))
     # Extract length to which reads have been truncated
     trunclen = nchar(dada_res[[1]]$sequence[1])
     #dada_res = add_consensus(dada_res, dada_derep, fqt, fq, truncLen=trunclen,
