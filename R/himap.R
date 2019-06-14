@@ -283,7 +283,7 @@ dada_denoise = function (fastq_trimmed, fastq_untrimmed,
   if (is.null(pvalue_adjusted)) {
     # Find the maximum number of unique sequences across all samples
     max_num_uniques = max(unlist(
-      mclapply(fastq_trimmed, function (f) length(dada2::derepFastq(f)$uniques),
+      parallel::mclapply(fastq_trimmed, function (f) length(dada2::derepFastq(f)$uniques),
                mc.cores=multithread)
     ))
     pvalue_adjusted_calc = pvalue/max_num_uniques^2
