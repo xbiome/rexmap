@@ -799,7 +799,8 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
 #' @export
 sequence_abundance = function (dada_result, remove_bimeras=T, collapse_sequences=T,
                                verbose=T, remove_bimeras_method='consensus',
-                               remove_bimeras_oneoff=T, fq_prefix_split='.') {
+                               remove_bimeras_oneoff=T, fq_prefix_split='.',
+                               ncpu=TRUE) {
   # Extract sequences and their counts from the dada class result
   if (verbose) cat('* generating sequence table...')
   ab_tab = dada2::makeSequenceTable(dada_result)
@@ -808,7 +809,9 @@ sequence_abundance = function (dada_result, remove_bimeras=T, collapse_sequences
     if (verbose) cat('* removing bimeras...')
     ab_tab_nochim = dada2::removeBimeraDenovo(
       ab_tab, method=remove_bimeras_method, allowOneOff=remove_bimeras_oneoff,
-      multithread=ie(himap_option('ncpu') > 1, T, F), verbose=verbose)
+      # multithread=ie(himap_option('ncpu') > 1, T, F),
+      multithread=ncpu,
+      verbose=verbose)
     if (verbose) cat(' OK.', fill=T)
   } else {
     ab_tab_nochim = ab_tab

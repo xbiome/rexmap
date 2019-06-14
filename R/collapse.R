@@ -48,7 +48,8 @@ min_seq_len = function (fasta_files, n=50) {
 #' @importFrom igraph groups
 #' @importFrom igraph clusters
 #' @export
-collapse = function (ab_in, verbose=himap_option('verbose')) {
+collapse = function (ab_in, verbose=himap_option('verbose'),
+                     ncpu=himap_option('ncpu')) {
   # Provide ab_tab_nochim as an input argument, same as dada2::collapseNoMismatch
   if (verbose) cat('collapse:', fill=T)
   if (verbose) cat('* generating temporary files...')
@@ -71,7 +72,7 @@ collapse = function (ab_in, verbose=himap_option('verbose')) {
   blast_status = blastn(fasta, ref_db=db,
                         output=blast_out, max_target_seqs=50,
                         outfmt=paste0('6 ', himap_option('blast_coll_fmt')),
-                        perc_identity=100, word_size=ws)
+                        perc_identity=100, word_size=ws, ncpu=ncpu)
   cat('blast status: ', blast_status, fill=T)
   if (blast_status != 0) {
      stop('\nError in BLAST alignment step.')
