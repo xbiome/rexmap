@@ -32,7 +32,8 @@ remove_pcr_primers = Vectorize(function (fq_in, fq_out, region=NULL,
                               pr_fwd_maxoff=10, pr_rev_maxoff=10,
                               return_noprimer=T,
                               ncpu=himap_option('ncpu'), max_mismatch=2,
-                              timing=F, verbose=himap_option('verbose')) {
+                              timing=F, verbose=himap_option('verbose'),
+                              overwrite=TRUE) {
   # fq_in = input fastq file
   # fq_out = output fastq file (without primers)
   # pr_fwd = forward primer 5'->3'
@@ -52,6 +53,12 @@ remove_pcr_primers = Vectorize(function (fq_in, fq_out, region=NULL,
   if (is.null(region) & (is.null(pr_fwd) | is.null(pr_rev))) {
     stop('PCR primer remover: either region of pr_fwd and pr_rev need to be specified.')
   }
+
+  if (!overwrite & file.exists(fq_out)) {
+    # We are not overwriting files and output already exists
+    return(c('fwd_trim'=NA, 'rev_trim'=NA))
+  }
+
   # if region is specified, check that primers exist in the reference table
   if (!is.null(region)) {
     if (nrow(himap_option('blast_dbs')[Hypervariable_region==region]) == 0) {
