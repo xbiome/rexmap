@@ -24,6 +24,7 @@
 #' @param max_mismatch Maximum allowed number of mismatches for each PCR primer,
 #' ignoring any ambiguous nucleotides (not A,C,G or T).
 #' @param timing Display run-time at the end of trimming (default: FALSE).
+#' @param overwrite Overwrite target files if they exist (default: TRUE)
 #'
 #' @export
 remove_pcr_primers = Vectorize(function (fq_in, fq_out, region=NULL,
