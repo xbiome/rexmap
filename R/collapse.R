@@ -49,12 +49,12 @@ min_seq_len = function (fasta_files, n=50) {
 #' @importFrom igraph clusters
 #' @export
 collapse = function (ab_in, verbose=himap_option('verbose'),
-                     ncpu=himap_option('ncpu')) {
+                     ncpu=himap_option('ncpu'), temp_dir=tempdir()) {
   # Provide ab_tab_nochim as an input argument, same as dada2::collapseNoMismatch
   if (verbose) cat('collapse:', fill=T)
   if (verbose) cat('* generating temporary files...')
   ab = copy(ab_in)
-  out_files = ab_to_files(ab, verbose=verbose)
+  out_files = ab_to_files(ab, verbose=verbose, temp_dir=temp_dir)
   fasta = out_files[1]
   db = out_files[2]
   if (verbose) cat('OK.\n')
@@ -138,7 +138,7 @@ collapse = function (ab_in, verbose=himap_option('verbose'),
 }
 
 
-ab_to_files = function (ab, verbose=T) {
+ab_to_files = function (ab, verbose=T, temp_dir=tempdir()) {
    # Convert the abundance table matrix into a FASTA file, together
    # with the read counts. Internal function used by collapse().
    meta = colnames(ab)
@@ -147,14 +147,14 @@ ab_to_files = function (ab, verbose=T) {
    rand_id = sample(LETTERS, 10)
    # Generate a temp fasta file and blast database prefix
    fasta_out = file.path(
-      tempdir(),
+      temp_dir,
       paste(c('collapse_', rand_id, '.fasta'), collapse='')
    )
    db_prefix = file.path(dirname(fasta_out), paste(c('collapse_', rand_id), collapse=''))
 
    # Generate a temp abundance table.
    tab_out = file.path(
-      tempdir(),
+      temp_dir,
       paste(c('collapse_', rand_id, '.txt'), collapse='')
    )
 
