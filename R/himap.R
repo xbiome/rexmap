@@ -195,9 +195,13 @@ himap_setoption = function (option_name, value) {
 #'
 #'
 #' @export
-sequence_length_table = function (fastq_files) {
+sequence_length_table = function (fastq_files, ncpu=himap_option('ncpu')) {
   return(
-    table(unlist(sapply(fastq_files, function (f) nchar(sfastq_reader(f)$seqs))))
+    table(unlist(mclapply(
+      fastq_files,
+      function (f) nchar(sfastq_reader(f)$seqs),
+      mc.cores=ncpu
+    )))
   )
 }
 
@@ -598,7 +602,14 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
          lsei(A, B, fulloutput=T, G=diag(ncol(A)), H=matrix(c(0), nrow=ncol(A), ncol=1), type=2),
          error = function (x) NA
       )
-      if (is.na(sol)) return(data.table())
+      if (class(sol) == 'logical') {
+        if (is.na(sol)) {
+          # Least square model failed for some reason; in which case just
+          # return an empty data table. Likely problematic inpjut sequene counts.
+          return(data.table())
+        }
+      }
+
       osu_th = 1e-1
       osu_ab = sol$X
       osu_count = as.integer(osu_ab[which(osu_ab > osu_th)])
