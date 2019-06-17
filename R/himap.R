@@ -451,10 +451,12 @@ untrim = function (dada_res, fq_trimmed, fq_pretrimmed,
 #' sequence.
 #'
 #' @export
-ab_mat_to_dt = function (ab_tab_nochim, fq_prefix_split='_') {
+ab_mat_to_dt = function (ab_tab_nochim, fq_prefix_split='_',
+                         fq_prefix_split_n=1) {
    ab_tab_nochim.dt = as.data.table(unname(ab_tab_nochim))
-   ab_tab_nochim.dt[, sample_id := sapply(strsplit(dimnames(ab_tab_nochim)[[1]],
-                                                   fq_prefix_split, fixed=T), `[`, 1)]
+   ab_tab_nochim.dt[, sample_id := sapply(strsplit(
+     dimnames(ab_tab_nochim)[[1]], fq_prefix_split, fixed=T
+     ), `[`, fq_prefix_split_n)]
    ab_tab_nochim_m.dt = data.table::melt(ab_tab_nochim.dt, id.vars = 'sample_id',
                                variable.name = 'dada2_seqid', value.name = 'raw_count')
    ab_tab_nochim_m.dt[, qseqid := as.integer(gsub('V', '', dada2_seqid))]
@@ -811,6 +813,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
 sequence_abundance = function (dada_result, remove_bimeras=T, collapse_sequences=T,
                                verbose=T, remove_bimeras_method='consensus',
                                remove_bimeras_oneoff=T, fq_prefix_split='.',
+                               fq_prefix_split_n=1,
                                ncpu=TRUE) {
   # Extract sequences and their counts from the dada class result
   if (verbose) cat('* generating sequence table...')
@@ -833,7 +836,8 @@ sequence_abundance = function (dada_result, remove_bimeras=T, collapse_sequences
     if (verbose) cat(' OK.', fill=T)
   }
   else ab_tab_nochim_coll = ab_tab_nochim
-  return(ab_mat_to_dt(ab_tab_nochim_coll, fq_prefix_split=fq_prefix_split))
+  return(ab_mat_to_dt(ab_tab_nochim_coll, fq_prefix_split=fq_prefix_split,
+                      fq_prefix_split_n=fq_prefix_split_n))
 }
 
 #' Generate a table with sequences for each OSU
