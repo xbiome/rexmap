@@ -197,7 +197,7 @@ himap_setoption = function (option_name, value) {
 #' @export
 sequence_length_table = function (fastq_files, ncpu=himap_option('ncpu')) {
   return(
-    table(unlist(mclapply(
+    table(unlist(parallel::mclapply(
       fastq_files,
       function (f) nchar(sfastq_reader(f)$seqs),
       mc.cores=ncpu
@@ -475,7 +475,8 @@ pctsim_range = function (p) return(max(p, na.rm=T))
 
 #' Combine BLAST object and a sequence abundance table into OSU table
 #'
-#' @param abundance_table Sequence abundance table
+#' @param abundance_table Sequence abundance table. Data table with 3 columns
+#' (in this exact order): sample_id, qseqid, raw_count.
 #' @param blast_object BLAST output class, output from \code{\link{blast}} function.
 #' @param verbose TRUE/FALSE: display status messages
 #' @param raw_strains TRUE/FALSE: whether to report full strain information for each OSU
