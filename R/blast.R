@@ -249,7 +249,8 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
                   ref_cp=NULL, max_target_seqs=himap_option('blast_max_seqs'),
                   word_size=himap_option('blast_word_size'),
                   verbose=himap_option('verbose'),
-                  show_args=F, output_error=F, show_alignment=F) {
+                  show_args=F, output_error=F, show_alignment=F,
+                  ncpu=himap_option('ncpu')) {
 
   # Pre-blastn sequence argument check
   # Sequences can be either FASTA file (ends with either .fa or .fasta),
@@ -315,11 +316,13 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
   if (!is.null(region)) {
     blast_status = blastn(fasta_file, blast_output, region=region,
                           max_target_seqs=max_target_seqs,
-                          word_size=word_size, output_err=output_error)
+                          word_size=word_size, output_err=output_error,
+                          ncpu=ncpu)
   } else {
     blast_status = blastn(fasta_file, blast_output, ref_db=ref_db,
                           max_target_seqs=max_target_seqs,
-                          word_size=word_size, output_err=output_error)
+                          word_size=word_size, output_err=output_error,
+                          ncpu=ncpu)
   }
   if (blast_status != 0) stop('blast: error running blastn.')
   # Load BLAST results (can take a while if there are lots of sequences and max_target_seqs
