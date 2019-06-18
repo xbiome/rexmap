@@ -504,12 +504,14 @@ abundance = function (abundance_table, blast_object,
   osu_data_m.dt = blast_cp_to_osu_dt(
     blast_best.dt=blast_object$alignments,
     cp.dt=blast_object$cp,
-    ab_tab_nochim_m.dt=abundance_table[, 1:3],
+    # ab_tab_nochim_m.dt=abundance_table[, 1:3],
+    ab_tab_nochim_m.dt=abundance_table,
     ncpu=ncpu,
     verbose=verbose
   )
   # Now generate osu abundance table
-  osu_ab.dt = osu_cp_to_all_abs(abundance_table[, 1:3],
+  osu_ab.dt = osu_cp_to_all_abs(# abundance_table[, 1:3],
+                                abundance_table,
                                 blast_object$alignments,
                                 blast_object$cp,
                                 osu_data_m.dt,
