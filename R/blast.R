@@ -250,7 +250,7 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
                   word_size=himap_option('blast_word_size'),
                   verbose=himap_option('verbose'),
                   show_args=F, output_error=F, show_alignment=F,
-                  ncpu=himap_option('ncpu')) {
+                  ncpu=himap_option('ncpu'), temp_dir=tempdir()) {
 
   # Pre-blastn sequence argument check
   # Sequences can be either FASTA file (ends with either .fa or .fasta),
@@ -263,7 +263,7 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
       # delete it afterwards.
       sequences_type = 'dt'
       rand_id = sample(LETTERS, 10)
-      fasta_file = file.path(tempdir(), paste(c('blast_', rand_id, '.fasta'), collapse=''))
+      fasta_file = file.path(temp_dir, paste(c('blast_', rand_id, '.fasta'), collapse=''))
       sequences_to_fasta(sequences, fasta_file)
       if (verbose) cat('* blast input type: abundance table', fill=T)
     } else {
@@ -276,7 +276,7 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
         # Looks like a set of DNA sequences. Check letters.
         sequences_type = 'DNA'
         rand_id = sample(LETTERS, 10)
-        fasta_file = file.path(tempdir(), paste(c('blast_', rand_id, '.fasta'), collapse=''))
+        fasta_file = file.path(temp_dir, paste(c('blast_', rand_id, '.fasta'), collapse=''))
         sequences_to_fasta(data.table(qseqid=1:length(sequences),
                                       sequence=sequences), fasta_file)
         if (verbose) cat('* blast input type: character vector', fill=T)
@@ -285,7 +285,7 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
           # Looks like a single sequence
           sequences_type = 'DNA'
           rand_id = sample(LETTERS, 10)
-          fasta_file = file.path(tempdir(), paste(c('blast_', rand_id, '.fasta'), collapse=''))
+          fasta_file = file.path(temp_dir, paste(c('blast_', rand_id, '.fasta'), collapse=''))
           sequences_to_fasta(data.table(qseqid=1:length(sequences),
                                         sequence=sequences), fasta_file)
           if (verbose) cat('* blast input type: character vector', fill=T)
@@ -310,7 +310,7 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
   if (is.null(blast_output)) {
     # Generate temporary blast output file
     rand_id = sample(LETTERS, 10)
-    blast_output = file.path(tempdir(), paste(c('blast_output_', rand_id, '.txt'),
+    blast_output = file.path(temp_dir, paste(c('blast_output_', rand_id, '.txt'),
                                               collapse=''))
   }
   if (!is.null(region)) {
@@ -368,7 +368,7 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
   # If we made a temp fasta file, remove it
   if (sequences_type %in% c('dt', 'DNA')) file.remove(fasta_file)
   # If we made temp blast file, remove it as well
-  if (dirname(blast_output) == tempdir()) file.remove(blast_output)
+  if (dirname(blast_output) == temp_dir) file.remove(blast_output)
   return(as(blast_cp, 'blast'))
 }
 
