@@ -382,7 +382,8 @@ blastn = function (
   max_target_seqs=himap_option('blast_max_seqs'),
   perc_identity=75, outfmt=paste0('6 ', himap_option('blast_out_fmt')),
   dust='20 64 1',
-  output_err=F) {
+  output_err=F, verbose=himap_option('verbose')
+  ) {
 
   dbs = himap_option('blast_dbs')
   if (!is.null(region)) {
@@ -412,9 +413,16 @@ blastn = function (
       '-reward', match, '-penalty', mismatch, '-gapopen', gapopen,
       '-gapextend', gapextend, '-outfmt', shQuote(outfmt),
       '-query', seqs_fa, '-db', ref_db, '-num_threads', ncpu,
-      '-max_target_seqs', max_target_seqs, '-perc_identity', perc_identity
+      '-perc_identity', perc_identity
   )
+  if (!is.null(max_target_seqs)) {
+    blast_args = c(blast_args, '-max_target_seqs', max_target_seqs)
+  }
+
   if (output_err != F) cat(paste(blast_args, sep=' '), fill=T)
+  if (verbose) {
+    cat('blastn: ', paste0(blast_args, collapse=' '), '\n')
+  }
   x = system2(blast_path, args=blast_args, stdout=output, stderr=output_err)
   return(x)
 }
