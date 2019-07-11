@@ -8,15 +8,18 @@ get_makeblastdb_path = function () {
   if (attr(out, 'status') == 1) stop('Error: makeblastdb command not found.')
 }
 
-makeblastdb = function (fasta_in, db_out, verbose=T,
+makeblastdb = function (fasta_in, db_out, verbose=TRUE,
                         makeblastdb_path=himap_option('path_makeblastdb')) {
   # Generate a BLAST database from fasta_in
   # db_out contains a full location and prefix for BLASTDB files
   # This function does not return anything, but can optionally
   # (if verbose == T) write the status to console.
   # makeblastdb_path = get_makeblastdb_path()
-  if (verbose) output = ''
-  else output = FALSE
+  if (verbose == TRUE) {
+    output = ''
+  } else {
+    output = FALSE
+  }
   system2(makeblastdb_path, c('-dbtype', 'nucl', '-in', fasta_in,
                               '-out', db_out), stdout=output)
 }
