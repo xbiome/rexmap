@@ -118,6 +118,24 @@ print_species = Vectorize(function (
 
    # Split string into individual strains
    x_strains = strsplit(x, xsep, fixed=T)[[1]]
+
+   # Remove crap like 'bacterium_LF3' is there are more assigments
+   unnamed_filter = !(x_strains %like% paste0('^bacterium', xws))
+   if (length(x_strains[unnamed_filter]) > 0) {
+      x_strains = x_strains[unnamed_filter]
+   }
+
+
+   # If we only have 1 assignment, return that one
+   if (length(x_strains) == 1) {
+      return(
+         sub(xws, ws,
+             sub(xws, ws, x_strains[1], fixed=T)
+         )
+      )
+   }
+
+
    # Find all unique genera and group by these
    genera = sub(paste0('^([^', xws, ']+)', xws, '.*'), '\\1', x_strains)
    species = sub(paste0('^([^', xws, ']+)', xws, '([^', xws, ']+).*'),
@@ -159,9 +177,23 @@ print_species = Vectorize(function (
    # Now process include_sp, by generating a T/F filter and applying it
    if (include_sp == 'never') {
       sp_filter = !(species %like% 'sp\\.')
+      if (all(!sp_filter)) {
+         sp_filter.list = list()
+         for (g in unique(genera)) {
+            g_filter = (genera == g)
+            if (length(unique(species[g_filter])) > 1) {
+               sp_filter.list[[length(sp_filter.list)+1]] = !(
+                  (species %like% 'sp\\.') & (species %like% paste0('^', g))
+               )
+            } else {
+               sp_filter.list[[length(sp_filter.list)+1]] = rep(TRUE, length(species))
+            }
+         }
+         sp_filter = sapply(transpose(sp_filter.list), all)
+      }
    }
    # Are we filtering out all species? In this case fall back to single include_sp
-   if (include_sp == 'single' | all(!sp_filter)) {
+   if (include_sp == 'single') {
       # For each genus, count number of species assignments. If that number is 1
       # and it's value is 'sp.' then it's a single species, so include it.
       # sp_filter = c()
@@ -255,14 +287,20 @@ print_strains = function (strains, raw=F, deduplicate=T,
   # such that any non-_bacterium or _sp. strain is shown
   # on a species level.
 
-  if (deduplicate) uniq_strains = unique(strains)
-  else uniq_strains = strains
+  if (deduplicate) {
+     uniq_strains = unique(strains)
+  } else {
+     uniq_strains = strains
+  }
 
-  if (raw | length(uniq_strains) <= nmax) return(paste(uniq_strains, collapse=','))
+  if (raw | length(uniq_strains) <= nmax) {
+     return(paste(uniq_strains, collapse=','))
+  }
 
   # Also add strains for species that occur only once!!
-  if (length(strains)==1) return(strains)
-  else {
+  if (length(strains)==1) {
+     return(strains)
+  } else {
     genuses = gsub('^[ ]*([^_]+)_.*', '\\1', uniq_strains)
     species = gsub('^[^_]+_([^_]+)[_]?.*', '\\1', uniq_strains)
     na_filter = grepl('^(sp\\.|bacterium)', species)
