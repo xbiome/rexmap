@@ -66,7 +66,17 @@ osuab_genuses = function (osuab) {
 #' @param osu_abundance_table Data table with OSU abundances. Output from abundance().sssss
 #'
 #' @export
-taxonomy = function (osu_abundance_table, verbose=FALSE) {
+taxonomy = function (osu_abundance_table, verbose=FALSE, show_count=TRUE) {
+  if (show_count) {
+    sep_str = '_['
+    col_str = '],'
+    fin_str = ']'
+  } else {
+    sep_str = ''
+    col_str = ','
+    fin_str = ''
+  }
+
   if (verbose) cat('* load taxonomy...')
   taxonomy.dt = load_taxonomy()
   if (verbose) cat('OK.\n* generating unique ranks...')
@@ -122,26 +132,52 @@ taxonomy = function (osu_abundance_table, verbose=FALSE) {
   # Now count unique taxonomic ranks for each osu_id
   if (verbose) cat('OK.\n* counting uniques...')
   osu_ab_ranks.dt = osu_ab_g2.dt[, {
+    kingdom_num = .SD[!is.na(superkingdom), .(kingdom_num = sum(strain_count)),
+                      by=superkingdom][order(-kingdom_num)][
+                        , paste(
+                            superkingdom, ifelse(show_count, kingdom_num, ''),
+                            sep=sep_str, collapse=col_str)
+                        ]
     phylum_num = .SD[!is.na(phylum), .(phylum_num = sum(strain_count)),
-                     by=phylum][order(-phylum_num)][, paste(phylum,
-                        phylum_num, sep='_[', collapse='],')]
+                     by=phylum][order(-phylum_num)][
+                       , paste(
+                         phylum, ifelse(show_count, phylum_num, ''),
+                         sep=sep_str, collapse=col_str)
+                       ]
     class_num = .SD[!is.na(class), .(class_num = sum(strain_count)),
-                     by=class][order(-class_num)][, paste(class,
-                        class_num, sep='_[', collapse='],')]
+                     by=class][order(-class_num)][
+                       , paste(
+                         class, ifelse(show_count, class_num, ''),
+                         sep=sep_str, collapse=col_str)
+                       ]
     order_num = .SD[!is.na(order), .(order_num = sum(strain_count)),
-                     by=order][order(-order_num)][, paste(order,
-                        order_num, sep='_[', collapse='],')]
+                     by=order][order(-order_num)][
+                       , paste(
+                         order, ifelse(show_count, order_num, ''),
+                         sep=sep_str, collapse=col_str)
+                       ]
     family_num = .SD[!is.na(family), .(family_num = sum(strain_count)),
-                     by=family][order(-family_num)][, paste(family,
-                        family_num, sep='_[', collapse='],')]
+                     by=family][order(-family_num)][
+                       , paste(
+                         family, ifelse(show_count, family_num, ''),
+                         sep=sep_str, collapse=col_str)
+                       ]
     genus_num = .SD[!is.na(genus) & !grepl('^[a-z]', genus),
                     .(genus_num = sum(strain_count)),
-                     by=genus][order(-genus_num)][, paste(genus,
-                        genus_num, sep='_[', collapse='],')]
-    list('phylum'=paste0(phylum_num, ']'), 'class'=paste0(class_num, ']'),
-         'order'=paste0(order_num, ']'), 'family'=paste0(family_num, ']'),
-         'genus'=paste0(genus_num, ']'))
+                     by=genus][order(-genus_num)][
+                       , paste(
+                         genus, ifelse(show_count, genus_num, ''),
+                         sep=sep_str, collapse='],')
+                       ]
+    list(
+      'kingdom'=paste0(kingdom_num, fin_str),
+      'phylum'=paste0(phylum_num, fin_str),
+      'class'=paste0(class_num, fin_str),
+      'order'=paste0(order_num, fin_str),
+      'family'=paste0(family_num, fin_str),
+      'genus'=paste0(genus_num, fin_str))
   }, by=.(osu_id, pctsim)]
+  osu_ab_ranks.dt[!(grepl('^[A-Z]', kingdom)), kingdom := NA]
   osu_ab_ranks.dt[!(grepl('^[A-Z]', phylum)), phylum := NA]
   osu_ab_ranks.dt[!(grepl('^[A-Z]', class)), class := NA]
   osu_ab_ranks.dt[!(grepl('^[A-Z]', order)), order := NA]
