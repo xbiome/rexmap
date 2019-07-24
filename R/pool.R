@@ -31,6 +31,31 @@
 # Dataset names need to be added as columns to each data table before we begin
 # pairwise merging
 
+#' Pool multiple HiMAP outputs
+#'
+#' Combine HiMAP outputs from multiple datasets into a single table.
+#'
+#' @param result_list A \code{list()} with each element being a list of two
+#' data tables.
+#'
+#' 1. OSU abundance data table (output from \code{\link{abundance}}) with
+#' columns:
+#'
+#' \code{sample_id | osu_id | osu_count | pctsim | species}\cr
+#'
+#' Additionally, this data table can contain an extra \code{dataset} column
+#' which contains a name of that dataset.
+#'
+#' 2. OSU sequences data table (output from \code{\link{osu_sequences}}) with
+#' columns:
+#'
+#' \code{osu_id | species | qseqid | copy_number | pctsim | sequence}\cr
+#'
+#' @param dataset_names A character vector containing dataset names for each
+#' element from the \code{result_list} list.
+#'
+#' @param verbose TRUE/FALSE: Print progress during dataset pooling.
+#'
 pool_himap_results = function (result_list, dataset_names = NULL,
                                verbose=T) {
    # Add dataset name columns
@@ -48,20 +73,9 @@ pool_himap_results = function (result_list, dataset_names = NULL,
          }
       }
    }
-   # NO IDEA  WHY REDUCE DOESN'T WORK
 
-   # Manually extract pairs from the main list
-   # n = length(result_list)
-   # l1 = result_list[[1]]
-   # for (i in 2:n) {
-   #    l2 = result_list[[i]]
-   #    last_result = pool_two_himap_outputs_2(l1, l2, verbose=verbose)
-   #    l1 = last_result
-   # }
-
+   #                    v---internal function--v  v--list---v
    pooled_list = Reduce(pool_two_himap_outputs_2, result_list)
-
-   # Update PCTSIM here for now, fix later for per dataset
 
    return(pooled_list)
 }
@@ -149,7 +163,8 @@ id_from_spectrum = function (v, sep1=',', sep2=':') {
    return(paste(v_uniq_ids, collapse=sep1))
 }
 
-spectrum_match = function (v1, v2, sep1=',', sep2=':', mismatch=as.character(NA)) {
+spectrum_match = function (v1, v2, sep1=',', sep2=':',
+                           mismatch=as.character(NA)) {
    # ASymmetric spectrum match: check if v1 is contained in any combination
    # of spectra from v2.
    # e.g. v1 = '1:5,140:1,209:1',
@@ -179,18 +194,6 @@ spectrum_match = function (v1, v2, sep1=',', sep2=':', mismatch=as.character(NA)
    }
 }
 
-
-# data_table_collapse = function (dt, seq_col='sequence') {
-#    # Collapse data table with sequences in seq_col column
-#
-#    dt2 = rbindlist(parallel::mclapply(1:nrow(dt), function (i) {
-#       cat(i, ' out of ', nrow(dt), '...\n')
-#       qseqid = dt[i, qseqid]
-#       seq = dt[i, sequence]
-#       matching_qseqs = dt[i+1:nrow(dt)][, sequence %like% seq, qseqid]
-#       return(data.table(qseqid_final=qseqid, qseqid_originals=matching_qseqs))
-#    }, mc.cores=1))
-# }
 
 collapse_2 = function (ab_in, verbose=himap_option('verbose'),
                      ncpu=himap_option('ncpu'), temp_dir=tempdir(),
@@ -693,7 +696,8 @@ pool_two_himap_outputs_2 = function (osu_1, osu_2,
 
    osu_seq_maps_12_2a.dt = osu_seq_maps_12_2.dt[
       longer_seq==2,
-      if (lu(osu_id_1) > 1) { .SD[species_1_count == max(species_1_count)][1] } else { .SD },
+      if (lu(osu_id_1) > 1) {
+         .SD[species_1_count == max(species_1_count)][1] } else { .SD },
       by=osu_id_2
       ]
 
@@ -1160,11 +1164,6 @@ pool_two_himap_outputs_2 = function (osu_1, osu_2,
       unique(osu_seq_new2.dt[order(osu_id)])
    ))
 }
-
-
-
-
-
 
 
 pool_two_himap_outputs = function (osu_1, osu_2,
