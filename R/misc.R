@@ -14,6 +14,8 @@ ie = function(test, yes, no) {
 }
 
 
+lu = function (x) length(unique(x))
+
 #' Extract sample identifiers from FASTQ filenames
 #'
 #' @param filenames A character vector of filenames.
@@ -95,7 +97,7 @@ print_species = Vectorize(function (
    show_count=TRUE, show_single=FALSE, count_wrap=c('[', ']'),
    group_genera=TRUE, group_genera_sep='/',
    trim_genera_len=NULL, trim_species_len=NULL, trim_symbol='.',
-   replace_bacterium=TRUE) {
+   replace_bacterium=TRUE, max_species=NULL, multi_species_sub='spp.') {
 
    # x = input string of strain names
    #
@@ -232,10 +234,18 @@ print_species = Vectorize(function (
       # unique_sorted()
       out.c = c()
       for (g in genera_uniq.c) {
+         species_only_list = sub(
+            paste0('^', g, ws), '', species.c[species.c %like% paste0('^', g, ws)]
+         )
+         if (!is.null(max_species)) {
+            if (length(species_only_list) > max_species) {
+               species_only_list = multi_species_sub
+            }
+         }
          species_only = paste(
-            sub(
-               paste0('^', g, ws), '', species.c[species.c %like% paste0('^', g, ws)]
-            ), collapse=group_genera_sep)
+            species_only_list,
+            collapse=group_genera_sep
+         )
          out.c[length(out.c)+1] = paste(g, species_only, collapse=ws)
       }
       return(paste(out.c, collapse=sep))

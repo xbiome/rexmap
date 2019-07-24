@@ -52,7 +52,8 @@ min_seq_len = function (fasta_files, n=50) {
 #' @importFrom igraph clusters
 #' @export
 collapse = function (ab_in, verbose=himap_option('verbose'),
-                     ncpu=himap_option('ncpu'), temp_dir=tempdir()) {
+                     ncpu=himap_option('ncpu'), temp_dir=tempdir(),
+                     ws_scale=0.8, max_target_seqs=50) {
   # Provide ab_tab_nochim as an input argument, same as dada2::collapseNoMismatch
   if (verbose) cat('collapse:', fill=T)
   if (verbose) cat('* generating temporary files...')
@@ -67,13 +68,13 @@ collapse = function (ab_in, verbose=himap_option('verbose'),
   blast_out = paste0(db, '_blast_output.txt')
 
   # Automatically generate a good BLAST word size
-  ws = max(round(min_seq_len(fasta) * 0.8), 7)
+  ws = max(round(min_seq_len(fasta) * ws_scale), 7)
   if (verbose) cat(ws, '\n')
 
   # BLAST fasta_in vs db
   if (verbose) cat('* running blast...')
   blast_status = blastn(fasta, ref_db=db,
-                        output=blast_out, max_target_seqs=50,
+                        output=blast_out, max_target_seqs=max_target_seqs,
                         outfmt=paste0('6 ', himap_option('blast_coll_fmt')),
                         perc_identity=100, word_size=ws, ncpu=ncpu)
   cat('blast status: ', blast_status, fill=T)
@@ -110,20 +111,23 @@ collapse = function (ab_in, verbose=himap_option('verbose'),
   # Find all connected clusters
   cls = groups(clusters(g))
   filtered_columns = c()
+  # i = 0
   for (cl in cls) {
+    # i = i + 1
+    # cat(i, '\n')
     if (length(cl) > 1) {
-      column_sums = colSums(ab[, cl])
+      column_sums = colSums(ab[, cl, drop=FALSE])
       # max_column is the sequence with max total number of reads
       # in the case of multiple just pick the first one in the list
       max_column = cl[which(column_sums==max(column_sums))][1]
       # add all other columns to that one
       for (id in cl[cl != max_column]) {
-        ab[, max_column] = ab[, max_column] + ab[, id]
+        ab[, max_column] = ab[, max_column, drop=F] + ab[, id, drop=F]
         filtered_columns = c(filtered_columns, id)
       }
     }
   }
-  ab = ab[, setdiff(1:ncol(ab), sort(filtered_columns))]
+  ab = ab[, setdiff(1:ncol(ab), sort(filtered_columns)), drop=F]
 
   ab_colsums = unname(colSums(ab))
   if (verbose) cat('OK.\n')

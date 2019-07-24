@@ -20,9 +20,10 @@ std::map<int, std::vector<int> > value_map (std::vector<int> x) {
   //         7-1=6, [10]
   // actually subtract 1 in the input
   std::map<int, std::vector<int> > xmap;
+  int xmap_size = static_cast<int>(xmap.size());
   int len = x.size();
   for (int i=0; i<len; ++i) {
-    if (x[i] == xmap.size()) { // add new element
+    if (x[i] == xmap_size) { // add new element
       xmap[x[i]] = {i};
     } else { // this element already exists. append.
       xmap[x[i]].push_back(i);

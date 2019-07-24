@@ -556,8 +556,11 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
 
   if (verbose) cat('Preparing blast tables...')
   var_count.dt = unique(osu_data_m.dt[, .(variant_id, raw_count, sample_id)])
-  common_variant_ids = var_count.dt[, if (all(raw_count > 0)) .SD, by=variant_id][, unique(variant_id)]
-  blast_best2.dt = blast_best.dt[ pctsim < pctsim_min, .(pctsim=pctsim_range(pctsim), species=print_strains(strain, raw=raw)), by=qseqid]
+  common_variant_ids = var_count.dt[
+    , if (all(raw_count > 0)) .SD, by=variant_id][, unique(variant_id)]
+  blast_best2.dt = blast_best.dt[
+    pctsim < pctsim_min, .(pctsim=pctsim_range(pctsim),
+                           species=print_strains(strain, raw=raw)), by=qseqid]
   if (verbose) cat('OK.\n')
 
   # Optimization function
@@ -851,7 +854,7 @@ sequence_abundance = function (dada_result, remove_bimeras=T, collapse_sequences
 osu_sequences = function (osu_abundances, blast_output) {
   # First do 100% OSUs. For these combine blast output tables
   osu_var.dt = merge(
-    unique(osu_abundances[, .(osu_id, species)]),
+    unique(osu_abundances[, .(osu_id, species, pctsim)]),
     blast_output$sequences,
     by='osu_id'
   )
@@ -860,7 +863,7 @@ osu_sequences = function (osu_abundances, blast_output) {
     osu_var.dt,
     unique(blast_output$alignments[, .(qseqid, pctsim)]),
     all.x=T,
-    by='qseqid'
+    by=c('qseqid', 'pctsim')
   )
   return(osu_var.dt[order(osu_id), .(osu_id, species, qseqid, copy_number, pctsim, sequence)])
 }

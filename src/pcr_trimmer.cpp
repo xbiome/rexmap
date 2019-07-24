@@ -14,7 +14,7 @@ int max_index(int *x, int size) {
 char **nw_fitting_align(const char *s1, const char *s2, int score[5][5],
                         int indel) {
   static size_t nnw = 0;
-  int i, j;
+  unsigned int i, j;
   // int l, r;
   unsigned int len1 = strlen(s1);
   unsigned int len2 = strlen(s2);

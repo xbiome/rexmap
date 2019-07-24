@@ -38,7 +38,7 @@ std::vector< std::vector<int> > load_posterior (std::string filename) {
 
 // Modified dada2 nwalign_endsfree to allow Ns and
 void nt2int(char *oseq, const char *iseq) {
-  int i, len = strlen(iseq);
+  long unsigned int i, len = strlen(iseq);
   for (i = 0; i < len; i++, iseq++, oseq++) {
     switch (*iseq) {
     case 'A':
@@ -69,7 +69,7 @@ void nt2int(char *oseq, const char *iseq) {
 }
 
 void qs2int(char *oseq, const char *iseq) {
-  int i, len = strlen(iseq);
+  long unsigned int i, len = strlen(iseq);
   for (i = 0; i < len; i++, iseq++, oseq++) {
     *oseq = int(*iseq);
   }
@@ -78,7 +78,7 @@ void qs2int(char *oseq, const char *iseq) {
 }
 
 void int2qs(char *oseq, const char *iseq) {
-  int i, len = strlen(iseq);
+  long unsigned int i, len = strlen(iseq);
   for (i = 0; i < len; i++, iseq++, oseq++) {
     *oseq = char(*iseq);
   }
@@ -87,7 +87,7 @@ void int2qs(char *oseq, const char *iseq) {
 }
 
 void int2nt(char *oseq, const char *iseq) {
-  int i, len = strlen(iseq);
+  long unsigned int i, len = strlen(iseq);
   for (i = 0; i < len; i++, iseq++, oseq++) {
     switch (*iseq) {
     case 1:
@@ -120,15 +120,15 @@ char **himap_nwalign_endsfree(const char *s1, const char *s2,
                               const char *q1, const char *q2,
                               int score[5][5], int gap_p) {
   static size_t nnw = 0;
-  int i, j;
-  int l, r;
+  long unsigned int i, j;
+  long unsigned int l, r;
   // int band = -1;
-  unsigned int len1 = strlen(s1);
-  unsigned int len2 = strlen(s2);
+  long unsigned int len1 = strlen(s1);
+  long unsigned int len2 = strlen(s2);
   int diag, left, up;
 
-  unsigned int nrow = len1+1;
-  unsigned int ncol = len2+1;
+  long unsigned int nrow = len1+1;
+  long unsigned int ncol = len2+1;
   int *d = (int *) malloc(nrow * ncol * sizeof(int)); //E
   int *p = (int *) malloc(nrow * ncol * sizeof(int)); //E
   if(d == NULL || p == NULL) Rcpp::stop("Memory allocation failed.");
@@ -291,7 +291,7 @@ char **himap_nwalign_endsfree(const char *s1, const char *s2,
 
 char **himap_merge_alignment(char** al) {
   // al[0] seq1, al[1] seq2, al[2] qual1, al[3] qual 2
-  int i, len = strlen(al[0]);
+  long unsigned int i, len = strlen(al[0]);
   int q1, q2, q;
   char **out = (char **) malloc(2*sizeof(char*));
   // char tmp;
@@ -387,8 +387,8 @@ Rcpp::CharacterVector C_mergepairs(std::string s1, std::string s2,
                                 double min_pct_sim, int min_aln_len) {
 
   // Alignment filter parameters
-  unsigned int aln_matches = 0; // number of matching letters in the alignment
-  unsigned int left_end = 0, right_end = 0; // lengths of ---- ends
+  int aln_matches = 0; // number of matching letters in the alignment
+  int left_end = 0, right_end = 0; // lengths of ---- ends
   bool still_left = TRUE;
   int len_al, len_overlap;
   double pct_sim;
@@ -432,7 +432,7 @@ Rcpp::CharacterVector C_mergepairs(std::string s1, std::string s2,
   int2nt(al[0], al[0]);
   int2nt(al[1], al[1]);
 
-  len_al = strlen(al[0]);
+  len_al = static_cast<int>(strlen(al[0]));
 
   // Rcpp::stop("Checkpoint1.");
 
