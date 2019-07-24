@@ -22,6 +22,7 @@ frequency table instead of the raw list.
 }
 \examples{
 # Find minimum sequence length, above which we have 99\% reads
+# (this example requires valid FASTQ files in fq_tri variable)
 seqlen.ft = sequence_length_table(fq_tri)
 ftquantile(seqlen.ft, 0.01)
 

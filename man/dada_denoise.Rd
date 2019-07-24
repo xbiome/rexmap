@@ -7,7 +7,7 @@
 dada_denoise(fastq_trimmed, fastq_untrimmed, pvalue = 1e-04,
   pvalue_adjusted = NULL, multithread = himap_option("ncpu"),
   verbose = himap_option("verbose"), timing = himap_option("timing"),
-  error_estimation_nsamples = 3)
+  dada_errors_path = NULL)
 }
 \arguments{
 \item{pvalue}{P-value threshold before Bonferroni correction for DADA2.}
@@ -20,6 +20,9 @@ dividing it by the maximum number of unique sequences across all samples.}
 Does not work on Windows due to \code{parallel} package implementation.}
 
 \item{verbose}{TRUE/FALSE: display of status messages.}
+
+\item{dada_errors_path}{Path to the Rdata object containing previously calcualted
+DADA2 error matrix}
 }
 \description{
 Uses DADA2 algorithm to denoise trimmed FASTQ files \code{fastq_trimmed}.

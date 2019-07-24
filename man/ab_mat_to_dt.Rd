@@ -4,7 +4,8 @@
 \alias{ab_mat_to_dt}
 \title{Convert abundance matrix to an abundance data table}
 \usage{
-ab_mat_to_dt(ab_tab_nochim, fq_prefix_split = "_")
+ab_mat_to_dt(ab_tab_nochim, fq_prefix_split = "_",
+  fq_prefix_split_n = 1)
 }
 \description{
 Each row in abundance matrix is a different sample, each column is a different

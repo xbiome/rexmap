@@ -2,12 +2,12 @@
 % Please edit documentation in R/himap.R
 \name{sequence_abundance}
 \alias{sequence_abundance}
-\title{Return abundances of each sequence from DADA2 result object}
+\title{Sequence abundance table}
 \usage{
 sequence_abundance(dada_result, remove_bimeras = T,
   collapse_sequences = T, verbose = T,
   remove_bimeras_method = "consensus", remove_bimeras_oneoff = T,
-  fq_prefix_split = ".")
+  fq_prefix_split = ".", fq_prefix_split_n = 1, ncpu = TRUE)
 }
 \arguments{
 \item{dada_result}{dada() result}
@@ -21,5 +21,5 @@ shifts and add up the counts? (default: TRUE)}
 for more options.}
 }
 \description{
-Return abundances of each sequence from DADA2 result object
+Return abundances of each sequence from a DADA2 result object.
 }

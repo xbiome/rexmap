@@ -7,6 +7,6 @@
 summarize_osu_label(x, show.sp = FALSE, sep = ",")
 }
 \description{
-Shorten sometimes long OSU labels which can list many strains or species.
-This removes
+Shorten sometimes long OSU labels which can list many strains or species
+into a more managable string for printing.
 }

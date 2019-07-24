@@ -7,7 +7,7 @@
 remove_pcr_primers(fq_in, fq_out, region = NULL, pr_fwd = NULL,
   pr_rev = NULL, pr_fwd_maxoff = 10, pr_rev_maxoff = 10,
   return_noprimer = T, ncpu = himap_option("ncpu"), max_mismatch = 2,
-  timing = F, verbose = himap_option("verbose"))
+  timing = F, verbose = himap_option("verbose"), overwrite = TRUE)
 }
 \arguments{
 \item{fq_in}{A character vector of input file names.}
@@ -37,6 +37,8 @@ all available CPU cores are used (\code{parallel::detectCores()}).}
 ignoring any ambiguous nucleotides (not A,C,G or T).}
 
 \item{timing}{Display run-time at the end of trimming (default: FALSE).}
+
+\item{overwrite}{Overwrite target files if they exist (default: TRUE)}
 }
 \description{
 Trims PCR primers from FASTQ sequences.

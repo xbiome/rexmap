@@ -9,7 +9,8 @@ print_species(x, xsep = ",", xws = "_", ws = " ", sep = ", ",
   show_single = FALSE, count_wrap = c("[", "]"), group_genera = TRUE,
   group_genera_sep = "/", trim_genera_len = NULL,
   trim_species_len = NULL, trim_symbol = ".",
-  replace_bacterium = TRUE)
+  replace_bacterium = TRUE, max_species = NULL,
+  multi_species_sub = "spp.")
 }
 \arguments{
 \item{x}{(Required) A character vector of strain names.}

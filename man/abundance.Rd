@@ -2,14 +2,15 @@
 % Please edit documentation in R/himap.R
 \name{abundance}
 \alias{abundance}
-\title{Combine BLAST object and a sequence abundance table into OSU table}
+\title{OSU abundance table}
 \usage{
 abundance(abundance_table, blast_object, ncpu = himap_option("ncpu"),
   verbose = himap_option("verbose"), raw_strains = FALSE,
   pso_n = 1000)
 }
 \arguments{
-\item{abundance_table}{Sequence abundance table}
+\item{abundance_table}{Sequence abundance table. Data table with 3 columns
+(in this exact order): sample_id, qseqid, raw_count.}
 
 \item{blast_object}{BLAST output class, output from \code{\link{blast}} function.}
 
@@ -20,7 +21,11 @@ same OSU (FALSE).}
 \item{verbose}{TRUE/FALSE: display status messages}
 
 \item{raw_strains}{TRUE/FALSE: whether to report full strain information for each OSU}
+
+\item{pso_n}{Integer specifying number of times to run Particle Swarm
+Optimizer for an OSU abundance estimation algorithm. (Default: 1000)}
 }
 \description{
-Combine BLAST object and a sequence abundance table into OSU table
+Combine BLAST object and a sequence abundance table into a final OSU
+abundance table.
 }

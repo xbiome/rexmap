@@ -2,10 +2,17 @@
 % Please edit documentation in R/himap.R
 \name{osu_sequences}
 \alias{osu_sequences}
-\title{Generate a table with sequences for each OSU}
+\title{Generate a table with sequences assigne to each OSU}
 \usage{
 osu_sequences(osu_abundances, blast_output)
 }
+\arguments{
+\item{osu_abundances}{Data table with OSU abundances; output from the
+\code{\link{abundance}} function.}
+
+\item{blast_output}{Blast output class. Output from \code{\link{blast}}
+function.}
+}
 \description{
-Generate a table with sequences for each OSU
+Generate a table with sequences assigne to each OSU
 }

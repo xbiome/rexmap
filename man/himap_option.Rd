@@ -8,9 +8,7 @@ himap_option(option_names = NULL)
 }
 \arguments{
 \item{option_names}{A string or a vector of strings with available options. If
-not given, then the function lists available options.
-
-Options:}
+not given, then the function lists available options.}
 }
 \description{
 HiMAP options

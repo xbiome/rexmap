@@ -6,6 +6,10 @@
 \usage{
 load_taxonomy(tax_file = himap_option("taxonomy_file"))
 }
+\arguments{
+\item{tax_file}{Full path to the Rdata taxonomy file. Default:
+himap_option('taxonomy_file').}
+}
 \description{
 This is a NCBI Taxonomy database, exported as an compressed R object.
 }

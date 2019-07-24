@@ -4,7 +4,7 @@
 \alias{sequence_length_table}
 \title{Frequency table of sequence lengths}
 \usage{
-sequence_length_table(fastq_files)
+sequence_length_table(fastq_files, ncpu = himap_option("ncpu"))
 }
 \arguments{
 \item{fastq_files}{A character vector of FASTQ filenames.}
@@ -12,8 +12,4 @@ sequence_length_table(fastq_files)
 \description{
 Generate a frequency table of sequence lengths from FASTQ files.
 The resulting table object can be visuaized with base plot function.
-}
-\examples{
-
-
 }
