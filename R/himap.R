@@ -1,6 +1,4 @@
-#' @title HiMAP: High-resolution Microbial Amplicon-sequencing Pipeline
-#'
-# Import these functions for everything
+#' Import these functions for everything
 #' @importFrom data.table data.table
 #' @importFrom data.table as.data.table
 #' @importFrom data.table setkey
@@ -106,9 +104,6 @@ assign('timing', FALSE, env=himap_opts)
 #' @param option_names A string or a vector of strings with available options. If
 #' not given, then the function lists available options.
 #'
-#' Options:
-#'
-#'
 #' @export
 himap_option = function (option_names=NULL) {
   if (is.null(option_names)) {
@@ -171,19 +166,8 @@ himap_setoption = function (option_name, value) {
 
   # Check if database files are missing. Need at least one set of blastdb
   # files and 1 table with matching primers...
-  packageStartupMessage('HiMAP v1.0 loaded.')
+  packageStartupMessage('HiMAP loaded.')
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -193,8 +177,6 @@ himap_setoption = function (option_name, value) {
 #' The resulting table object can be visuaized with base plot function.
 #'
 #' @param fastq_files A character vector of FASTQ filenames.
-#' @examples
-#'
 #'
 #' @export
 sequence_length_table = function (fastq_files, ncpu=himap_option('ncpu')) {
@@ -221,6 +203,7 @@ sequence_length_table = function (fastq_files, ncpu=himap_option('ncpu')) {
 #'
 #' @examples
 #' # Find minimum sequence length, above which we have 99% reads
+#' # (this example requires valid FASTQ files in fq_tri variable)
 #' seqlen.ft = sequence_length_table(fq_tri)
 #' ftquantile(seqlen.ft, 0.01)
 #'
@@ -256,7 +239,7 @@ ftquantile = function (ft, prob) {
 #' @param multithread TRUE/FALSE or the number of CPU threads to use for multithreading.
 #' Does not work on Windows due to \code{parallel} package implementation.
 #' @param verbose TRUE/FALSE: display of status messages.
-#' @dada_errors_path Path to the Rdata object containing previously calcualted
+#' @param dada_errors_path Path to the Rdata object containing previously calcualted
 #' DADA2 error matrix
 #'
 #' @export
@@ -401,7 +384,6 @@ add_consensus = function (dada_res, derep, fq_tri, fq_fil, truncLen,
 #'
 #' This function modifies dada result \code{dada_res}.
 #'
-#' @export
 untrim = function (dada_res, fq_trimmed, fq_pretrimmed,
                    verbose=himap_option('verbose'),
                    ncpu=himap_option('ncpu')) {
@@ -452,7 +434,6 @@ untrim = function (dada_res, fq_trimmed, fq_pretrimmed,
 #' Each row in abundance matrix is a different sample, each column is a different
 #' sequence.
 #'
-#' @export
 ab_mat_to_dt = function (ab_tab_nochim, fq_prefix_split='_',
                          fq_prefix_split_n=1) {
    ab_tab_nochim.dt = as.data.table(unname(ab_tab_nochim))
@@ -475,7 +456,10 @@ ab_mat_to_dt = function (ab_tab_nochim, fq_prefix_split='_',
 pctsim_range = function (p) return(max(p, na.rm=T))
 
 
-#' Combine BLAST object and a sequence abundance table into OSU table
+#' OSU abundance table
+#'
+#' Combine BLAST object and a sequence abundance table into a final OSU
+#' abundance table.
 #'
 #' @param abundance_table Sequence abundance table. Data table with 3 columns
 #' (in this exact order): sample_id, qseqid, raw_count.
@@ -485,6 +469,8 @@ pctsim_range = function (p) return(max(p, na.rm=T))
 #' @param ncpu Integer specifying number of CPU threads to use. This uses R package "parallel"
 #' (TRUE) or to simplify the output when multiple strains of the same species are in the
 #' same OSU (FALSE).
+#' @param pso_n Integer specifying number of times to run Particle Swarm
+#' Optimizer for an OSU abundance estimation algorithm. (Default: 1000)
 #'
 #' @importFrom igraph make_empty_graph
 #' @importFrom igraph add_vertices
@@ -808,7 +794,9 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
   return(unique(all_abs.dt))
 }
 
-#' Return abundances of each sequence from DADA2 result object
+#' Sequence abundance table
+#'
+#' Return abundances of each sequence from a DADA2 result object.
 #'
 #' @param dada_result dada() result
 #' @param remove_bimeras Check and remove bimeric reads? (default: TRUE)
@@ -848,7 +836,12 @@ sequence_abundance = function (dada_result, remove_bimeras=T, collapse_sequences
                       fq_prefix_split_n=fq_prefix_split_n))
 }
 
-#' Generate a table with sequences for each OSU
+#' Generate a table with sequences assigne to each OSU
+#'
+#' @param osu_abundances Data table with OSU abundances; output from the
+#' \code{\link{abundance}} function.
+#' @param blast_output Blast output class. Output from \code{\link{blast}}
+#' function.
 #'
 #' @export
 osu_sequences = function (osu_abundances, blast_output) {
