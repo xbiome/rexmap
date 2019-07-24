@@ -1,12 +1,3 @@
-# Add taxonomy annotation to the final
-
-# test
-
-# all_ab.dt = readRDS('~/cloud/research/microbiome/diabimmune/all_ab.dt_top4')
-# blast_best.dt = readRDS('~/cloud/research/microbiome/diabimmune/blast_best.dt')
-#
-# var.dt = fread('~/cloud/research/microbiome/genomes/data/vregions_db/V3-V4_337F-805R_hang21_wrefseq_table.txt',
-#                select=c())
 
 
 #' Read lineages*.csv file and convert it to compressed R object
@@ -23,6 +14,9 @@ lineagecsv_to_robj = function (lincsv, out) {
 #' Load HiMAP taxonomy reference file
 #'
 #' This is a NCBI Taxonomy database, exported as an compressed R object.
+#'
+#' @param tax_file Full path to the Rdata taxonomy file. Default:
+#' himap_option('taxonomy_file').
 #'
 #' @export
 load_taxonomy = function (tax_file=himap_option('taxonomy_file')) {
@@ -61,9 +55,11 @@ osuab_genuses = function (osuab) {
   return(dt)
 }
 
-#' Generate taxonomy for each OSU
+#' Add NCBI taxonomy to an OSU table
 #'
-#' @param osu_abundance_table Data table with OSU abundances. Output from abundance().sssss
+#' @param table Data table containing columns 'osu_id', 'pctsim' and 'species'.
+#' Typically used with the output table from then \code{\link{abundance}}
+#' function.
 #'
 #' @export
 taxonomy = function (osu_abundance_table, verbose=FALSE, show_count=TRUE) {
