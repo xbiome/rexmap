@@ -45,10 +45,11 @@ assign('blast_out_fmt',
        'qseqid sseqid qlen length qstart qend sstart send slen qseq sseq',
        env=himap_opts)
 # BLAST collapse() format. Changing this might break collapse function
+# used only for debugging.
 assign('blast_coll_fmt',
        'qseqid sseqid qlen slen length qstart qend sstart send pident',
        env=himap_opts)
-# BLAST paths
+# BLAST executables paths
 assign('path_makeblastdb',
        system.file('exec', exec_file('makeblastdb'), package='himap'),
        env=himap_opts)
@@ -169,6 +170,20 @@ himap_setoption = function (option_name, value) {
   packageStartupMessage('HiMAP loaded.')
 }
 
+#' Show HiMAP database version
+#'
+#' Version == last modified date of the *_unique_variants_R.txt table.
+#' @export
+himap_db_version = function (region=NULL) {
+  if (is.null(region)) {
+    return(as.Date(file.info(system.file(
+      'database', himap_option('blast_dbs')[, table], package='himap'))$mtime))
+  } else {
+    return(as.Date(file.info(system.file(
+      'database', himap_option('blast_dbs')[Hypervariable_region==region, table],
+      package='himap'))$mtime))
+  }
+}
 
 
 #' Frequency table of sequence lengths

@@ -397,8 +397,11 @@ blastn = function (
         ref_db = system.file('database',
                              paste0(dbs[Hypervariable_region==region, DB], '.nhr'),
                              package='himap')
-        if (ref_db == '') stop('blast: missing database.')
-        else ref_db = sub('.nhr$', '', ref_db)
+        if (ref_db == '') {
+          stop('blast: missing database.')
+        } else {
+          ref_db = sub('.nhr$', '', ref_db)
+        }
       }
     }
   } else {
