@@ -1,6 +1,6 @@
 Package: himap
 Type: Package
-Title: High-resolution Microbial Amplicon Pipeline
+Title: High-resolution Microbial Analysis Pipeline
 Version: 0.99
 Author: Igor Segota <is246@cornell.edu>, Tao Long <tlong@sbpdiscovery.org>
 Maintainer: Igor Segota <is246@cornell.edu>
