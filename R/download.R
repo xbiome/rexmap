@@ -7,22 +7,43 @@
 #' @param verbose (default: TRUE) Whether or not to print progress during download.
 #'
 #' @export
-download_blast = function (verbose=T) {
+download_blast = function (verbose=T, override_os=NULL) {
    # First find the platform
    if (verbose) cat('HiMAP: Download blastn+makeblastdb command line utilities\n')
-   sys_os = detect_os()
-   if (sys_os == 'linux') {
-      blast_url = 'ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+//2.7.1/ncbi-blast-2.7.1+-x64-linux.tar.gz'
-   } else if (sys_os == 'macos') {
-      blast_url = 'ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+//2.7.1/ncbi-blast-2.7.1+-x64-macosx.tar.gz'
+
+   if (is.null(override_os)) {
+      sys_os = detect_os()
    } else {
-      stop('Error: Unsupported OS.')
+      sys_os = override_os
    }
+   if (verbose) cat('* Operating system:', sys_os, '\n')
 
    # Check internet connection
    if (!internet_connection()) {
       stop('Error: Internet connection unavailable.')
    }
+
+   # Check newest version
+   if (verbose) cat('* Checking latest version...')
+   curlpath = curl_path()
+   ncbi_blast_url = 'ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/'
+   latest_files = system2(curlpath, c(ncbi_blast_url), stdout=T, stderr=F)
+
+   if (sys_os == 'linux') {
+      pattern = 'ncbi-blast-[0-9]+\\.[0-9]+\\.[0-9]+\\+-x64-macosx\\.tar\\.gz$'
+      # blast_url = 'ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+//LATEST/ncbi-blast-2.9.0+-x64-linux.tar.gz'
+   } else if (sys_os == 'macos') {
+      pattern = 'ncbi-blast-[0-9]+\\.[0-9]+\\.[0-9]+\\+-x64-linux\\.tar\\.gz$'
+      # blast_url = 'ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+//LATEST/ncbi-blast-2.9.0+-x64-macosx.tar.gz'
+   } else {
+      stop('Error: Unsupported OS.')
+   }
+   latest_file = latest_files[grep(pattern, latest_files)]
+   latest_file2 = sub(paste0('^.*(', pattern, ')'), '\\1', latest_file)
+   blast_version = sub('.*ncbi-blast-([0-9]+\\.[0-9]+\\.[0-9]+)\\+-.*', '\\1',
+                       latest_file2)
+   if (verbose) cat('', blast_version, 'found.\n')
+   blast_url = paste0(ncbi_blast_url, latest_file2)
 
    # Download into temp folder
    if (verbose) cat('* Downloading executables...')
@@ -83,6 +104,16 @@ curl_path = function () {
    return(file.path(find.package('himap'), 'exec', paste0('curl_', detect_os())))
 }
 
+
+#' Get latest BLAST executable path
+latest_blast_url = function () {
+   curlpath = curl_path()
+   latest_files = system2(curlpath, c('ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/'),
+                          stdout=T, stderr=F)
+   pattern = 'ncbi-blast-[0-9]+\\.[0-9]+\\.[0-9]+\\+-x64-macosx\\.tar\\.gz$'
+   latest_file = latest_files[grep(pattern, latest_files)]
+   latest_file2 = sub(paste0('^.*(', pattern, ')'), '\\1', latest_file)
+}
 
 #' Update the HiMAP database
 #'
