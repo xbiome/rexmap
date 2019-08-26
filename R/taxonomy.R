@@ -25,13 +25,20 @@ load_taxonomy = function (tax_file=himap_option('taxonomy_file')) {
 
 #' Parse genus names and strain counts from each OSU species string
 #'
-osuab_genuses = function (osuab) {
+osuab_genuses = function (osuab, ws='_', split_char=',') {
   dt = osuab[, {
-    species_list = strsplit(species[1], ',', fixed=T)[[1]]
+    species_list = strsplit(species[1], split_char, fixed=T)[[1]]
     genus_counts = lapply(species_list, function (s) {
-      genus = gsub('^([^_]+)_.*', '\\1', s)
-      if (genus == 'Candidatus') genus = gsub('^[^_]+_([^_]+)_.*', '\\1', s)
-      strain_count = gsub('.*_\\[([0-9]+)\\]$', '\\1', s)
+      genus = gsub(paste0('^([^', ws, ']+)', ws, '.*'), '\\1', s)
+      if (genus == 'Candidatus') {
+         # For "Candidatus" genus, actual genus name is usually the second
+         # word.
+         genus = gsub(
+            paste0('^[^', ws, ']+', ws, '([^', ws, ']+)', ws, '.*'),
+            '\\1', s
+         )
+      }
+      strain_count = gsub(paste0('.*', ws, '\\[([0-9]+)\\]$'), '\\1', s)
       if (strain_count == s) strain_count = '1'
       return(c(genus, strain_count))
     })
@@ -62,7 +69,8 @@ osuab_genuses = function (osuab) {
 #' function.
 #'
 #' @export
-taxonomy = function (osu_abundance_table, verbose=FALSE, show_count=TRUE) {
+taxonomy = function (osu_abundance_table, verbose=FALSE, show_count=TRUE,
+                     ws='_', split_char=',') {
   if (show_count) {
     sep_str = '_['
     col_str = '],'
@@ -83,7 +91,7 @@ taxonomy = function (osu_abundance_table, verbose=FALSE, show_count=TRUE) {
   tax_class.dt = unique(taxonomy.dt[, .(superkingdom, phylum, class, order=NA, family=NA)])
   tax_phylum.dt = unique(taxonomy.dt[, .(superkingdom, phylum, class=NA, order=NA, family=NA)])
   if (verbose) cat('OK.\n* extracting genus/species from OSU table...')
-  osu_ab_g.dt = osuab_genuses(osu_abundance_table)
+  osu_ab_g.dt = osuab_genuses(osu_abundance_table, ws=ws, split_char=split_char)
   if (verbose) cat('OK.\n* matching genus...')
   osu_ab_g2.dt = merge(osu_ab_g.dt, taxonomy.dt, by='genus', all.x=T) # Genus matches
   col_order = c('osu_id', 'strain_count', 'pctsim', 'superkingdom', 'phylum',
@@ -127,52 +135,68 @@ taxonomy = function (osu_abundance_table, verbose=FALSE, show_count=TRUE) {
                }]
   # Now count unique taxonomic ranks for each osu_id
   if (verbose) cat('OK.\n* counting uniques...')
-  osu_ab_ranks.dt = osu_ab_g2.dt[, {
-    kingdom_num = .SD[!is.na(superkingdom), .(kingdom_num = sum(strain_count)),
-                      by=superkingdom][order(-kingdom_num)][
-                        , paste(
-                            superkingdom, ifelse(show_count, kingdom_num, ''),
-                            sep=sep_str, collapse=col_str)
-                        ]
-    phylum_num = .SD[!is.na(phylum), .(phylum_num = sum(strain_count)),
-                     by=phylum][order(-phylum_num)][
-                       , paste(
-                         phylum, ifelse(show_count, phylum_num, ''),
-                         sep=sep_str, collapse=col_str)
-                       ]
-    class_num = .SD[!is.na(class), .(class_num = sum(strain_count)),
-                     by=class][order(-class_num)][
-                       , paste(
-                         class, ifelse(show_count, class_num, ''),
-                         sep=sep_str, collapse=col_str)
-                       ]
-    order_num = .SD[!is.na(order), .(order_num = sum(strain_count)),
-                     by=order][order(-order_num)][
-                       , paste(
-                         order, ifelse(show_count, order_num, ''),
-                         sep=sep_str, collapse=col_str)
-                       ]
-    family_num = .SD[!is.na(family), .(family_num = sum(strain_count)),
-                     by=family][order(-family_num)][
-                       , paste(
-                         family, ifelse(show_count, family_num, ''),
-                         sep=sep_str, collapse=col_str)
-                       ]
-    genus_num = .SD[!is.na(genus) & !grepl('^[a-z]', genus),
-                    .(genus_num = sum(strain_count)),
-                     by=genus][order(-genus_num)][
-                       , paste(
-                         genus, ifelse(show_count, genus_num, ''),
-                         sep=sep_str, collapse='],')
-                       ]
-    list(
-      'kingdom'=paste0(kingdom_num, fin_str),
-      'phylum'=paste0(phylum_num, fin_str),
-      'class'=paste0(class_num, fin_str),
-      'order'=paste0(order_num, fin_str),
-      'family'=paste0(family_num, fin_str),
-      'genus'=paste0(genus_num, fin_str))
-  }, by=.(osu_id, pctsim)]
+  if (show_count) {
+     osu_ab_ranks.dt = osu_ab_g2.dt[, {
+        kingdom_num = .SD[!is.na(superkingdom), .(kingdom_num = sum(strain_count)),
+                          by=superkingdom][order(-kingdom_num)][
+                             , paste(
+                                superkingdom, ifelse(show_count, kingdom_num, ''),
+                                sep=sep_str, collapse=col_str)
+                             ]
+        phylum_num = .SD[!is.na(phylum), .(phylum_num = sum(strain_count)),
+                         by=phylum][order(-phylum_num)][
+                            , paste(
+                               phylum, ifelse(show_count, phylum_num, ''),
+                               sep=sep_str, collapse=col_str)
+                            ]
+        class_num = .SD[!is.na(class), .(class_num = sum(strain_count)),
+                        by=class][order(-class_num)][
+                           , paste(
+                              class, ifelse(show_count, class_num, ''),
+                              sep=sep_str, collapse=col_str)
+                           ]
+        order_num = .SD[!is.na(order), .(order_num = sum(strain_count)),
+                        by=order][order(-order_num)][
+                           , paste(
+                              order, ifelse(show_count, order_num, ''),
+                              sep=sep_str, collapse=col_str)
+                           ]
+        family_num = .SD[!is.na(family), .(family_num = sum(strain_count)),
+                         by=family][order(-family_num)][
+                            , paste(
+                               family, ifelse(show_count, family_num, ''),
+                               sep=sep_str, collapse=col_str)
+                            ]
+        genus_num = .SD[!is.na(genus) & !grepl('^[a-z]', genus),
+                        .(genus_num = sum(strain_count)),
+                        by=genus][order(-genus_num)][
+                           , paste(
+                              genus, ifelse(show_count, genus_num, ''),
+                              sep=sep_str, collapse=col_str)
+                           ]
+        list(
+           'kingdom'=paste0(kingdom_num, fin_str),
+           'phylum'=paste0(phylum_num, fin_str),
+           'class'=paste0(class_num, fin_str),
+           'order'=paste0(order_num, fin_str),
+           'family'=paste0(family_num, fin_str),
+           'genus'=paste0(genus_num, fin_str))
+     }, by=.(osu_id, pctsim)]
+  } else {
+     osu_ab_g2.dt = osu_ab_g2.dt[order(osu_id, -pctsim, genus)]
+     osu_ab_ranks.dt = osu_ab_g2.dt[
+        ,
+        list(
+           'kingdom'=paste(unique(na.omit(superkingdom)), collapse=split_char),
+           'phylum'=paste(unique(na.omit(phylum)), collapse=split_char),
+           'class'=paste(unique(na.omit(class)), collapse=split_char),
+           'order'=paste(unique(na.omit(order)), collapse=split_char),
+           'family'=paste(unique(na.omit(family)), collapse=split_char),
+           'genus'=paste(unique(na.omit(genus)), collapse=split_char)
+        )
+        , by=.(osu_id, pctsim)
+     ]
+  }
   osu_ab_ranks.dt[!(grepl('^[A-Z]', kingdom)), kingdom := NA]
   osu_ab_ranks.dt[!(grepl('^[A-Z]', phylum)), phylum := NA]
   osu_ab_ranks.dt[!(grepl('^[A-Z]', class)), class := NA]

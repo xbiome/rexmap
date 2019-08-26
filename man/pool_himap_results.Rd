@@ -8,16 +8,18 @@ pool_himap_results(result_list, dataset_names = NULL, verbose = T)
 }
 \arguments{
 \item{result_list}{A \code{list()} with each element being a list of two
-data tables:
+data tables.
 
-1. OSU abundance data table (output from \code{\link{abundance}})
+1. OSU abundance data table (output from \code{\link{abundance}}) with
+columns:
 
 \code{sample_id | osu_id | osu_count | pctsim | species}\cr
 
 Additionally, this data table can contain an extra \code{dataset} column
 which contains a name of that dataset.
 
-2. OSU sequences data table (output from \code{\link{osu_sequences}})
+2. OSU sequences data table (output from \code{\link{osu_sequences}}) with
+columns:
 
 \code{osu_id | species | qseqid | copy_number | pctsim | sequence}\cr}
 

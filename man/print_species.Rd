@@ -10,7 +10,7 @@ print_species(x, xsep = ",", xws = "_", ws = " ", sep = ", ",
   group_genera_sep = "/", trim_genera_len = NULL,
   trim_species_len = NULL, trim_symbol = ".",
   replace_bacterium = TRUE, max_species = NULL,
-  multi_species_sub = "spp.")
+  multi_species_sub = "spp.", keep_sp_strains = FALSE)
 }
 \arguments{
 \item{x}{(Required) A character vector of strain names.}
@@ -66,6 +66,13 @@ instead of Genus names. Default: NULL (do not trim labels)}
 unassigned species names that are not `sp.` but are `bacterium` or `cf.`. If
 this is set to TRUE any names with `bacterium` and `cf.` are substituted
 with `sp.` for ease of display. Default: TRUE}
+
+\item{multi_species_sub}{If there are too many species under a single
+genus (greater than max_species), then use this string as replacement.
+(default: `spp.`)}
+
+\item{keep_sp_strains}{Show full strain names for species names such as
+Somegenus sp. AB01}
 }
 \description{
 Condense a character vector of strain names to a more readable shorter

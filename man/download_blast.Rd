@@ -4,7 +4,7 @@
 \alias{download_blast}
 \title{Download blastn and makeblastdb executables}
 \usage{
-download_blast(verbose = T)
+download_blast(verbose = T, override_os = NULL)
 }
 \arguments{
 \item{verbose}{(default: TRUE) Whether or not to print progress during download.}

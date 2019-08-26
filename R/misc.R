@@ -90,6 +90,11 @@ read_files = function (path, pattern='') {
 #' unassigned species names that are not `sp.` but are `bacterium` or `cf.`. If
 #' this is set to TRUE any names with `bacterium` and `cf.` are substituted
 #' with `sp.` for ease of display. Default: TRUE
+#' @param multi_species_sub If there are too many species under a single
+#' genus (greater than max_species), then use this string as replacement.
+#' (default: `spp.`)
+#' @param keep_sp_strains Show full strain names for species names such as
+#' Somegenus sp. AB01
 #'
 #' @export
 print_species = Vectorize(function (
@@ -97,7 +102,8 @@ print_species = Vectorize(function (
    show_count=TRUE, show_single=FALSE, count_wrap=c('[', ']'),
    group_genera=TRUE, group_genera_sep='/',
    trim_genera_len=NULL, trim_species_len=NULL, trim_symbol='.',
-   replace_bacterium=TRUE, max_species=NULL, multi_species_sub='spp.') {
+   replace_bacterium=TRUE, max_species=NULL, multi_species_sub='spp.',
+   keep_sp_strains=FALSE) {
 
    # x = input string of strain names
    #
@@ -147,6 +153,12 @@ print_species = Vectorize(function (
       species = sub(paste0(ws, 'bacterium'), paste0(ws, 'sp\\.'), species)
       species = sub(paste0(ws, 'cf\\.'), paste0(ws, 'sp\\.'), species)
    }
+
+   if (keep_sp_strains) {
+      sp_strain_filter = species %like% 'sp\\.'
+      species[sp_strain_filter] = gsub(xws, ws, x_strains[sp_strain_filter], fixed=T)
+   }
+
 
    # Pre-process genus/species names if they need trimming
    if (!is.null(trim_genera_len)) {
