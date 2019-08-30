@@ -345,9 +345,13 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
   blast_cp$sequences = unique(blast_cp$cp[, .(osu_id, variant_id, spectrum)])
   blast_cp$sequences = merge(
     blast_cp$sequences,
-    unique(blast_cp$alignments[pctsim==100, .(variant_id, qseqid)]),
+    unique(blast_cp$alignments[pctsim==100, .(variant_id, qseqid)])[, .(qseqid=min(qseqid)), by=variant_id],
     by='variant_id', all.x=T
   )
+  # The last part min(qseqid) selects one of the qseqids with the SAME variatn
+  # this can only happen if two different sequences align EXACTLY to the same
+  # variant, which only happens if they are reverse complement of each
+  # other.
   blast_cp$sequences = data.table::rbindlist(list(
     blast_cp$sequences,
     unique(blast_cp$alignments[
