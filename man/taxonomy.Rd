@@ -4,7 +4,8 @@
 \alias{taxonomy}
 \title{Add NCBI taxonomy to an OSU table}
 \usage{
-taxonomy(osu_abundance_table, verbose = FALSE, show_count = TRUE)
+taxonomy(osu_abundance_table, verbose = FALSE, show_count = TRUE,
+  ws = "_", split_char = ",")
 }
 \arguments{
 \item{table}{Data table containing columns 'osu_id', 'pctsim' and 'species'.

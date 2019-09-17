@@ -4,7 +4,7 @@
 \alias{osuab_genuses}
 \title{Parse genus names and strain counts from each OSU species string}
 \usage{
-osuab_genuses(osuab)
+osuab_genuses(osuab, ws = "_", split_char = ",")
 }
 \description{
 Parse genus names and strain counts from each OSU species string
