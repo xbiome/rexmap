@@ -504,6 +504,15 @@ abundance = function (abundance_table, blast_object,
                       raw_strains=FALSE,
                       pso_n=1000) {
 
+  # Check that abundance table has only 1 qseqid per sample_id; this issue
+  # may occur in case of incorrectly extracting sample_ids from dada2
+  # object (check the separator).
+  # if (nrow(abundance_table[, if (.N > 1) .SD, by=.(qseqid, sample_id)]) > 0) {
+  #   stop('Error: Multiple sequence (qseqid) counts for identical sample_ids.
+  #         Check that each file map to a unique sample_id in the sequence
+  #         abundance table.')
+  # }
+
   # Generate OSU data table first
   osu_data_m.dt = blast_cp_to_osu_dt(
     blast_best.dt=blast_object$alignments,
@@ -513,6 +522,7 @@ abundance = function (abundance_table, blast_object,
     ncpu=ncpu,
     verbose=verbose
   )
+
   # Now generate osu abundance table
   osu_ab.dt = osu_cp_to_all_abs(abundance_table[, 1:3],
                                 # abundance_table,
@@ -522,6 +532,7 @@ abundance = function (abundance_table, blast_object,
                                 ncpu=ncpu, verbose=verbose,
                                 pso_n=pso_n,
                                 raw=raw_strains)
+
   setcolorder(osu_ab.dt, c('sample_id', 'osu_id', 'osu_count', 'pctsim', 'species'))
   setorder(osu_ab.dt, sample_id, -osu_count)
   return(osu_ab.dt)
