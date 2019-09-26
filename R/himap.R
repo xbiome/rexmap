@@ -484,6 +484,8 @@ pctsim_range = function (p) return(max(p, na.rm=T))
 #' @param ncpu Integer specifying number of CPU threads to use. This uses R package "parallel"
 #' (TRUE) or to simplify the output when multiple strains of the same species are in the
 #' same OSU (FALSE).
+#' @param custom_sampleids process only specified sampleids (separated by comma)
+#' If NULL (default) process all sample ids.
 #' @param pso_n Integer specifying number of times to run Particle Swarm
 #' Optimizer for an OSU abundance estimation algorithm. (Default: 1000)
 #'
@@ -502,7 +504,8 @@ abundance = function (abundance_table, blast_object,
                       ncpu=himap_option('ncpu'),
                       verbose=himap_option('verbose'),
                       raw_strains=FALSE,
-                      pso_n=1000) {
+                      pso_n=1000,
+                      custom_sampleids=NULL) {
 
   # Check that abundance table has only 1 qseqid per sample_id; this issue
   # may occur in case of incorrectly extracting sample_ids from dada2
@@ -512,6 +515,7 @@ abundance = function (abundance_table, blast_object,
   #         Check that each file map to a unique sample_id in the sequence
   #         abundance table.')
   # }
+
 
   # Generate OSU data table first
   osu_data_m.dt = blast_cp_to_osu_dt(
@@ -531,7 +535,8 @@ abundance = function (abundance_table, blast_object,
                                 osu_data_m.dt,
                                 ncpu=ncpu, verbose=verbose,
                                 pso_n=pso_n,
-                                raw=raw_strains)
+                                raw=raw_strains,
+                                custom_sampleids=custom_sampleids)
 
   setcolorder(osu_ab.dt, c('sample_id', 'osu_id', 'osu_count', 'pctsim', 'species'))
   setorder(osu_ab.dt, sample_id, -osu_count)
@@ -561,7 +566,8 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
                               osu_data_m.dt,
                               ncpu=himap_option('ncpu'), verbose=T,
                               pso_n=1000,
-                              raw=TRUE, debug=FALSE) {
+                              raw=TRUE, debug=FALSE,
+                              custom_sampleids=NULL) {
 
   pctsim_min = 100
   osu_offset = himap_option('osu_offset')
@@ -575,7 +581,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
                            species=print_strains(strain, raw=raw)), by=qseqid]
   if (verbose) cat('OK.\n')
 
-  # Optimization function
+  # Define optimization function
   H = function(x) as.numeric(x>0)
   f = function (x, A, B, x0) {
     # Return an optimization function
@@ -583,15 +589,20 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
     (t(eps) %*% eps) + ((x0^2) %*% H(x))
   }
 
+  if (verbose) cat('Preparing initial OSU tables...')
   osu_data_m_single.dt = unique(
     osu_data_m.dt[,
       if (length(unique(variant_id)) == 1) .SD,
       by=osu_id][raw_count > 0, .(osu_id, variant_id, copy_number)]
   )
-
   osu_sp.dt = cp.dt[, .(species = print_strains(strain, raw=raw)), by=osu_id]
+  if (!is.null(custom_sampleids)) {
+    sample_ids = strsplit(custom_sampleids, split=',', fixed=T)[[1]]
+  } else {
+    sample_ids = ab_tab_nochim_m.dt[, unique(sample_id)]
+  }
+  if (verbose) cat('OK.\n')
 
-  sample_ids = ab_tab_nochim_m.dt[, unique(sample_id)]
   all_abs.dt = data.table::rbindlist(parallel::mclapply(sample_ids, function (s) {
 
     # if (debug) print()
@@ -815,7 +826,9 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
     all_ab.dt[, sample_id := s]
     data.table::setcolorder(all_ab.dt, c('sample_id', 'osu_id', 'osu_count', 'species',
                              'pctsim'))
+
     return(all_ab.dt[osu_count>0])
+
   }, mc.cores=ncpu))
   return(unique(all_abs.dt))
 }
