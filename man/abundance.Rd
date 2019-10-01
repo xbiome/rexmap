@@ -6,7 +6,7 @@
 \usage{
 abundance(abundance_table, blast_object, ncpu = himap_option("ncpu"),
   verbose = himap_option("verbose"), raw_strains = FALSE,
-  pso_n = 1000)
+  pso_n = 1000, custom_sampleids = NULL)
 }
 \arguments{
 \item{abundance_table}{Sequence abundance table. Data table with 3 columns
@@ -24,6 +24,9 @@ same OSU (FALSE).}
 
 \item{pso_n}{Integer specifying number of times to run Particle Swarm
 Optimizer for an OSU abundance estimation algorithm. (Default: 1000)}
+
+\item{custom_sampleids}{process only specified sampleids (separated by comma)
+If NULL (default) process all sample ids.}
 }
 \description{
 Combine BLAST object and a sequence abundance table into a final OSU
