@@ -596,7 +596,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
   }
 
   # Define optimization function
-  H = function(x) as.numeric(x>0)
+  H = function (x) as.numeric(x>0)
   f = function (x, A, B, x0) {
     # Return an optimization function
     eps = A %*% x - B
@@ -604,11 +604,13 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
   }
 
   if (verbose) cat('Preparing initial OSU tables...')
-  osu_data_m_single.dt = unique(
-    osu_data_m.dt[,
-      if (length(unique(variant_id)) == 1) .SD,
-      by=osu_id][raw_count > 0, .(osu_id, variant_id, copy_number)]
-  )
+  if (nrow(osu_data_m.dt[raw_count > 0]) > 0) {
+    osu_data_m_single.dt = unique(
+      osu_data_m.dt[,
+        if (length(unique(variant_id)) == 1) .SD,
+        by=osu_id][raw_count > 0, .(osu_id, variant_id, copy_number)]
+    )
+  }
   if (debug) {
     cat('DEBUG: osu_data_m_single.dt \n')
     print(head(osu_data_m_single.dt))
