@@ -505,7 +505,8 @@ abundance = function (abundance_table, blast_object,
                       verbose=himap_option('verbose'),
                       raw_strains=FALSE,
                       pso_n=1000,
-                      custom_sampleids=NULL) {
+                      custom_sampleids=NULL,
+                      debug=FALSE) {
 
   # Check that abundance table has only 1 qseqid per sample_id; this issue
   # may occur in case of incorrectly extracting sample_ids from dada2
@@ -527,6 +528,10 @@ abundance = function (abundance_table, blast_object,
     verbose=verbose
   )
 
+  if (debug) {
+    cat('DEBUG: osu_data_m.dt \n')
+    print(head(osu_data_m.dt))
+  }
   # Now generate osu abundance table
   osu_ab.dt = osu_cp_to_all_abs(abundance_table[, 1:3],
                                 # abundance_table,
@@ -536,7 +541,8 @@ abundance = function (abundance_table, blast_object,
                                 ncpu=ncpu, verbose=verbose,
                                 pso_n=pso_n,
                                 raw=raw_strains,
-                                custom_sampleids=custom_sampleids)
+                                custom_sampleids=custom_sampleids,
+                                debug=debug)
 
   setcolorder(osu_ab.dt, c('sample_id', 'osu_id', 'osu_count', 'pctsim', 'species'))
   setorder(osu_ab.dt, sample_id, -osu_count)
@@ -580,6 +586,14 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
     pctsim < pctsim_min, .(pctsim=pctsim_range(pctsim),
                            species=print_strains(strain, raw=raw)), by=qseqid]
   if (verbose) cat('OK.\n')
+
+  if (debug) {
+    cat('DEBUG: var_count.dt \n')
+    print(head(var_count.dt))
+
+    cat('DEBUG: blast_best2.dt \n')
+    print(head(blast_best2.dt))
+  }
 
   # Define optimization function
   H = function(x) as.numeric(x>0)
