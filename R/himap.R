@@ -529,7 +529,7 @@ abundance = function (abundance_table, blast_object,
   )
 
   if (debug) {
-    cat('DEBUG: osu_data_m.dt \n')
+    cat('\nDEBUG: osu_data_m.dt \n')
     print(head(osu_data_m.dt))
   }
   # Now generate osu abundance table
@@ -609,7 +609,15 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
       if (length(unique(variant_id)) == 1) .SD,
       by=osu_id][raw_count > 0, .(osu_id, variant_id, copy_number)]
   )
+  if (debug) {
+    cat('DEBUG: osu_data_m_single.dt \n')
+    print(head(osu_data_m_single.dt))
+  }
   osu_sp.dt = cp.dt[, .(species = print_strains(strain, raw=raw)), by=osu_id]
+  if (debug) {
+    cat('DEBUG: osu_sp.dt \n')
+    print(head(osu_sp.dt))
+  }
   if (!is.null(custom_sampleids)) {
     sample_ids = strsplit(custom_sampleids, split=',', fixed=T)[[1]]
   } else {
