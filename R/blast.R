@@ -28,7 +28,7 @@ blast_out_to_best_cp = function (
    blast_output, region=NULL, ref_cp=NULL, aln_params=himap_option('aln_params'),
    blast_out_fmt=himap_option('blast_out_fmt'),
    verbose=T, ncpu=himap_option('ncpu'), variant_sep='-',
-   show_alignment=F
+   show_alignment=F, skip_cp=F
   )
 {
   # Select region all ref_cp from file
@@ -77,6 +77,10 @@ blast_out_to_best_cp = function (
   blast_best.dt[, c('sseqid') := NULL]
   # Calculate percentage similarity
   blast_best.dt[, pctsim := round(100*match/(match+mismatch+gapopen+gapextend), 2)]
+
+  if (skip_cp) {
+    return(list(blast_best.dt, data.table()))
+  }
 
   if (verbose) cat('OK. copy number table: ')
   cp.dt = data.table::fread(ref_cp, colClasses=c('character', 'character', 'integer'))
@@ -342,6 +346,10 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
     paste(c('match', 'mismatch', 'gap_open', 'gap_extend'), himap_option('aln_params'),
           collapse=', ', sep=': '))
 
+  if (class(sequences)[1] == 'character') {
+    return(as(blast_cp, 'blast'))
+  }
+
   blast_cp$sequences = unique(blast_cp$cp[, .(osu_id, variant_id, spectrum)])
   blast_cp$sequences = merge(
     blast_cp$sequences,
@@ -366,8 +374,8 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
   blast_cp$sequences = merge(
     blast_cp$sequences,
     unique(sequences[, .(qseqid, sequence)]),
-    by='qseqid', all.x=T
-  )
+    by='qseqid', all.x=T)
+
 
   # If we made a temp fasta file, remove it
   if (sequences_type %in% c('dt', 'DNA')) file.remove(fasta_file)
