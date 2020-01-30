@@ -56,6 +56,7 @@
 #'
 #' @param verbose TRUE/FALSE: Print progress during dataset pooling.
 #'
+#' @export
 pool_himap_results = function (result_list, dataset_names = NULL,
                                verbose=T) {
    # Add dataset name columns
@@ -1133,6 +1134,8 @@ pool_two_himap_outputs_2 = function (osu_1, osu_2,
    osu_ab_new.dt[, c('osu_id_new', 'species_new', 'pctsim_new') := NULL]
    osu_ab_new.dt = unique(osu_ab_new.dt)
    setcolorder(osu_ab_new.dt, osu_ab_1_colorder)
+   osu_ab_new.dt[, pctsim := min(pctsim), by=.(sample_id, dataset, osu_id)]
+   osu_ab_new.dt = unique(osu_ab_new.dt)
    vcat(' OK.\n')
 
    # if (nrow(osu_seq_new.dt[, if (lu(qseqid) > 1) .SD, by=sequence]) > 0) {
