@@ -95,11 +95,28 @@ merge_pairs = Vectorize(function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_
   close(f_fwd)
   close(f_rev)
   rm(read_fwd, read_rev, qual_fwd, qual_rev, f_fwd, f_rev, r_fwd, r_rev)
-  m('Writing output files...')
+  m('Writing output files')
+  # sequences
+  final_seqs = unname(merged_list[1, merged_aln_filter])
+  m('.')
+  final_qual = unname(merged_list[2, merged_aln_filter])
+  m('.')
+  final_ids  = ids[merged_aln_filter]
+  m('.')
+
+  final_filter = !is.null(final_seqs) & !is.null(final_qual)
+  if (!all(final_filter)) m('.')
+  final_seqs = final_seqs[final_filter]
+  final_qual = final_qual[final_filter]
+  final_ids  = final_ids[final_filter]
+
+  # any NULL sequences? (no idea why/how this happens sometime) seems like a
+  # multithreading issue
+
   merged_sread = ShortRead::ShortReadQ(
-    sread = Biostrings::DNAStringSet(unname(merged_list[1, merged_aln_filter])),
-    quality = Biostrings::BStringSet(unname(merged_list[2, merged_aln_filter])),
-    id = Biostrings::BStringSet(ids[merged_aln_filter])
+    sread = Biostrings::DNAStringSet(final_seqs),
+    quality = Biostrings::BStringSet(final_qual),
+    id = Biostrings::BStringSet(final_ids)
   )
 
   # Generate statistics for filtered-out reads
