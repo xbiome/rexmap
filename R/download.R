@@ -154,13 +154,16 @@ update_pcr_primers_table = function (backup_old=T, verbose=T) {
    # \3 : sequence overhang +- XX nts included for each side to ensure query
    #      sequences do not overextend ends of reference sequences
    # \4 : database version/date
+   if (verbose) cat('* inspecting files.')
    regex_prefix = '^(V[^_]+)_([0-9]+F\\-[0-9]+R)_hang([0-9]+)[_]?([0-9]{4}\\-[0-9]{2}\\-[0-9]{2})?.*'
    # Find potential database entries
    potential_db_entries = unique(sub(
       regex_prefix, '\\1_\\2_hang\\3_\\4', basename(himap_database_path_files)
    ))
+   if (verbose) cat('.')
    potential_db_entries = sub('_$', '', potential_db_entries)
    potential_db_entries = grep('^V[0-9]+', potential_db_entries, value=T)
+   if (verbose) cat('.')
 
    # Now find 4 files matching potential_db_entries[i].* that end with
    # _R.txt, .nhr, .nsq, .nin
@@ -170,6 +173,7 @@ update_pcr_primers_table = function (backup_old=T, verbose=T) {
    final_db_entries = list()
 
    for (db_entry in potential_db_entries) {
+      if (verbose) cat('.')
       nhr_file = grep(paste0(db_entry, '.*\\.nhr$'), himap_database_path_files_base, value=T)
       nin_file = grep(paste0(db_entry, '.*\\.nin$'), himap_database_path_files_base, value=T)
       nsq_file = grep(paste0(db_entry, '.*\\.nsq$'), himap_database_path_files_base, value=T)
@@ -220,18 +224,22 @@ update_pcr_primers_table = function (backup_old=T, verbose=T) {
 
    }
 
+
    # Each hypervariable region should have a unique name, and we use that name
    # to call functions such as blast()
    # Automatically omit date from the latest versions ()
    final_db_table.dt = rbindlist(final_db_entries)
+   if (verbose) cat('.')
    final_db_table.dt = final_db_table.dt[order(Hypervariable_region, -date)]
    final_db_table.dt[
       , Hypervariable_region := na.omit(c(Hypervariable_region[1], hr_date[2:.N])), by=hr]
 
    final_db_table.dt[, c('hr', 'hr_date') := NULL]
+   if (verbose) cat('OK.\n')
 
    # Overwrite old table
    # save old copy
+   if (verbose) cat('* saving output file... ')
    old_table_filename = system.file('extdata', 'pcr_primers_table.txt', package='himap')
    if (backup_old) {
       new_table_filename = file.path(
@@ -246,6 +254,8 @@ update_pcr_primers_table = function (backup_old=T, verbose=T) {
    }
 
    data.table::fwrite(final_db_table.dt, old_table_filename)
+   himap_setoption('blast_dbs', final_db_table.dt)
+   if (verbose) cat('OK.\n')
    # print(final_db_table.dt)
 
 }
@@ -263,13 +273,12 @@ update_pcr_primers_table = function (backup_old=T, verbose=T) {
 #' @param verbose Verbose output, print status message during execution.
 #' @param source_repo Download HiMAP DB from himap Github repository
 #' (default: 'himap') or HiMAP db repository ('himapdb').
-#' @param update_ref_table Whether reference table needs updating. Typically no. If yes
-#' it will download the updated reference table. An alternative is to keep all HiMAP
-#' database versions and automatically generate this table using
-#' 'update_pcr_primers_table'
+#' @param update_ref_table Download and update reference table from the HiMAP
+#' repository. Typically this table can be generated automatically on update
+#' when this is set to FALSE (default).
 #'
 #' @export
-update_database = function (verbose=T, source_repo='himap', update_ref_table=TRUE) {
+update_database = function (verbose=T, source_repo='himap', update_ref_table=FALSE) {
    if (verbose) cat('HiMAP database update\n')
    if (verbose) cat('* check internet connection... ')
    if (!internet_connection()) stop('\nError: Internet connection unavailable.')
@@ -313,9 +322,7 @@ update_database = function (verbose=T, source_repo='himap', update_ref_table=TRU
          '-o', system.file('extdata', 'pcr_primers_table.txt', package='himap')
       ), stdout=F, stderr=F)
       if (verbose) cat('OK.\n')
-   }
-
-   if (update_ref_table) {
+   } else {
       update_pcr_primers_table(verbose=verbose)
    }
 
