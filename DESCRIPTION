@@ -1,7 +1,7 @@
 Package: himap
 Type: Package
 Title: High-resolution Microbial Analysis Pipeline
-Version: 1.00
+Version: 1.1
 Author: Igor Segota <is246@cornell.edu>, Tao Long <tlong@sbpdiscovery.org>
 Maintainer: Igor Segota <is246@cornell.edu>
 Description: High resolution pipeline aimed at accurate species and strain 
