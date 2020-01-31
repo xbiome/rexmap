@@ -172,12 +172,12 @@ himap_setoption = function (option_name, value) {
   # files and 1 table with matching primers...
   startup_message = paste0(
      '| HiMAP loaded',
-    ' | Database build: ', himap_option('database_build_version'),
-    ' | Hypervariable regions: ',
+    ' | Database ', himap_option('database_build_version'),
+    ' Regions ',
     paste(unique(sort(himap_option('blast_dbs')[
-      , sub('^(V[0-9]+\\-(V[0-9]+)?).*$', '\\1', Hypervariable_region)]
+      , sub('_$', '', sub('^(V[0-9]+(\\-|_)(V[0-9]+)?).*$', '\\1', Hypervariable_region))]
     )), collapse=', '),
-    ' |'
+    ' | Threads: ', himap_option('ncpu'), ' |'
   )
   # Positions of separators
   startup_msg_separators = as.integer(gregexpr('|', startup_message, fixed=T)[[1]])
