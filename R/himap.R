@@ -73,7 +73,7 @@ assign('blast_dbs',
        env=himap_opts)
 assign('blast_max_seqs', 500, env=himap_opts)
 assign('blast_word_size', 50, env=himap_opts)
-assign('database_version', '2020-01-20', env=himap_opts)
+assign('database_build_version', '2020-01-29', env=himap_opts)
 
 # Read merging
 assign('mergepairs_matchqs',
@@ -160,8 +160,8 @@ himap_setoption = function (option_name, value) {
 .onAttach = function (libname, pkgname) {
   options('datatable.prettyprint.char'=himap_option('string_maxwidth'))
 
-  # Check if the executable files are missing for the system platform.
-  # If they are, download them.
+  # Check if the blastn and makeblastdb executable files are missing for the running
+  # system platform. If they are missing, download them.
   blastn_file = system.file('exec', exec_file('blastn'), package='himap')
   makedb_file = system.file('exec', exec_file('makeblastdb'), package='himap')
   if (blastn_file=='' | makedb_file=='') {
@@ -170,10 +170,35 @@ himap_setoption = function (option_name, value) {
 
   # Check if database files are missing. Need at least one set of blastdb
   # files and 1 table with matching primers...
-  packageStartupMessage('HiMAP loaded.')
+  startup_message = paste0(
+     '| HiMAP loaded',
+    ' | Database build: ', himap_option('database_build_version'),
+    ' | Hypervariable regions: ',
+    paste(unique(sort(himap_option('blast_dbs')[
+      , sub('^(V[0-9]+\\-(V[0-9]+)?).*$', '\\1', Hypervariable_region)]
+    )), collapse=', '),
+    ' |'
+  )
+  # Positions of separators
+  startup_msg_separators = as.integer(gregexpr('|', startup_message, fixed=T)[[1]])
+  startup_msg_topbotframe = paste(
+    mapply(
+      function (x0, x1) paste0('+', paste(rep('-', x1-x0-1), collapse='')),
+      startup_msg_separators[1:(length(startup_msg_separators)-1)],
+      startup_msg_separators[2:length(startup_msg_separators)]
+    ),
+  collapse='')
+  # Put together final startup string with line endings
+  startup_message_full = paste0(
+    startup_msg_topbotframe, '+\n',
+    startup_message, '\n',
+    startup_msg_topbotframe, '+'
+  )
+
+  packageStartupMessage(startup_message_full)
 }
 
-#' Show HiMAP database version
+#' Show HiMAP database version based on the last modification date
 #'
 #' Version == last modified date of the *_unique_variants_R.txt table.
 #' @export
@@ -749,7 +774,8 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
           }
 
           Br3 = as.matrix(B[rownames(Ar3),])
-          osu_ab3.dt = merge(osu_ab.dt, data.table(osu_id=as.integer(colnames(Ar3))), by='osu_id', all.y=T)
+          osu_ab3.dt = merge(osu_ab.dt, data.table(osu_id=as.integer(colnames(Ar3))),
+                             by='osu_id', all.y=T)
           osu_ab3.dt[is.na(osu_count), osu_count := 0L]
           # setorder(osu_ab3.dt, osu_id)
 
