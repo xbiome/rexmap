@@ -120,6 +120,140 @@ latest_blast_url = function () {
    latest_file2 = sub(paste0('^.*(', pattern, ')'), '\\1', latest_file)
 }
 
+#' Construct the pcr_primers_table after database update
+#'
+#' Automatically generates and verified inst/extdata/pcr_primers_table.txt
+#' file based on the files in database/ folder.
+#'
+#' @param backup_old Whether to backup the current pcr_primers_table before
+#' overwritting. Default: TRUE
+#' @param verbose Verbose output, print status.
+#'
+#' @export
+update_pcr_primers_table = function (backup_old=T, verbose=T) {
+   himap_database_path = file.path(find.package('himap'), 'database')
+   if (!dir.exists(himap_database_path)) {
+      stop('\nError: HiMAP database folder ', himap_database_path, ' not found!')
+   }
+   pcr_sequences_filename = system.file('extdata', 'pcr_primer_sequences.txt', package='himap')
+   if (pcr_sequences_filename == '') {
+      stop('\nError: HiMAP file with PCR sequences pcr_primer_sequences.txt not found!')
+   }
+   pcr_sequences.dt = data.table::fread(pcr_sequences_filename)
+   if (verbose) {
+      cat('* scanning ', himap_database_path, ' folder...')
+   }
+   himap_database_path_files = dir(himap_database_path, full.names=T)
+   himap_database_path_files_base = basename(himap_database_path_files)
+   if (verbose) cat(' OK.\n')
+   # Find pairs of files matching regex:
+   # ^(V[^_]+)_([0-9]+F\\-[0-9]+R)_hang([0-9]+).*\\.([^\\.]+)$
+   # Regex capture groups:
+   # \1 : hypervariable region(s) sequences
+   # \2 : hypervariable region(s) universal PCR primer names
+   # \3 : sequence overhang +- XX nts included for each side to ensure query
+   #      sequences do not overextend ends of reference sequences
+   # \4 : database version/date
+   regex_prefix = '^(V[^_]+)_([0-9]+F\\-[0-9]+R)_hang([0-9]+)[_]?([0-9]{4}\\-[0-9]{2}\\-[0-9]{2})?.*'
+   # Find potential database entries
+   potential_db_entries = unique(sub(
+      regex_prefix, '\\1_\\2_hang\\3_\\4', basename(himap_database_path_files)
+   ))
+   potential_db_entries = sub('_$', '', potential_db_entries)
+   potential_db_entries = grep('^V[0-9]+', potential_db_entries, value=T)
+
+   # Now find 4 files matching potential_db_entries[i].* that end with
+   # _R.txt, .nhr, .nsq, .nin
+   # out of those 4, the n* extensions need to have identical full name besides
+   # file extension. Also each primer needs to already be present in the
+   # pcr_sequences.dt table.
+   final_db_entries = list()
+
+   for (db_entry in potential_db_entries) {
+      nhr_file = grep(paste0(db_entry, '.*\\.nhr$'), himap_database_path_files_base, value=T)
+      nin_file = grep(paste0(db_entry, '.*\\.nin$'), himap_database_path_files_base, value=T)
+      nsq_file = grep(paste0(db_entry, '.*\\.nsq$'), himap_database_path_files_base, value=T)
+      # Do all three files exist?
+      if (length(nhr_file) == 0 | length(nin_file) == 0 | length(nsq_file) == 0) {
+         next
+      }
+      # Do all three files match apart from the extension?
+      if (
+         (sub('\\.nhr$', '', nhr_file) != sub('\\.nin$', '', nin_file)) |
+         (sub('\\.nin$', '', nin_file) != sub('\\.nsq$', '', nsq_file))
+      ) {
+         next
+      }
+      # Do we find _R.txt file with the same database_prefix??
+      r_file = grep(paste0(db_entry, '.*_R\\.txt$'), himap_database_path_files_base, value=T)
+      if (length(r_file) == 0) {
+         next
+      }
+
+      # OK we have all 4 files, generate a table entry if we have sequences
+      hypervar_region = sub(regex_prefix, '\\1', db_entry)
+      fr_primers = strsplit(sub(regex_prefix, '\\2', db_entry), '-', fixed=T)[[1]]
+
+      # Forward and reverse primer sequences
+      f_seq = pcr_sequences.dt[Primer==fr_primers[1], Primer_sequence_5to3]
+      r_seq = pcr_sequences.dt[Primer==fr_primers[2], Primer_sequence_3to5]
+      if (length(f_seq) == 0 | length(r_seq) == 0) {
+         # Fwd or rev primer sequence not found, skip
+         next
+      }
+
+      db_date = sub(regex_prefix, '\\4', db_entry)
+      if (db_date %like% '^V' | db_date == '') db_date = '0000-00-00'
+
+      final_db_entries[[length(final_db_entries)+1]] = data.table(
+         Primer1=fr_primers[1],
+         Primer2=fr_primers[2],
+         Primer1_sequence_5to3=f_seq,
+         Primer2_sequence_3to5=r_seq,
+         Hypervariable_region=hypervar_region,
+         DB=sub('\\.nhr$', '', nhr_file),
+         table=r_file,
+         date=db_date,
+         hr=hypervar_region, # This is used to iterate over so we update the other col
+         hr_date=paste0(hypervar_region, '_', db_date)
+      )
+
+   }
+
+   # Each hypervariable region should have a unique name, and we use that name
+   # to call functions such as blast()
+   # Automatically omit date from the latest versions ()
+   final_db_table.dt = rbindlist(final_db_entries)
+   final_db_table.dt = final_db_table.dt[order(Hypervariable_region, -date)]
+   final_db_table.dt[
+      , Hypervariable_region := na.omit(c(Hypervariable_region[1], hr_date[2:.N])), by=hr]
+
+   final_db_table.dt[, c('hr', 'hr_date') := NULL]
+
+   # Overwrite old table
+   # save old copy
+   old_table_filename = system.file('extdata', 'pcr_primers_table.txt', package='himap')
+   if (backup_old) {
+      new_table_filename = file.path(
+         dirname(old_table_filename),
+         paste0(
+            'pcr_primers_table_', Sys.Date(), '_',
+            gsub(':', '-', format(Sys.time(), '%X'), fixed=T),
+            '_backup.txt'
+         )
+      )
+      file.copy(old_table_filename, new_table_filename)
+   }
+
+   data.table::fwrite(final_db_table.dt, old_table_filename)
+   # print(final_db_table.dt)
+
+}
+
+
+
+
+
 #' Update the HiMAP database
 #'
 #' Updates the database from a HiMAP GitHub repository with files pre-generated by
@@ -129,10 +263,13 @@ latest_blast_url = function () {
 #' @param verbose Verbose output, print status message during execution.
 #' @param source_repo Download HiMAP DB from himap Github repository
 #' (default: 'himap') or HiMAP db repository ('himapdb').
-#' @param update_ref_table Whether reference table needs updating. Typically no.
+#' @param update_ref_table Whether reference table needs updating. Typically no. If yes
+#' it will download the updated reference table. An alternative is to keep all HiMAP
+#' database versions and automatically generate this table using
+#' 'update_pcr_primers_table'
 #'
 #' @export
-update_database = function (verbose=T, source_repo='himap', update_ref_table=FALSE) {
+update_database = function (verbose=T, source_repo='himap', update_ref_table=TRUE) {
    if (verbose) cat('HiMAP database update\n')
    if (verbose) cat('* check internet connection... ')
    if (!internet_connection()) stop('\nError: Internet connection unavailable.')
@@ -177,6 +314,11 @@ update_database = function (verbose=T, source_repo='himap', update_ref_table=FAL
       ), stdout=F, stderr=F)
       if (verbose) cat('OK.\n')
    }
+
+   if (update_ref_table) {
+      update_pcr_primers_table(verbose=verbose)
+   }
+
    if (verbose) cat('Done.\n')
 
 }
