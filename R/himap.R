@@ -577,11 +577,6 @@ abundance = function (abundance_table, blast_object,
   return(osu_ab.dt)
 }
 
-#' If var exists, remove it. If not, do nothing.
-rm2 = Vectorize(function (var) {
-
-})
-
 #'
 #'
 #' @importFrom igraph make_empty_graph
