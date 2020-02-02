@@ -209,7 +209,7 @@ blast_cp_to_osu_dt = function (
   sample_ids = ab_tab_nochim_m.dt[, unique(sample_id)]
   ab_tab_nochim_m_fill.dt = data.table::rbindlist(list(
      ab_tab_nochim_m.dt,
-     data.table(sample_id=sample_ids, qseqid=NA, raw_count=0L)
+     data.table(sample_id=sample_ids, qseqid=as.integer(NA), raw_count=0L)
   ))
 
   # Add abundance information
