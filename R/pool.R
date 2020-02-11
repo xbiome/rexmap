@@ -52,7 +52,8 @@
 #' \code{osu_id | species | qseqid | copy_number | pctsim | sequence}\cr
 #'
 #' @param dataset_names A character vector containing dataset names for each
-#' element from the \code{result_list} list.
+#' element from the \code{result_list} list. If not given (NULL), each abundance
+#' table (first element from each list) should have a 'dataset' column.
 #'
 #' @param verbose TRUE/FALSE: Print progress during dataset pooling.
 #'
