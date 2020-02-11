@@ -508,7 +508,10 @@ pctsim_range = function (p) return(max(p, na.rm=T))
 #' (in this exact order): sample_id, qseqid, raw_count.
 #' @param blast_object BLAST output class, output from \code{\link{blast}} function.
 #' @param verbose TRUE/FALSE: display status messages
-#' @param raw_strains TRUE/FALSE: whether to report full strain information for each OSU
+#' @param raw_strains TRUE/FALSE: whether to report full strain information for each OSU.
+#' If this is true "species" column will display a full list of best matching strains
+#' for each OSU. Since this last may be very long, use \code{\link{print_strains}}
+#' to make it more readable.
 #' @param ncpu Integer specifying number of CPU threads to use. This uses R package "parallel"
 #' (TRUE) or to simplify the output when multiple strains of the same species are in the
 #' same OSU (FALSE).
@@ -531,7 +534,7 @@ pctsim_range = function (p) return(max(p, na.rm=T))
 abundance = function (abundance_table, blast_object,
                       ncpu=himap_option('ncpu'),
                       verbose=himap_option('verbose'),
-                      raw_strains=FALSE,
+                      raw_strains=TRUE,
                       pso_n=1000,
                       custom_sampleids=NULL,
                       debug=FALSE) {
@@ -544,7 +547,6 @@ abundance = function (abundance_table, blast_object,
   #         Check that each file map to a unique sample_id in the sequence
   #         abundance table.')
   # }
-
 
   # Generate OSU data table first
   osu_data_m.dt = blast_cp_to_osu_dt(
