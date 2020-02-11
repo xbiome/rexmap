@@ -112,6 +112,8 @@ read_files = function (path, pattern='') {
 #' @param multi_species_sub If there are too many species under a single
 #' genus (greater than max_species), then use this string as replacement.
 #' (default: `spp.`)
+#' @param keep_family_strains Keep strains that do not even have genus assigned, such as
+#' Ruminococcaceae sp. if there are other, strains with named genera.
 #' @param keep_sp_strains Show full strain names for species names such as
 #' Somegenus_sp._AB01. In this case full strain name is added to the species name
 #'
@@ -127,6 +129,7 @@ print_species = Vectorize(function (
    replace_bacterium=TRUE,
    max_species=NULL,
    multi_species_sub='spp.',
+   keep_family_strains=FALSE,
    keep_sp_strains=FALSE,
    keep_sp_strains_symbol='_',
    debug=FALSE) {
@@ -159,6 +162,7 @@ print_species = Vectorize(function (
    if (length(x_strains[unnamed_filter]) > 0) {
       x_strains = x_strains[unnamed_filter]
    }
+
    # If we only have 1 assignment, return that one. The only change is replacing
    # the input whitespace symbol with the output whitespace symbol.
    if (length(x_strains) == 1) {
@@ -178,6 +182,16 @@ print_species = Vectorize(function (
    # by adding the strain designation to sp as a species name
    species = sub(paste0('^([^', xws, ']+)', xws, '([^', xws, ']+).*'),
                  paste0('\\1', ws, '\\2'), x_strains)
+
+   # Filter out family level genus names, if we have anything left
+   if (!keep_family_strains) {
+      genera_as_family_filter = !(genera %like% 'eae$')
+      if (!all(genera_as_family_filter)) {
+         # Do we have any genera that is not a family level genus name?
+         genera = genera[genera_as_family_filter]
+         species = species[genera_as_family_filter]
+      }
+   }
 
    if (debug) {
       cat('Genera:\n')
