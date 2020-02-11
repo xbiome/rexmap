@@ -10,7 +10,8 @@ print_species(x, xsep = ",", xws = "_", ws = " ", sep = ", ",
   group_genera_sep = "/", trim_genera_len = NULL,
   trim_species_len = NULL, trim_symbol = ".",
   replace_bacterium = TRUE, max_species = NULL,
-  multi_species_sub = "spp.", keep_sp_strains = FALSE)
+  multi_species_sub = "spp.", keep_sp_strains = FALSE,
+  keep_sp_strains_symbol = "_", debug = FALSE)
 }
 \arguments{
 \item{x}{(Required) A character vector of strain names.}
@@ -27,9 +28,22 @@ function. Default: ' ' (space)}
 function. Default: ', ' (comma followed by a space)}
 
 \item{include_sp}{One of {'single', 'always', 'never'}. Controls display of
-strains with unassigned species names (having 'sp.' after Genus name). Single
-keeps these names when this is the single strain in its Genus. 'Always' keeps
-these names always. 'Never' never keeps them in the output. Default: 'single'}
+strains with unassigned species names (having 'sp.' after genus name). Single
+keeps these names when this is the single strain in its genus. 'Always' keeps
+these names always. 'Never' never keeps them in the output.
+For example is the strain assignments are:
+   'Blautia_sp._AF19-13LB,Blautia_sp._AF14-40,Fusicatenibacter_saccharivorans,
+   Ruminococcus_sp._1,Ruminococcus_gnavus_2'
+setting it to `single` (default) will return:
+   'Blautia sp., Fusicatenibacter saccharivorans, Ruminococcus gnavus'
+since these unnamed Blautia strains are the only strains in Blautia genus and named
+strains are prioritized over unnamed strains for genera . If
+this is set to never, then the 'sp.' strains are always ommited and the output
+will show the best NAMED species only. Setting to always will return:
+   'Blautia sp., Fusicatenibacter saccharivorans, Ruminococcus gnavus/sp.'
+to indicate that there are more hits in Ruminococcus genus than the only named
+one (gnavus).
+Default: 'single'}
 
 \item{decreasing}{Sort order of the output species. Default: TRUE sorts the
 output starting with the species that had most strain hits.}
@@ -64,18 +78,23 @@ instead of Genus names. Default: NULL (do not trim labels)}
 
 \item{replace_bacterium}{A boolean controling the handling of strains with
 unassigned species names that are not `sp.` but are `bacterium` or `cf.`. If
-this is set to TRUE any names with `bacterium` and `cf.` are substituted
-with `sp.` for ease of display. Default: TRUE}
+this is set to TRUE any names ending with `bacterium` and `cf.` are substituted
+with `sp.` for consistency. Default: TRUE}
 
 \item{multi_species_sub}{If there are too many species under a single
 genus (greater than max_species), then use this string as replacement.
 (default: `spp.`)}
 
 \item{keep_sp_strains}{Show full strain names for species names such as
-Somegenus sp. AB01}
+Somegenus_sp._AB01. In this case full strain name is added to the species name}
 }
 \description{
 Condense a character vector of strain names to a more readable shorter
 string, consisting of species names with optional number of strains matched
 for each species.
+}
+\details{
+This function expects input string (or a vector of strings) that consists of strain
+names. By default, the strain names are separated by comma, and an underscore is used
+as a whitespace symbol (these can be changed: see parameters `xsep`, `xws`).
 }

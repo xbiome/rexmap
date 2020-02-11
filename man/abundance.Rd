@@ -5,7 +5,7 @@
 \title{OSU abundance table}
 \usage{
 abundance(abundance_table, blast_object, ncpu = himap_option("ncpu"),
-  verbose = himap_option("verbose"), raw_strains = FALSE,
+  verbose = himap_option("verbose"), raw_strains = TRUE,
   pso_n = 1000, custom_sampleids = NULL, debug = FALSE)
 }
 \arguments{
@@ -20,7 +20,10 @@ same OSU (FALSE).}
 
 \item{verbose}{TRUE/FALSE: display status messages}
 
-\item{raw_strains}{TRUE/FALSE: whether to report full strain information for each OSU}
+\item{raw_strains}{TRUE/FALSE: whether to report full strain information for each OSU.
+If this is true "species" column will display a full list of best matching strains
+for each OSU. Since this last may be very long, use \code{\link{print_strains}}
+to make it more readable.}
 
 \item{pso_n}{Integer specifying number of times to run Particle Swarm
 Optimizer for an OSU abundance estimation algorithm. (Default: 1000)}
