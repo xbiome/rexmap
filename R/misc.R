@@ -166,11 +166,21 @@ print_species = Vectorize(function (
    # If we only have 1 assignment, return that one. The only change is replacing
    # the input whitespace symbol with the output whitespace symbol.
    if (length(x_strains) == 1) {
-      return(
-         sub(xws, ws,
-             sub(xws, ws, x_strains[1], fixed=T)
+      if (!show_count) {
+         count_regex = sub(']', '\\]',
+                           sub('[', '\\[',
+                               paste0(count_wrap[1], '[0-9]+', count_wrap[2]),
+                               fixed=T
+                           ), fixed=T)
+         return(
+            # sub(xws, ws,
+            #     sub(xws, ws, x_strains[1], fixed=T)
+            # )
+            sub(paste0(ws, '+$'), '', sub(count_regex, '', gsub(xws, ws, x_strains[1], fixed=T)))
          )
-      )
+      } else {
+         return(gsub(xws, ws, x_strains[1], fixed=T))
+      }
    }
 
 
