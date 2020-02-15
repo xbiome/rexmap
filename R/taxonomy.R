@@ -69,7 +69,7 @@ osuab_genuses = function (osuab, ws='_', split_char=',') {
 #' function.
 #'
 #' @export
-taxonomy = function (osu_abundance_table, verbose=FALSE, show_count=TRUE,
+taxonomy = function (osu_abundance_table, verbose=himap_option('verbose'), show_count=TRUE,
                      ws='_', split_char=',') {
   if (show_count) {
     sep_str = '_['
@@ -140,38 +140,38 @@ taxonomy = function (osu_abundance_table, verbose=FALSE, show_count=TRUE,
         kingdom_num = .SD[!is.na(superkingdom), .(kingdom_num = sum(strain_count)),
                           by=superkingdom][order(-kingdom_num)][
                              , paste(
-                                superkingdom, ifelse(show_count, kingdom_num, ''),
+                                superkingdom, kingdom_num,
                                 sep=sep_str, collapse=col_str)
                              ]
         phylum_num = .SD[!is.na(phylum), .(phylum_num = sum(strain_count)),
                          by=phylum][order(-phylum_num)][
                             , paste(
-                               phylum, ifelse(show_count, phylum_num, ''),
+                               phylum, phylum_num,
                                sep=sep_str, collapse=col_str)
                             ]
         class_num = .SD[!is.na(class), .(class_num = sum(strain_count)),
                         by=class][order(-class_num)][
                            , paste(
-                              class, ifelse(show_count, class_num, ''),
+                              class, class_num,
                               sep=sep_str, collapse=col_str)
                            ]
         order_num = .SD[!is.na(order), .(order_num = sum(strain_count)),
                         by=order][order(-order_num)][
                            , paste(
-                              order, ifelse(show_count, order_num, ''),
+                              order, order_num,
                               sep=sep_str, collapse=col_str)
                            ]
         family_num = .SD[!is.na(family), .(family_num = sum(strain_count)),
                          by=family][order(-family_num)][
                             , paste(
-                               family, ifelse(show_count, family_num, ''),
+                               family, family_num,
                                sep=sep_str, collapse=col_str)
                             ]
         genus_num = .SD[!is.na(genus) & !grepl('^[a-z]', genus),
                         .(genus_num = sum(strain_count)),
                         by=genus][order(-genus_num)][
                            , paste(
-                              genus, ifelse(show_count, genus_num, ''),
+                              genus, genus_num,
                               sep=sep_str, collapse=col_str)
                            ]
         list(
