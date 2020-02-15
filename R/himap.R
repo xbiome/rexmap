@@ -86,7 +86,7 @@ assign('mergepairs_mismatchqs',
        env=himap_opts)
 # Taxonomy
 assign('taxonomy_file',
-       system.file('database', 'lineages-2017-03-17_bacteria_archaea',
+       system.file('database', 'lineages-2020-02-14_bacteria_archaea.Rdata',
                    package='himap'),
        env=himap_opts)
 
