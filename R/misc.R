@@ -185,8 +185,9 @@ print_species = Vectorize(function (
 
    # Filter out family level genus names, if we have anything left
    if (!keep_family_strains) {
+      # This filter has value TRUE for strains that have an actual Genus name
       genera_as_family_filter = !(genera %like% 'eae$')
-      if (!all(genera_as_family_filter)) {
+      if (any(genera_as_family_filter)) {
          # Do we have any genera that is not a family level genus name?
          genera = genera[genera_as_family_filter]
          species = species[genera_as_family_filter]
@@ -216,7 +217,8 @@ print_species = Vectorize(function (
          '\\1',
          x_strains[sp_strain_filter]
       ), fixed=T), fixed=T)
-      species[sp_strain_filter] = paste(species[sp_strain_filter], sp_strain_names, sep=keep_sp_strains_symbol)
+      species[sp_strain_filter] = paste(species[sp_strain_filter], sp_strain_names,
+                                        sep=keep_sp_strains_symbol)
    }
 
 
