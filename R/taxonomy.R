@@ -69,7 +69,7 @@ osuab_genuses = function (osuab, ws='_', split_char=',') {
 #' function.
 #'
 #' @export
-taxonomy = function (osu_abundance_table, verbose=himap_option('verbose'), show_count=TRUE,
+taxonomy = function (osu_table, verbose=himap_option('verbose'), show_count=TRUE,
                      ws='_', split_char=',') {
   if (show_count) {
     sep_str = '_['
@@ -91,6 +91,7 @@ taxonomy = function (osu_abundance_table, verbose=himap_option('verbose'), show_
   tax_class.dt = unique(taxonomy.dt[, .(superkingdom, phylum, class, order=NA, family=NA)])
   tax_phylum.dt = unique(taxonomy.dt[, .(superkingdom, phylum, class=NA, order=NA, family=NA)])
   if (verbose) cat('OK.\n* extracting genus/species from OSU table...')
+  osu_abundance_table = unique(osu_table[, .(osu_id, pctsim, species)])
   osu_ab_g.dt = osuab_genuses(osu_abundance_table, ws=ws, split_char=split_char)
   if (verbose) cat('OK.\n* matching genus...')
   osu_ab_g2.dt = merge(osu_ab_g.dt, taxonomy.dt, by='genus', all.x=T) # Genus matches
