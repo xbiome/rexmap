@@ -53,11 +53,16 @@ min_seq_len = function (fasta_files, n=50) {
 #' @export
 collapse = function (ab_in, verbose=himap_option('verbose'),
                      ncpu=himap_option('ncpu'), temp_dir=tempdir(),
-                     ws_scale=0.8, max_target_seqs=50) {
+                     ws_scale=0.8, max_target_seqs=50, copy_table=TRUE) {
   # Provide ab_tab_nochim as an input argument, same as dada2::collapseNoMismatch
   if (verbose) cat('collapse:', fill=T)
   if (verbose) cat('* generating temporary files...')
-  ab = copy(ab_in)
+  if (copy_table) {
+    ab = copy(ab_in)
+    if (verbose) cat('(copy OK) ')
+  } else {
+    ab = ab_in
+  }
   out_files = ab_to_files(ab, verbose=verbose, temp_dir=temp_dir)
   fasta = out_files[1]
   db = out_files[2]
