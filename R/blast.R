@@ -321,12 +321,12 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
     blast_status = blastn(fasta_file, blast_output, region=region,
                           max_target_seqs=max_target_seqs,
                           word_size=word_size, output_err=output_error,
-                          ncpu=ncpu)
+                          ncpu=ncpu, verbose=verbose)
   } else {
     blast_status = blastn(fasta_file, blast_output, ref_db=ref_db,
                           max_target_seqs=max_target_seqs,
                           word_size=word_size, output_err=output_error,
-                          ncpu=ncpu)
+                          ncpu=ncpu, verbose=verbose)
   }
   if (blast_status != 0) stop('blast: error running blastn.')
   # Load BLAST results (can take a while if there are lots of sequences and max_target_seqs
@@ -334,10 +334,10 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
   if (!file.exists(blast_output)) stop('blast: ', blast_output, ' file does not exist.')
   if (!is.null(region)) {
     blast_cp = blast_out_to_best_cp(blast_output, region=region,
-                                    show_alignment = show_alignment)
+                                    show_alignment=show_alignment, verbose=verbose)
   } else {
     blast_cp = blast_out_to_best_cp(blast_output, ref_cp=ref_cp,
-                                    show_alignment = show_alignment)
+                                    show_alignment=show_alignment)
   }
 
   names(blast_cp) = c('alignments', 'cp')
