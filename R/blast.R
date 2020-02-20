@@ -260,6 +260,13 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
   # Sequences can be either FASTA file (ends with either .fa or .fasta),
   # an abundance data table (output from sequence abundance) or a character vector
   # that is a list of sequences.
+
+  # If blast_output is not given, then we will generate it, so mark it for cleanup
+  cleanup_blast_output = FALSE
+  if (is.null(blast_output)) {
+    cleanup_blast_output = TRUE
+  }
+
   sequences_type = NULL
   if ('data.table' %in% class(sequences)) {
     if ('sequence' %in% names(sequences)) {
@@ -378,9 +385,16 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
 
 
   # If we made a temp fasta file, remove it
-  if (sequences_type %in% c('dt', 'DNA')) file.remove(fasta_file)
+  if (sequences_type %in% c('dt', 'DNA')) {
+    file.remove(fasta_file)
+  }
   # If we made temp blast file, remove it as well
-  if (dirname(blast_output) == temp_dir) file.remove(blast_output)
+  # if (dirname(blast_output) == temp_dir) file.remove(blast_output)
+  if (cleanup_blast_output) {
+    if (file.exists(blast_output)) {
+      file.remove(blast_output)
+    }
+  }
   return(as(blast_cp, 'blast'))
 }
 
