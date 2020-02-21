@@ -576,6 +576,7 @@ abundance = function (abundance_table, blast_object,
 
   setcolorder(osu_ab.dt, c('sample_id', 'osu_id', 'osu_count', 'pctsim', 'species'))
   setorder(osu_ab.dt, sample_id, -osu_count)
+  if (verbose) cat('Abundance estimation complete.\n')
   return(osu_ab.dt)
 }
 
@@ -651,6 +652,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
     sample_ids = ab_tab_nochim_m.dt[, unique(sample_id)]
   }
   if (verbose) cat('OK.\n')
+  if (verbose) cat('Calculating abundances (', ncpu, ' threads)...\n', sep='')
 
   all_abs.dt = data.table::rbindlist(parallel::mclapply(sample_ids, function (s) {
 
@@ -876,10 +878,11 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
     all_ab.dt[, sample_id := s]
     data.table::setcolorder(all_ab.dt, c('sample_id', 'osu_id', 'osu_count', 'species',
                              'pctsim'))
-
+    if (verbose) cat('- sample_id:', s, '\n')
     return(all_ab.dt[osu_count>0])
 
   }, mc.cores=ncpu))
+  if (verbose) cat('OK.\n')
   return(unique(all_abs.dt))
 }
 
