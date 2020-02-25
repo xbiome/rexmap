@@ -119,7 +119,7 @@ read_files = function (path, pattern='') {
 #'
 #'
 #' @export
-print_species = Vectorize(function (
+print_species = function (
    x, xsep=',', xws='_', ws=' ', sep=', ', include_sp='single', decreasing=TRUE,
    show_count=TRUE, show_single=FALSE, count_wrap=c('[', ']'),
    group_genera=TRUE,
@@ -135,7 +135,8 @@ print_species = Vectorize(function (
    keep_phylum_strains=FALSE,
    keep_sp_strains=FALSE,
    keep_sp_strains_symbol='_',
-   debug=FALSE) {
+   debug=FALSE,
+   show_progress=TRUE) {
 
    # x = input string of strain names
    #
@@ -154,282 +155,301 @@ print_species = Vectorize(function (
    # trim_ = trim Genus and/or species names to specified lengths. Be careful:
    #    if this is too short, it can collapse multiple labels into one.
 
+   # Load taxonomy and extract unique phylum, class, order, family names
+   tax.dt = load_taxonomy()
+   unique_phyla = tax.dt[, unique(phylum)]
+   unique_classes = tax.dt[, unique(class)]
+   unique_orders = tax.dt[, unique(order)]
+   unique_families = tax.dt[, unique(family)]
+
    # replace_bacterium = replaces 'bacterium' species annotation with 'sp.'
+   # x_out = c()
 
-   # Split string into individual strains
-   x_strains = strsplit(x, xsep, fixed=T)[[1]]
-   sp_labels = c('sp\\.', 'bacterium', 'cf\\.')
+   x_out = sapply(1:length(x), function (i) {
 
-   # Remove unnamed assignments like 'bacterium_LF3' is there are other
-   # better assignments.
-   unnamed_filter = !(x_strains %like% paste0('^bacterium', xws))
-   if (length(x_strains[unnamed_filter]) > 0) {
-      x_strains = x_strains[unnamed_filter]
-   }
+      x_i = x[i]
+      # Split string into individual strains
+      x_strains = strsplit(x_i, xsep, fixed=T)[[1]]
+      sp_labels = c('sp\\.', 'bacterium', 'cf\\.')
 
-   # If we only have 1 assignment, return that one. The only change is replacing
-   # the input whitespace symbol with the output whitespace symbol.
-   if (length(x_strains) == 1) {
-      if (!show_count) {
-         count_regex = sub(']', '\\]',
-                           sub('[', '\\[',
-                               paste0(count_wrap[1], '[0-9]+', count_wrap[2]),
-                               fixed=T
-                           ), fixed=T)
-         return(
-            # sub(xws, ws,
-            #     sub(xws, ws, x_strains[1], fixed=T)
-            # )
-            sub(paste0(ws, '+$'), '', sub(count_regex, '', gsub(xws, ws, x_strains[1], fixed=T)))
-         )
-      } else {
-         return(gsub(xws, ws, x_strains[1], fixed=T))
+      # Remove unnamed assignments like 'bacterium_LF3' is there are other
+      # better assignments.
+      unnamed_filter = !(x_strains %like% paste0('^bacterium', xws))
+      if (length(x_strains[unnamed_filter]) > 0) {
+         x_strains = x_strains[unnamed_filter]
       }
-   }
+
+      # If we only have 1 assignment, return that one. The only change is replacing
+      # the input whitespace symbol with the output whitespace symbol.
+      if (length(x_strains) == 1) {
+         if (!show_count) {
+            count_regex = sub(']', '\\]',
+                              sub('[', '\\[',
+                                  paste0(count_wrap[1], '[0-9]+', count_wrap[2]),
+                                  fixed=T
+                              ), fixed=T)
+            return(
+               sub(paste0(ws, '+$'), '', sub(count_regex, '', gsub(xws, ws, x_strains[1], fixed=T)))
+            )
+         } else {
+            return(gsub(xws, ws, x_strains[1], fixed=T))
+         }
+      }
 
 
-   # If we filter out strains without strain name and species name, i.e. hits to
-   # names ending with sp., cf., or bacterium, and we have other assignments left then
-   # just use properly named ones.
-   sp_strain_filter = apply(sapply(sp_labels, function (slab) grepl(paste0(slab, '$'), x_strains)), 1, any)
-   if (length(x_strains[!sp_strain_filter]) > 0) {
-      x_strains = x_strains[!sp_strain_filter]
-   }
+      # If we filter out strains without strain name and species name, i.e. hits to
+      # names ending with sp., cf., or bacterium, and we have other assignments left then
+      # just use properly named ones.
+      sp_strain_filter = apply(sapply(sp_labels, function (slab) grepl(paste0(slab, '$'), x_strains)), 1, any)
+      if (length(x_strains[!sp_strain_filter]) > 0) {
+         x_strains = x_strains[!sp_strain_filter]
+      }
 
-   # This changes all unnamed species names to 'sp.' for consistency.
-   if (replace_bacterium) {
-      x_strains = sub(paste0(xws, 'bacterium$'), paste0(xws, 'sp\\.'), x_strains)
-      x_strains = sub(paste0(xws, 'bacterium', xws), paste0(xws, 'sp\\.', xws), x_strains)
-      x_strains = sub(paste0(xws, 'cf\\.$'), paste0(xws, 'sp\\.'), x_strains)
-      x_strains = sub(paste0(xws, 'cf\\.', xws), paste0(xws, 'sp\\.', xws), x_strains)
-   }
+      # This changes all unnamed species names to 'sp.' for consistency.
+      if (replace_bacterium) {
+         x_strains = sub(paste0(xws, 'bacterium$'), paste0(xws, 'sp\\.'), x_strains)
+         x_strains = sub(paste0(xws, 'bacterium', xws), paste0(xws, 'sp\\.', xws), x_strains)
+         x_strains = sub(paste0(xws, 'cf\\.$'), paste0(xws, 'sp\\.'), x_strains)
+         x_strains = sub(paste0(xws, 'cf\\.', xws), paste0(xws, 'sp\\.', xws), x_strains)
+      }
 
 
-   # Find all unique genera and group by these
-   #  vector with all genera for specific input
-   genera = sub(paste0('^([^', xws, ']+)', xws, '.*'), '\\1', x_strains)
-   #  species vector contains both actual genera and species
-   # If keep_sp_strains is TRUE, then we generate "species" name for each "sp." strain
-   # by adding the strain designation to sp as a species name
-   if (!keep_sp_strains) {
-      species = sub(paste0('^([^', xws, ']+)', xws, '([^', xws, ']+).*'),
-                    paste0('\\1', ws, '\\2'), x_strains)
-   } else {
-      species = sub(paste0('^([^', xws, ']+)', xws, '([^', xws, ']+).*'),
-                    paste0('\\1', ws, '\\2'), x_strains)
-      species_sp = sub(paste0('^([^', xws, ']+)', xws, '(sp\\..*)'),
+      # Find all unique genera and group by these
+      #  vector with all genera for specific input
+      genera = sub(paste0('^([^', xws, ']+)', xws, '.*'), '\\1', x_strains)
+      #  species vector contains both actual genera and species
+      # If keep_sp_strains is TRUE, then we generate "species" name for each "sp." strain
+      # by adding the strain designation to sp as a species name
+      if (!keep_sp_strains) {
+         species = sub(paste0('^([^', xws, ']+)', xws, '([^', xws, ']+).*'),
                        paste0('\\1', ws, '\\2'), x_strains)
-      species = mapply(function (s1, s2) if (nchar(s2 > s1) & s2 %like% 'sp\\.') s2 else s1,
-                       species, gsub(xws, ws, species_sp), USE.NAMES=F)
-   }
-
-   if (!keep_class_strains) {
-      # This filter has value TRUE for strains that have an actual Genus name
-      genera_as_class_filter = !(genera %like% 'ia$')
-      if (any(genera_as_class_filter)) {
-         # Do we have any genera that is not an order level genus name?
-         genera = genera[genera_as_class_filter]
-         species = species[genera_as_class_filter]
-      }
-   }
-
-   if (!keep_order_strains) {
-      # This filter has value TRUE for strains that have an actual Genus name
-      genera_as_order_filter = !(genera %like% 'ales$')
-      if (any(genera_as_order_filter)) {
-         # Do we have any genera that is not an order level genus name?
-         genera = genera[genera_as_order_filter]
-         species = species[genera_as_order_filter]
-      }
-   }
-
-   # Filter out family level genus names, if we have anything left. This will prioritize
-   # strains named to proper Genus instead of strain where "Genus" is actually Family
-   if (!keep_family_strains) {
-      # This filter has value TRUE for strains that have an actual Genus name
-      genera_as_family_filter = !(genera %like% 'eae$')
-      if (any(genera_as_family_filter)) {
-         # Do we have any genera that is not a family level genus name?
-         genera = genera[genera_as_family_filter]
-         species = species[genera_as_family_filter]
-      }
-   }
-
-
-
-   if (debug) {
-      cat('Genera:\n')
-      cat(genera)
-      cat('\n')
-      cat('Species:\n')
-      cat(species)
-      cat('\n')
-
-   }
-   # # This changes all unnamed species names to 'sp.' for consistency.
-   # if (replace_bacterium) {
-   #    species = sub(paste0(ws, 'bacterium'), paste0(ws, 'sp\\.'), species)
-   #    species = sub(paste0(ws, 'cf\\.'), paste0(ws, 'sp\\.'), species)
-   # }
-
-   # if (keep_sp_strains) {
-   #    sp_strain_filter = species %like% 'sp\\.$'
-   #    # species[sp_strain_filter] = gsub(xws, ws, x_strains[sp_strain_filter], fixed=T)
-   #    sp_strain_names = gsub(ws, keep_sp_strains_symbol, gsub(xws, keep_sp_strains_symbol, sub(
-   #       '^[^_]+_sp\\.[_]?(.*)$',
-   #       '\\1',
-   #       x_strains[sp_strain_filter]
-   #    ), fixed=T), fixed=T)
-   #    species[sp_strain_filter] = paste(species[sp_strain_filter], sp_strain_names,
-   #                                      sep=keep_sp_strains_symbol)
-   # }
-
-
-   # Pre-process genus/species names if they need trimming
-   if (!is.null(trim_genera_len)) {
-      if (debug) {
-         cat('Trimming genera...\n')
-      }
-      if (trim_genera_len > 1) {
-         # Trim using regex, cleaner this way and "obvious" when doing the species
-         # (Genus species combos)
-         genera = sub(
-            paste0('^([^', ws, ']{', trim_genera_len, '}).*$'),
-            '\\1',
-            genera
-         )
-         species = sub(
-            paste0('^([^', ws, ']{', trim_genera_len, '})[^', ws, ']+',
-                   '(', ws, '[^', ws, ']+.*)$'),
-            paste0('\\1', trim_symbol, '\\2'),
-            species
-         )
-
-         # Very rarely genus name will end with a dot (saw it few times), in which case
-         # appending a dot as a trim_symbol will make it two dots so cleanup those here.
-         genera = gsub('\\.\\.', '\\.', genera)
-         species = gsub('\\.\\.', '\\.', species)
-
-      }
-   }
-
-   if (debug) {
-      cat('Genera after trimming:\n')
-      cat(genera)
-      cat('\n')
-      cat('Species after trimming:\n')
-      cat(species)
-      cat('\n')
-   }
-
-   if (!is.null(trim_species_len)) {
-      if (trim_species_len > 1) {
-         species = sub(
-            paste0('^([^', ws, ']+', ws, ')([^', ws, ']{', trim_species_len, '})[^', ws, ']+$'),
-            paste0('\\1\\2', trim_symbol),
-            species
-         )
-         species = gsub('\\.\\.', '\\.', species)
-      }
-   }
-
-   # Now process include_sp, by generating a T/F filter and applying it
-   # If we NEVER include 'sp.' strains. This only makes sense if we have strain names
-   # that are not "sp.". If all strains are sp. strains, then do nothing.
-   if (include_sp == 'never') {
-      sp_filter = !(species %like% 'sp\\.')  # TRUE for named species
-      # if at least one element of sp_filter is TRUE, then we can take out sp. strains
-      # if (all(!sp_filter)) { # Do we have ANY named species left?
-      if (debug) {
-         cat('sp_filter:\n')
-         cat(sp_filter, '\n')
-      }
-      if (any(sp_filter)) { # Do we have ANY named species left?
-         # sp_filter.list = list()
-         # for (g in unique(genera)) {
-         #    g_filter = (genera == g)
-         #    if (length(unique(species[g_filter])) > 1) {
-         #       sp_filter.list[[length(sp_filter.list)+1]] = !(
-         #          (species %like% 'sp\\.') & (species %like% paste0('^', g))
-         #       )
-         #    } else {
-         #       sp_filter.list[[length(sp_filter.list)+1]] = rep(TRUE, length(species))
-         #    }
-         # }
-         # sp_filter = sapply(transpose(sp_filter.list), all)
       } else {
+         species = sub(paste0('^([^', xws, ']+)', xws, '([^', xws, ']+).*'),
+                       paste0('\\1', ws, '\\2'), x_strains)
+         species_sp = sub(paste0('^([^', xws, ']+)', xws, '(sp\\..*)'),
+                          paste0('\\1', ws, '\\2'), x_strains)
+         species = mapply(function (s1, s2) if (nchar(s2 > s1) & s2 %like% 'sp\\.') s2 else s1,
+                          species, gsub(xws, ws, species_sp), USE.NAMES=F)
+      }
+
+      if (!keep_phylum_strains) {
+         # This filter has value TRUE for strains that have an actual Genus name
+         genera_as_phylum_filter = !(genera %in% unique_phyla)
+         if (any(genera_as_phylum_filter)) {
+            # Do we have any genera that is not an order level genus name?
+            genera = genera[genera_as_phylum_filter]
+            species = species[genera_as_phylum_filter]
+         }
+      }
+
+      if (!keep_class_strains) {
+         # This filter has value TRUE for strains that have an actual Genus name
+         genera_as_class_filter = !(genera %in% unique_classes)
+         if (any(genera_as_class_filter)) {
+            # Do we have any genera that is not an order level genus name?
+            genera = genera[genera_as_class_filter]
+            species = species[genera_as_class_filter]
+         }
+      }
+
+      if (!keep_order_strains) {
+         # This filter has value TRUE for strains that have an actual Genus name
+         genera_as_order_filter = !(genera %in% unique_orders)
+         if (any(genera_as_order_filter)) {
+            # Do we have any genera that is not an order level genus name?
+            genera = genera[genera_as_order_filter]
+            species = species[genera_as_order_filter]
+         }
+      }
+
+      # Filter out family level genus names, if we have anything left. This will prioritize
+      # strains named to proper Genus instead of strain where "Genus" is actually Family
+      if (!keep_family_strains) {
+         # This filter has value TRUE for strains that have an actual Genus name
+         genera_as_family_filter = !(genera %in% unique_families)
+         if (any(genera_as_family_filter)) {
+            # Do we have any genera that is not a family level genus name?
+            genera = genera[genera_as_family_filter]
+            species = species[genera_as_family_filter]
+         }
+      }
+
+
+
+      if (debug) {
+         cat('Genera:\n')
+         cat(genera)
+         cat('\n')
+         cat('Species:\n')
+         cat(species)
+         cat('\n')
+
+      }
+      # # This changes all unnamed species names to 'sp.' for consistency.
+      # if (replace_bacterium) {
+      #    species = sub(paste0(ws, 'bacterium'), paste0(ws, 'sp\\.'), species)
+      #    species = sub(paste0(ws, 'cf\\.'), paste0(ws, 'sp\\.'), species)
+      # }
+
+      # if (keep_sp_strains) {
+      #    sp_strain_filter = species %like% 'sp\\.$'
+      #    # species[sp_strain_filter] = gsub(xws, ws, x_strains[sp_strain_filter], fixed=T)
+      #    sp_strain_names = gsub(ws, keep_sp_strains_symbol, gsub(xws, keep_sp_strains_symbol, sub(
+      #       '^[^_]+_sp\\.[_]?(.*)$',
+      #       '\\1',
+      #       x_strains[sp_strain_filter]
+      #    ), fixed=T), fixed=T)
+      #    species[sp_strain_filter] = paste(species[sp_strain_filter], sp_strain_names,
+      #                                      sep=keep_sp_strains_symbol)
+      # }
+
+
+      # Pre-process genus/species names if they need trimming
+      if (!is.null(trim_genera_len)) {
+         if (debug) {
+            cat('Trimming genera...\n')
+         }
+         if (trim_genera_len > 1) {
+            # Trim using regex, cleaner this way and "obvious" when doing the species
+            # (Genus species combos)
+            genera = sub(
+               paste0('^([^', ws, ']{', trim_genera_len, '}).*$'),
+               '\\1',
+               genera
+            )
+            species = sub(
+               paste0('^([^', ws, ']{', trim_genera_len, '})[^', ws, ']+',
+                      '(', ws, '[^', ws, ']+.*)$'),
+               paste0('\\1', trim_symbol, '\\2'),
+               species
+            )
+
+            # Very rarely genus name will end with a dot (saw it few times), in which case
+            # appending a dot as a trim_symbol will make it two dots so cleanup those here.
+            genera = gsub('\\.\\.', '\\.', genera)
+            species = gsub('\\.\\.', '\\.', species)
+
+         }
+      }
+
+      if (debug) {
+         cat('Genera after trimming:\n')
+         cat(genera)
+         cat('\n')
+         cat('Species after trimming:\n')
+         cat(species)
+         cat('\n')
+      }
+
+      if (!is.null(trim_species_len)) {
+         if (trim_species_len > 1) {
+            species = sub(
+               paste0('^([^', ws, ']+', ws, ')([^', ws, ']{', trim_species_len, '})[^', ws, ']+$'),
+               paste0('\\1\\2', trim_symbol),
+               species
+            )
+            species = gsub('\\.\\.', '\\.', species)
+         }
+      }
+
+      # Now process include_sp, by generating a T/F filter and applying it
+      # If we NEVER include 'sp.' strains. This only makes sense if we have strain names
+      # that are not "sp.". If all strains are sp. strains, then do nothing.
+      if (include_sp == 'never') {
+         sp_filter = !(species %like% 'sp\\.')  # TRUE for named species
+         # if at least one element of sp_filter is TRUE, then we can take out sp. strains
+         # if (all(!sp_filter)) { # Do we have ANY named species left?
+         if (debug) {
+            cat('sp_filter:\n')
+            cat(sp_filter, '\n')
+         }
+         if (any(sp_filter)) { # Do we have ANY named species left?
+            # sp_filter.list = list()
+            # for (g in unique(genera)) {
+            #    g_filter = (genera == g)
+            #    if (length(unique(species[g_filter])) > 1) {
+            #       sp_filter.list[[length(sp_filter.list)+1]] = !(
+            #          (species %like% 'sp\\.') & (species %like% paste0('^', g))
+            #       )
+            #    } else {
+            #       sp_filter.list[[length(sp_filter.list)+1]] = rep(TRUE, length(species))
+            #    }
+            # }
+            # sp_filter = sapply(transpose(sp_filter.list), all)
+         } else {
+            sp_filter = rep(TRUE, length(species))
+         }
+      }
+
+      # Are we filtering out all species? In this case fall back to single include_sp
+      if (include_sp == 'single') {
+         # For each genus, count number of species assignments. If that number is 1
+         # and it's value is 'sp.' then it's a single species, so include it.
+         # sp_filter = c()
+         sp_filter = !(species %like% 'sp\\.')  # TRUE for named species
+         if (any(sp_filter)) {
+            sp_filter.list = list()
+            for (g in unique(genera)) {
+               g_filter = (genera == g)
+               if (length(unique(species[g_filter])) > 1) {
+                  sp_filter.list[[length(sp_filter.list)+1]] = !(
+                     (species %like% 'sp\\.') & (species %like% paste0('^', g))
+                  )
+               } else {
+                  sp_filter.list[[length(sp_filter.list)+1]] = rep(TRUE, length(species))
+               }
+            }
+            sp_filter = sapply(transpose(sp_filter.list), all)
+         } else {
+            # All strains are sp. strains, so just return them all
+            sp_filter = rep(TRUE, length(species))
+         }
+      }
+
+      if (include_sp == 'always') {
          sp_filter = rep(TRUE, length(species))
       }
-   }
 
-   # Are we filtering out all species? In this case fall back to single include_sp
-   if (include_sp == 'single') {
-      # For each genus, count number of species assignments. If that number is 1
-      # and it's value is 'sp.' then it's a single species, so include it.
-      # sp_filter = c()
-      sp_filter = !(species %like% 'sp\\.')  # TRUE for named species
-      if (any(sp_filter)) {
-         sp_filter.list = list()
-         for (g in unique(genera)) {
-            g_filter = (genera == g)
-            if (length(unique(species[g_filter])) > 1) {
-               sp_filter.list[[length(sp_filter.list)+1]] = !(
-                  (species %like% 'sp\\.') & (species %like% paste0('^', g))
-               )
-            } else {
-               sp_filter.list[[length(sp_filter.list)+1]] = rep(TRUE, length(species))
+
+      # cat('sp_filter: ', paste(as.character(sp_filter), collapse=' '), '\n')
+      # genera = genera[sp_filter]
+      species_f = species[sp_filter]
+      genera_f = genera[sp_filter]
+
+      species.c = unique_sorted(species_f, decreasing=decreasing,
+                                show_count=show_count, count_wrap=count_wrap,
+                                show_single=show_single)
+
+      # If group_genera == TRUE, group display by genus
+      if (group_genera) {
+         genera.c = sub(paste0('^([^', ws, ']+)', ws, '.*'), '\\1', species.c)
+         genera_uniq.c = unique(genera.c)
+         # We need to do this loop again after possible sp/genus omits from
+         # unique_sorted()
+         out.c = c()
+         for (g in genera_uniq.c) {
+            species_only_list = sub(
+               paste0('^', g, ws), '', species.c[species.c %like% paste0('^', g, ws)]
+            )
+            if (!is.null(max_species)) {
+               if (length(species_only_list) > max_species) {
+                  species_only_list = multi_species_sub
+               }
             }
+            species_only = paste(
+               species_only_list,
+               collapse=group_genera_sep
+            )
+            out.c[length(out.c)+1] = paste(g, species_only, collapse=ws)
          }
-         sp_filter = sapply(transpose(sp_filter.list), all)
+         return(paste(out.c, collapse=sep))
       } else {
-         # All strains are sp. strains, so just return them all
-         sp_filter = rep(TRUE, length(species))
+         return(paste(species.c, collapse=sep))
       }
-   }
+   }) # end for x_i in x loop
+   return(x_out)
 
-   if (include_sp == 'always') {
-      sp_filter = rep(TRUE, length(species))
-   }
-
-
-   # cat('sp_filter: ', paste(as.character(sp_filter), collapse=' '), '\n')
-   # genera = genera[sp_filter]
-   species_f = species[sp_filter]
-   genera_f = genera[sp_filter]
-
-   species.c = unique_sorted(species_f, decreasing=decreasing,
-                             show_count=show_count, count_wrap=count_wrap,
-                             show_single=show_single)
-
-   # If group_genera == TRUE, group display by genus
-   if (group_genera) {
-      genera.c = sub(paste0('^([^', ws, ']+)', ws, '.*'), '\\1', species.c)
-      genera_uniq.c = unique(genera.c)
-      # We need to do this loop again after possible sp/genus omits from
-      # unique_sorted()
-      out.c = c()
-      for (g in genera_uniq.c) {
-         species_only_list = sub(
-            paste0('^', g, ws), '', species.c[species.c %like% paste0('^', g, ws)]
-         )
-         if (!is.null(max_species)) {
-            if (length(species_only_list) > max_species) {
-               species_only_list = multi_species_sub
-            }
-         }
-         species_only = paste(
-            species_only_list,
-            collapse=group_genera_sep
-         )
-         out.c[length(out.c)+1] = paste(g, species_only, collapse=ws)
-      }
-      return(paste(out.c, collapse=sep))
-   } else {
-      return(paste(species.c, collapse=sep))
-   }
-
-
-}, vectorize.args=c('x'), USE.NAMES=FALSE)
+}# , vectorize.args=c('x'), USE.NAMES=FALSE)
 
 
 unique_sorted = function (v, decreasing=TRUE, show_count=TRUE,
