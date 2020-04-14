@@ -110,8 +110,9 @@ read_files = function (path, pattern='') {
 #' this is set to TRUE any names ending with `bacterium` and `cf.` are substituted
 #' with `sp.` for consistency. Default: TRUE
 #' @param multi_species_sub If there are too many species under a single
-#' genus (greater than max_species), then use this string as replacement.
-#' (default: `spp.`)
+#' genus (greater than max_species), then use this string as replacement. First element
+#' is the replacement if the hit is one species, second if there are more hits.
+#' (default: `c(sp., spp.)``)
 #' @param keep_family_strains Keep strains that do not even have genus assigned, such as
 #' Ruminococcaceae sp. if there are other, strains with named genera.
 #' @param keep_sp_strains Show full strain names for species names such as
@@ -132,7 +133,7 @@ print_species = function (
    trim_species_len=NULL, trim_symbol='.',
    replace_bacterium=TRUE,
    max_species=NULL,
-   multi_species_sub='spp.',
+   multi_species_sub=c('sp.', 'spp.'),
    keep_family_strains=FALSE,
    keep_order_strains=FALSE,
    keep_class_strains=FALSE,
@@ -336,16 +337,24 @@ print_species = function (
          if (trim_genera_len > 1) {
             # Trim using regex, cleaner this way and "obvious" when doing the species
             # (Genus species combos)
-            genera = sub(
+
+            # First pull up a filter of which genera actually need to be trimmed
+            # and leave the rest as it is.
+            #
+            # The trimming works by taking trim_genera_len first characters of genus
+            # name, then adding a trim_symbol (default .) afterwards. SO the total
+            # genus name will have trim_genera_len+1 characters.
+            trim_genera_filter = nchar(genera) > trim_genera_len+1
+            genera[trim_genera_filter] = sub(
                paste0('^([^', ws, ']{', trim_genera_len, '}).*$'),
                '\\1',
-               genera
+               genera[trim_genera_filter]
             )
-            species = sub(
+            species[trim_genera_filter] = sub(
                paste0('^([^', ws, ']{', trim_genera_len, '})[^', ws, ']+',
                       '(', ws, '[^', ws, ']+.*)$'),
                paste0('\\1', trim_symbol, '\\2'),
-               species
+               species[trim_genera_filter]
             )
 
             # Very rarely genus name will end with a dot (saw it few times), in which case
@@ -457,7 +466,12 @@ print_species = function (
             )
             if (!is.null(max_species)) {
                if (length(species_only_list) > max_species) {
-                  species_only_list = multi_species_sub
+                  if (length(species_only_list) == 1) {
+                     species_only_list = multi_species_sub[1]
+                  } else {
+                     species_only_list = multi_species_sub[2]
+                  }
+
                }
             }
             species_only = paste(
