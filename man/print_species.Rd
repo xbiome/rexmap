@@ -10,8 +10,11 @@ print_species(x, xsep = ",", xws = "_", ws = " ", sep = ", ",
   group_genera_sep = "/", trim_genera_len = NULL,
   trim_species_len = NULL, trim_symbol = ".",
   replace_bacterium = TRUE, max_species = NULL,
-  multi_species_sub = "spp.", keep_sp_strains = FALSE,
-  keep_sp_strains_symbol = "_", debug = FALSE)
+  multi_species_sub = "spp.", keep_family_strains = FALSE,
+  keep_order_strains = FALSE, keep_class_strains = FALSE,
+  keep_phylum_strains = FALSE, keep_sp_strains = FALSE,
+  keep_sp_strains_symbol = "_", return_single_entry = TRUE,
+  debug = FALSE, show_progress = TRUE)
 }
 \arguments{
 \item{x}{(Required) A character vector of strain names.}
@@ -85,8 +88,14 @@ with `sp.` for consistency. Default: TRUE}
 genus (greater than max_species), then use this string as replacement.
 (default: `spp.`)}
 
+\item{keep_family_strains}{Keep strains that do not even have genus assigned, such as
+Ruminococcaceae sp. if there are other, strains with named genera.}
+
 \item{keep_sp_strains}{Show full strain names for species names such as
 Somegenus_sp._AB01. In this case full strain name is added to the species name}
+
+\item{return_single_entry}{If the input string consists of a single strain name
+should we just return that one and ignore other filters? Default: TRUE}
 }
 \description{
 Condense a character vector of strain names to a more readable shorter

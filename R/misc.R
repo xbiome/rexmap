@@ -116,12 +116,16 @@ read_files = function (path, pattern='') {
 #' Ruminococcaceae sp. if there are other, strains with named genera.
 #' @param keep_sp_strains Show full strain names for species names such as
 #' Somegenus_sp._AB01. In this case full strain name is added to the species name
+#' @param return_single_entry If the input string consists of a single strain name
+#' should we just return that one and ignore other filters? Default: TRUE
 #'
 #'
 #' @export
 print_species = function (
    x, xsep=',', xws='_', ws=' ', sep=', ', include_sp='single', decreasing=TRUE,
-   show_count=TRUE, show_single=FALSE, count_wrap=c('[', ']'),
+   show_count=TRUE,
+   show_single=FALSE,
+   count_wrap=c('[', ']'),
    group_genera=TRUE,
    group_genera_sep='/',
    trim_genera_len=NULL,
@@ -135,6 +139,7 @@ print_species = function (
    keep_phylum_strains=FALSE,
    keep_sp_strains=FALSE,
    keep_sp_strains_symbol='_',
+   return_single_entry=TRUE,
    debug=FALSE,
    show_progress=TRUE) {
 
@@ -162,6 +167,11 @@ print_species = function (
    unique_orders = tax.dt[, unique(order)]
    unique_families = tax.dt[, unique(family)]
 
+   # Unnamed species labels; first entry will be the default output label
+   # Second and third entries labels renamed to the first label (3 is hard-coded)
+   # so keep that in mind when adding new unnamed species labels.
+   sp_labels = c('sp\\.', 'bacterium', 'cf\\.')
+
    # replace_bacterium = replaces 'bacterium' species annotation with 'sp.'
    # x_out = c()
 
@@ -170,7 +180,6 @@ print_species = function (
       x_i = x[i]
       # Split string into individual strains
       x_strains = strsplit(x_i, xsep, fixed=T)[[1]]
-      sp_labels = c('sp\\.', 'bacterium', 'cf\\.')
 
       # Remove unnamed assignments like 'bacterium_LF3' is there are other
       # better assignments.
@@ -181,7 +190,7 @@ print_species = function (
 
       # If we only have 1 assignment, return that one. The only change is replacing
       # the input whitespace symbol with the output whitespace symbol.
-      if (length(x_strains) == 1) {
+      if (length(x_strains) == 1 & return_single_entry) {
          if (!show_count) {
             count_regex = sub(']', '\\]',
                               sub('[', '\\[',
@@ -200,19 +209,30 @@ print_species = function (
       # If we filter out strains without strain name and species name, i.e. hits to
       # names ending with sp., cf., or bacterium, and we have other assignments left then
       # just use properly named ones.
-      sp_strain_filter = apply(sapply(sp_labels, function (slab) grepl(paste0(slab, '$'), x_strains)), 1, any)
+      # sp_strain_filter = apply(
+      #    sapply(
+      #       sp_labels,
+      #       function (slab) grepl(paste0(slab, '$'), x_strains)
+      #    ),
+      #    1,
+      #    any
+      # )
+      sp_strain_filter = sapply(
+         sapply(sp_labels, function (slab) grepl(paste0(slab, '$'), x_strains)),
+         any
+      )
+
       if (length(x_strains[!sp_strain_filter]) > 0) {
          x_strains = x_strains[!sp_strain_filter]
       }
 
       # This changes all unnamed species names to 'sp.' for consistency.
       if (replace_bacterium) {
-         x_strains = sub(paste0(xws, 'bacterium$'), paste0(xws, 'sp\\.'), x_strains)
-         x_strains = sub(paste0(xws, 'bacterium', xws), paste0(xws, 'sp\\.', xws), x_strains)
-         x_strains = sub(paste0(xws, 'cf\\.$'), paste0(xws, 'sp\\.'), x_strains)
-         x_strains = sub(paste0(xws, 'cf\\.', xws), paste0(xws, 'sp\\.', xws), x_strains)
+         for (i in 2:length(sp_labels)) {
+            x_strains = sub(paste0(xws, sp_labels[i], '$'), paste0(xws, sp_labels[1]), x_strains)
+            x_strains = sub(paste0(xws, sp_labels[i], xws), paste0(xws, sp_labels[1], xws), x_strains)
+         }
       }
-
 
       # Find all unique genera and group by these
       #  vector with all genera for specific input
