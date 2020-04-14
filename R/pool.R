@@ -336,9 +336,14 @@ lu = function (x) length(unique(x))
 
 pool_two_himap_outputs_2 = function (osu_1, osu_2,
                                    osu_offset=himap_option('osu_offset'),
-                                   verbose=TRUE, temp_dir=tempdir(),
+                                   verbose=himap_option('verbose'), temp_dir=tempdir(),
                                    blast_verbose=F) {
 
+   vcat = function (..., verbose=verbose) {
+      if (verbose) {
+         cat(...)
+      }
+   }
    # SET _1 = SUBJECT
    # SET _2 = QUERY
    pool_blast = function (qseq_1.dt, qseq_2.dt,
