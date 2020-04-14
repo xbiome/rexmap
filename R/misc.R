@@ -217,10 +217,13 @@ print_species = function (
       #    1,
       #    any
       # )
-      sp_strain_filter = sapply(
-         sapply(sp_labels, function (slab) grepl(paste0(slab, '$'), x_strains)),
-         any
-      )
+
+      sp_strain_filter = sapply(x_strains, function (xs_i) {
+         # Check each strains vs each element of sp_labels.
+         xs_i_unnamed = any(sapply(sp_labels,
+                                   function (slab) grepl(paste0(slab, '$'), xs_i)))
+         return(xs_i_unnamed)
+      })
 
       if (length(x_strains[!sp_strain_filter]) > 0) {
          x_strains = x_strains[!sp_strain_filter]
@@ -228,9 +231,9 @@ print_species = function (
 
       # This changes all unnamed species names to 'sp.' for consistency.
       if (replace_bacterium) {
-         for (i in 2:length(sp_labels)) {
-            x_strains = sub(paste0(xws, sp_labels[i], '$'), paste0(xws, sp_labels[1]), x_strains)
-            x_strains = sub(paste0(xws, sp_labels[i], xws), paste0(xws, sp_labels[1], xws), x_strains)
+         for (j in 2:length(sp_labels)) {
+            x_strains = sub(paste0(xws, sp_labels[j], '$'), paste0(xws, sp_labels[1]), x_strains)
+            x_strains = sub(paste0(xws, sp_labels[j], xws), paste0(xws, sp_labels[1], xws), x_strains)
          }
       }
 
@@ -238,6 +241,7 @@ print_species = function (
       #  vector with all genera for specific input
       genera = sub(paste0('^([^', xws, ']+)', xws, '.*'), '\\1', x_strains)
       #  species vector contains both actual genera and species
+
       # If keep_sp_strains is TRUE, then we generate "species" name for each "sp." strain
       # by adding the strain designation to sp as a species name
       if (!keep_sp_strains) {
