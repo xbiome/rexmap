@@ -1,4 +1,6 @@
-# HiMAP: High-resolution Microbial Analysis Pipeline
+# RExMap: Reference-based exact Mapping Pipeline
+
+A pipeline for an exact (100% identity) local alignment of 16S sequences to the reference database RExMapDB of known isolate microbial strains.
 
 ## Installation from source
 
@@ -22,7 +24,7 @@ In R, install devtools package, then use `install_github` to install the package
 install.packages('devtools')
 devtools::install_github('benjjneb/dada2')
 # Select 1 when prompted to install biocLite
-devtools::install_github('taolonglab/himap')
+devtools::install_github('taolonglab/rexmap')
 ```
 
 This may take up to about 10 minutes to install on a fresh R installation.
@@ -47,8 +49,8 @@ biocLite('GenomeInfoDbData', suppressUpdates=T)
 # DADA2
 devtools::install_github('benjjneb/dada2')
 
-# Finally install HiMAP
-devtools::install_github('taolonglab/himap')
+# Finally install RExMap
+devtools::install_github('taolonglab/rexmap')
 ```
 
 
