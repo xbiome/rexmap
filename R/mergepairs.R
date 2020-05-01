@@ -19,7 +19,7 @@
 #' @export
 merge_pairs = Vectorize(function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
                               match=5L, mismatch=-5L, gap_p=-7L, rc_reverse=TRUE,
-                              ncpu = himap_option('ncpu'),
+                              ncpu = rexmap_option('ncpu'),
                               verbose=FALSE, timing=FALSE
                               ) {
   # fq_fwd = vector of filenames (incl. paths) to forward reads
@@ -83,8 +83,8 @@ merge_pairs = Vectorize(function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_
   merged_list = parallel::mcmapply(C_mergepairs, read_fwd, read_rev, qual_fwd, qual_rev,
                          match=match, mismatch=mismatch, gap_p=gap_p,
                          min_pct_sim=min_sim, min_aln_len=min_aln_len,
-                         posterior_match_file=himap_option('mergepairs_matchqs'),
-                         posterior_mismatch_file=himap_option('mergepairs_mismatchqs'),
+                         posterior_match_file=rexmap_option('mergepairs_matchqs'),
+                         posterior_mismatch_file=rexmap_option('mergepairs_mismatchqs'),
                          mc.cores=ncpu
                        )
   m(' OK.\n')

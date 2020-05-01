@@ -4,9 +4,20 @@
 \alias{merge_pairs}
 \title{Merge paired-end reads}
 \usage{
-merge_pairs(fq_fwd, fq_rev, fq_mer, min_sim = 0.75, min_aln_len = 50,
-  match = 5L, mismatch = -5L, gap_p = -7L, rc_reverse = TRUE,
-  ncpu = himap_option("ncpu"), verbose = FALSE, timing = FALSE)
+merge_pairs(
+  fq_fwd,
+  fq_rev,
+  fq_mer,
+  min_sim = 0.75,
+  min_aln_len = 50,
+  match = 5L,
+  mismatch = -5L,
+  gap_p = -7L,
+  rc_reverse = TRUE,
+  ncpu = rexmap_option("ncpu"),
+  verbose = FALSE,
+  timing = FALSE
+)
 }
 \arguments{
 \item{fq_fwd}{A character vector for input forward FASTQ files (can be gzipped).}

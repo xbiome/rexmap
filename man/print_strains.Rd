@@ -4,8 +4,12 @@
 \alias{print_strains}
 \title{Strain vector to shorter strain string}
 \usage{
-print_strains(strains, raw = F, deduplicate = T,
-  nmax = himap_option("print_strains_nmax"))
+print_strains(
+  strains,
+  raw = F,
+  deduplicate = T,
+  nmax = rexmap_option("print_strains_nmax")
+)
 }
 \arguments{
 \item{strains}{(Required) A character vector of strain names, with underscore _ instead of space

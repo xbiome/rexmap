@@ -4,10 +4,21 @@
 \alias{remove_pcr_primers}
 \title{PCR primer trimmer}
 \usage{
-remove_pcr_primers(fq_in, fq_out, region = NULL, pr_fwd = NULL,
-  pr_rev = NULL, pr_fwd_maxoff = 10, pr_rev_maxoff = 10,
-  return_noprimer = T, ncpu = himap_option("ncpu"), max_mismatch = 2,
-  timing = F, verbose = himap_option("verbose"), overwrite = TRUE)
+remove_pcr_primers(
+  fq_in,
+  fq_out,
+  region = NULL,
+  pr_fwd = NULL,
+  pr_rev = NULL,
+  pr_fwd_maxoff = 10,
+  pr_rev_maxoff = 10,
+  return_noprimer = T,
+  ncpu = rexmap_option("ncpu"),
+  max_mismatch = 2,
+  timing = F,
+  verbose = rexmap_option("verbose"),
+  overwrite = TRUE
+)
 }
 \arguments{
 \item{fq_in}{A character vector of input file names.}

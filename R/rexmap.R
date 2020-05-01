@@ -1,3 +1,5 @@
+#' @title RExMap
+#'
 #' Import these functions for everything
 #' @importFrom data.table data.table
 #' @importFrom data.table as.data.table
@@ -8,7 +10,7 @@
 #' @importFrom data.table copy
 #' @importFrom dada2 filterAndTrim
 #' @importFrom stringr str_sub
-#' @useDynLib himap
+#' @useDynLib rexmap
 NULL
 
 
@@ -33,99 +35,99 @@ exec_file = function (filename) {
 
 
 #-- Default options -----------------------------------------------------------
-himap_opts = new.env()
+rexmap_opts = new.env()
 allowed_options = c('aln_params', 'blast_max_seqs', 'blast_word_size',
                     'ncpu', 'print_strains_nmax', 'string_maxwidth',
                     'timing', 'verbose')
-assign('himap_path', '', env=himap_opts)
+assign('rexmap_path', '', env=rexmap_opts)
 # FUll current path is obtained by:
 # assign()
 # BLAST blast() output format
 assign('blast_out_fmt',
        'qseqid sseqid qlen length qstart qend sstart send slen qseq sseq',
-       env=himap_opts)
+       env=rexmap_opts)
 # BLAST collapse() format. Changing this might break collapse function
 # used only for debugging.
 assign('blast_coll_fmt',
        'qseqid sseqid qlen slen length qstart qend sstart send pident',
-       env=himap_opts)
+       env=rexmap_opts)
 # BLAST executables paths
 assign('path_makeblastdb',
-       system.file('exec', exec_file('makeblastdb'), package='himap'),
-       env=himap_opts)
+       system.file('exec', exec_file('makeblastdb'), package='rexmap'),
+       env=rexmap_opts)
 assign('path_blastn',
-       system.file('exec', exec_file('blastn'), package='himap'),
-       env=himap_opts)
+       system.file('exec', exec_file('blastn'), package='rexmap'),
+       env=rexmap_opts)
 # BLAST alignment parameters
-assign('aln_params', c(5L, -4L, -8L, -6L), env=himap_opts)
+assign('aln_params', c(5L, -4L, -8L, -6L), env=rexmap_opts)
 # Autodetect number of available threads for multithreading parts
 # Set to 1 if you always  want to use only 1 thread.
 # These (5,-5,-8,-6) are good ones for collapsing sequences using overlap
 # alignments, if the lengths of query and subject aren't too different.
-assign('osu_offset', 1000000L, env=himap_opts)
-assign('ncpu', parallel::detectCores(), env=himap_opts)
+assign('osu_offset', 1000000L, env=rexmap_opts)
+assign('ncpu', parallel::detectCores(), env=rexmap_opts)
 
 # BLAST databases
 assign('blast_dbs',
        data.table::fread(
-         system.file('extdata', 'pcr_primers_table.txt', package='himap')
+         system.file('extdata', 'pcr_primers_table.txt', package='rexmap')
        ),
-       env=himap_opts)
-assign('blast_max_seqs', 500, env=himap_opts)
-assign('blast_word_size', 50, env=himap_opts)
-assign('database_build_version', '2020-01-29', env=himap_opts)
+       env=rexmap_opts)
+assign('blast_max_seqs', 500, env=rexmap_opts)
+assign('blast_word_size', 50, env=rexmap_opts)
+assign('database_build_version', '2020-01-29', env=rexmap_opts)
 
 # Read merging
 assign('mergepairs_matchqs',
-       system.file('merge_tables', 'himap_mergepairs_match_qs.txt',
-                   package='himap'),
-       env=himap_opts)
+       system.file('merge_tables', 'rexmap_mergepairs_match_qs.txt',
+                   package='rexmap'),
+       env=rexmap_opts)
 assign('mergepairs_mismatchqs',
-       system.file('merge_tables', 'himap_mergepairs_mismatch_qs.txt',
-                   package='himap'),
-       env=himap_opts)
+       system.file('merge_tables', 'rexmap_mergepairs_mismatch_qs.txt',
+                   package='rexmap'),
+       env=rexmap_opts)
 # Taxonomy
 assign('taxonomy_file',
        system.file('database', 'lineages-2020-02-14_bacteria_archaea.Rdata',
-                   package='himap'),
-       env=himap_opts)
+                   package='rexmap'),
+       env=rexmap_opts)
 
 # Printing and Data.table adjustments
-assign('string_maxwidth', 50, env=himap_opts)
-assign('print_strains_nmax', 10, env=himap_opts)
+assign('string_maxwidth', 50, env=rexmap_opts)
+assign('print_strains_nmax', 10, env=rexmap_opts)
 
 # Display progress and timing of each function that supports these arguments
-assign('verbose', FALSE, env=himap_opts)
-assign('timing', FALSE, env=himap_opts)
+assign('verbose', FALSE, env=rexmap_opts)
+assign('timing', FALSE, env=rexmap_opts)
 
 
 
 
-# assign('maxrows', 12, env=himap_opts)
+# assign('maxrows', 12, env=rexmap_opts)
 
-#' HiMAP options
+#' RExMap options
 #'
 #' @param option_names A string or a vector of strings with available options. If
 #' not given, then the function lists available options.
 #'
 #' @export
-himap_option = function (option_names=NULL) {
+rexmap_option = function (option_names=NULL) {
   if (is.null(option_names)) {
-    cat('HiMAP: available options', fill=T)
-    return(sapply(ls(himap_opts), himap_option))
+    cat('RExMap: available options', fill=T)
+    return(sapply(ls(rexmap_opts), rexmap_option))
   }
-  if(!all(option_names %in% ls(himap_opts))) {
-    warning("Invalid  option: ", option_names[!(option_names %in% ls(himap_opts))])
-    option_names = option_names[option_names %in% ls(himap_opts)]
+  if(!all(option_names %in% ls(rexmap_opts))) {
+    warning("Invalid  option: ", option_names[!(option_names %in% ls(rexmap_opts))])
+    option_names = option_names[option_names %in% ls(rexmap_opts)]
   }
   if (length(option_names) == 0) stop("Invalid options.")
-  # get(option_names, env=himap_opts)
-  if (length(option_names) == 1) get(option_names, env=himap_opts)
-  else sapply(option_names, get, env=himap_opts)
+  # get(option_names, env=rexmap_opts)
+  if (length(option_names) == 1) get(option_names, env=rexmap_opts)
+  else sapply(option_names, get, env=rexmap_opts)
 }
 
 
-#' HiMAP set default options
+#' RExMap set default options
 #'
 #' @param option_name Name of the option to be changed.
 #' @param value New value.
@@ -134,8 +136,8 @@ himap_option = function (option_names=NULL) {
 #'
 #'
 #' @export
-himap_setoption = function (option_name, value) {
-  # Simply set option_name to value. Used to change HiMAP defaults. Not finished yet.
+rexmap_setoption = function (option_name, value) {
+  # Simply set option_name to value. Used to change RExMap defaults. Not finished yet.
   # Allowed options
   if (option_name == 'ncpu') {
     # Check that it is an integer
@@ -143,27 +145,27 @@ himap_setoption = function (option_name, value) {
   } else if (option_name == 'string_maxwidth') {
     # Check that value is integer
     options('datatable.prettyprint.char'=value)
-    assign('string_maxwidth', value, env=himap_opts)
+    assign('string_maxwidth', value, env=rexmap_opts)
   } else if (option_name %in% c('verbose', 'timing')) {
     if (!(value %in% c(TRUE, FALSE))) stop(option_name, ' can only be TRUE or FALSE.')
-    else assign(option_name, value, env=himap_opts)
+    else assign(option_name, value, env=rexmap_opts)
   } else if (option_name == 'aln_params') {
     # Check each possible combination for megablast
   } else {
     # Else just assign stuff
-    assign(option_name, value, env=himap_opts)
+    assign(option_name, value, env=rexmap_opts)
   }
 }
 
 
 #' Run this when the package is loaded and attached in R
 .onAttach = function (libname, pkgname) {
-  options('datatable.prettyprint.char'=himap_option('string_maxwidth'))
+  options('datatable.prettyprint.char'=rexmap_option('string_maxwidth'))
 
   # Check if the blastn and makeblastdb executable files are missing for the running
   # system platform. If they are missing, download them.
-  blastn_file = system.file('exec', exec_file('blastn'), package='himap')
-  makedb_file = system.file('exec', exec_file('makeblastdb'), package='himap')
+  blastn_file = system.file('exec', exec_file('blastn'), package='rexmap')
+  makedb_file = system.file('exec', exec_file('makeblastdb'), package='rexmap')
   if (blastn_file=='' | makedb_file=='') {
     download_blast()
   }
@@ -171,13 +173,13 @@ himap_setoption = function (option_name, value) {
   # Check if database files are missing. Need at least one set of blastdb
   # files and 1 table with matching primers...
   startup_message = paste0(
-     '| HiMAP loaded',
-    ' | Database ', himap_option('database_build_version'),
+     '| RExMap loaded',
+    ' | Database ', rexmap_option('database_build_version'),
     ' Regions ',
-    paste(unique(sort(himap_option('blast_dbs')[
+    paste(unique(sort(rexmap_option('blast_dbs')[
       , sub('_$', '', sub('^(V[0-9]+(\\-|_)(V[0-9]+)?).*$', '\\1', Hypervariable_region))]
     )), collapse=', '),
-    ' | Threads: ', himap_option('ncpu'), ' |'
+    ' | Threads: ', rexmap_option('ncpu'), ' |'
   )
   # Positions of separators
   startup_msg_separators = as.integer(gregexpr('|', startup_message, fixed=T)[[1]])
@@ -198,18 +200,18 @@ himap_setoption = function (option_name, value) {
   packageStartupMessage(startup_message_full)
 }
 
-#' Show HiMAP database version based on the last modification date
+#' Show RExMap database version based on the last modification date
 #'
 #' Version == last modified date of the *_unique_variants_R.txt table.
 #' @export
-himap_db_version = function (region=NULL) {
+rexmap_db_version = function (region=NULL) {
   if (is.null(region)) {
     return(as.Date(file.info(system.file(
-      'database', himap_option('blast_dbs')[, table], package='himap'))$mtime))
+      'database', rexmap_option('blast_dbs')[, table], package='rexmap'))$mtime))
   } else {
     return(as.Date(file.info(system.file(
-      'database', himap_option('blast_dbs')[Hypervariable_region==region, table],
-      package='himap'))$mtime))
+      'database', rexmap_option('blast_dbs')[Hypervariable_region==region, table],
+      package='rexmap'))$mtime))
   }
 }
 
@@ -222,7 +224,7 @@ himap_db_version = function (region=NULL) {
 #' @param fastq_files A character vector of FASTQ filenames.
 #'
 #' @export
-sequence_length_table = function (fastq_files, ncpu=himap_option('ncpu')) {
+sequence_length_table = function (fastq_files, ncpu=rexmap_option('ncpu')) {
   return(
     table(unlist(parallel::mclapply(
       fastq_files,
@@ -291,9 +293,9 @@ ftquantile = function (ft, prob) {
 dada_denoise = function (fastq_trimmed, fastq_untrimmed,
                          pvalue=1e-4,
                          pvalue_adjusted=NULL,
-                         multithread=himap_option('ncpu'),
-                         verbose=himap_option('verbose'),
-                         timing=himap_option('timing'),
+                         multithread=rexmap_option('ncpu'),
+                         verbose=rexmap_option('verbose'),
+                         timing=rexmap_option('timing'),
                          # error_estimation_nsamples=3,
                          dada_errors_path=NULL) {
   # Dereplicate reads into a derep object
@@ -387,7 +389,7 @@ dada_denoise = function (fastq_trimmed, fastq_untrimmed,
 #' so works only on macOS and Linux.
 #'
 add_consensus = function (dada_res, derep, fq_tri, fq_fil, truncLen,
-                          verbose=T, ncpu=himap_option('ncpu')) {
+                          verbose=T, ncpu=rexmap_option('ncpu')) {
   if (verbose) cat('Retrieving full-length sequences...\n')
   for (s_id in 1:length(dada_res)) { # For each sample s_id
     if (verbose) cat('Sample ', s_id, '. Load...')
@@ -428,8 +430,8 @@ add_consensus = function (dada_res, derep, fq_tri, fq_fil, truncLen,
 #' This function modifies dada result \code{dada_res}.
 #'
 untrim = function (dada_res, fq_trimmed, fq_pretrimmed,
-                   verbose=himap_option('verbose'),
-                   ncpu=himap_option('ncpu')) {
+                   verbose=rexmap_option('verbose'),
+                   ncpu=rexmap_option('ncpu')) {
   trim_len = nchar(dada_res[[1]]$sequence[1])
   if (verbose) cat('Trimmed length: ', trim_len, ' nt.', fill=T)
   if (verbose) cat('Retrieving full-length sequences...\n')
@@ -532,8 +534,8 @@ pctsim_range = function (p) return(max(p, na.rm=T))
 #'
 #' @export
 abundance = function (abundance_table, blast_object,
-                      ncpu=himap_option('ncpu'),
-                      verbose=himap_option('verbose'),
+                      ncpu=rexmap_option('ncpu'),
+                      verbose=rexmap_option('verbose'),
                       raw_strains=TRUE,
                       pso_n=1000,
                       custom_sampleids=NULL,
@@ -596,13 +598,13 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
                               blast_best.dt,
                               cp.dt,
                               osu_data_m.dt,
-                              ncpu=himap_option('ncpu'), verbose=T,
+                              ncpu=rexmap_option('ncpu'), verbose=T,
                               pso_n=1000,
                               raw=TRUE, debug=FALSE,
                               custom_sampleids=NULL) {
 
   pctsim_min = 100
-  osu_offset = himap_option('osu_offset')
+  osu_offset = rexmap_option('osu_offset')
 
   if (verbose) cat('Preparing blast tables...')
   var_count.dt = unique(osu_data_m.dt[, .(variant_id, raw_count, sample_id)])
@@ -911,7 +913,7 @@ sequence_abundance = function (dada_result, remove_bimeras=T, collapse_sequences
     if (verbose) cat('* removing bimeras...')
     ab_tab_nochim = dada2::removeBimeraDenovo(
       ab_tab, method=remove_bimeras_method, allowOneOff=remove_bimeras_oneoff,
-      # multithread=ie(himap_option('ncpu') > 1, T, F),
+      # multithread=ie(rexmap_option('ncpu') > 1, T, F),
       multithread=ncpu,
       verbose=verbose)
     if (verbose) cat(' OK.', fill=T)

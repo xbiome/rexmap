@@ -14,7 +14,7 @@
 setClass('blast', contains = 'list')
 setMethod('show', 'blast', function(object){
   cat('blast-class: object with BLAST results', fill=T)
-  cat('This class is used as an input to himap::abundance() function.', fill=T)
+  cat('This class is used as an input to rexmap::abundance() function.', fill=T)
   cat('Contains data.tables:', fill=T)
   cat('* BLAST reference database alignments: $alignments', fill=T)
   cat('* Copy number table: $cp', fill=T)

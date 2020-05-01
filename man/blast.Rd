@@ -4,12 +4,21 @@
 \alias{blast}
 \title{BLAST sequences against a reference database}
 \usage{
-blast(sequences, blast_output = NULL, region = NULL, ref_db = NULL,
-  ref_cp = NULL, max_target_seqs = himap_option("blast_max_seqs"),
-  word_size = himap_option("blast_word_size"),
-  verbose = himap_option("verbose"), show_args = F, output_error = F,
-  show_alignment = F, ncpu = himap_option("ncpu"),
-  temp_dir = tempdir())
+blast(
+  sequences,
+  blast_output = NULL,
+  region = NULL,
+  ref_db = NULL,
+  ref_cp = NULL,
+  max_target_seqs = rexmap_option("blast_max_seqs"),
+  word_size = rexmap_option("blast_word_size"),
+  verbose = rexmap_option("verbose"),
+  show_args = F,
+  output_error = F,
+  show_alignment = F,
+  ncpu = rexmap_option("ncpu"),
+  temp_dir = tempdir()
+)
 }
 \arguments{
 \item{sequences}{(Required) Either a FASTA file, a character vector of DNA sequences, or
@@ -35,6 +44,6 @@ If \code{region}
 is specified, then the \code{ref_db} and \code{ref_cp} arguments are ignored and a
 reference database is chosen
 from the pre-computed set for that hyper-variable region. For available databases
-see columns DB and table in \code{himap_option('blast_dbs')}.
+see columns DB and table in \code{rexmap_option('blast_dbs')}.
 This function returns a blast-class object (named list; see ?blast-class for info).
 }

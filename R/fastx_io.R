@@ -29,7 +29,7 @@ sfastq_reader = function (file_name) {
        'qual'=as.character(Biostrings::quality(Biostrings::quality(x))))
 }
 
-fastq_list_writer = function (fastq_list, output, ncpu=himap_option('ncpu')) {
+fastq_list_writer = function (fastq_list, output, ncpu=rexmap_option('ncpu')) {
   # Write FASTQ file at once. Input is a list where each element is a list
   # with names 'meta', 'seq' and 'qual'. I use this to save the result from (mc)mapply.
   list_paste = function (l) {
@@ -45,7 +45,7 @@ fasta_writer = function (meta, seqs, output) {
             output, eos=NULL)
 }
 
-#' Saves sequences from HiMAP sequence abundance table to FASTA file
+#' Saves sequences from RExMap sequence abundance table to FASTA file
 #'
 #' @param abundance_table Output from \code{\link{sequence_abundance}} function.
 #' @param remove_from_table If TRUE, column with sequences (names sequences)

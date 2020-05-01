@@ -524,7 +524,7 @@ unique_sorted = function (v, decreasing=TRUE, show_count=TRUE,
 #'
 #' @export
 print_strains = function (strains, raw=F, deduplicate=T,
-                          nmax=himap_option('print_strains_nmax')) {
+                          nmax=rexmap_option('print_strains_nmax')) {
   # Input: vector of strains
   # Prints a single string with reduced list of strains
   # such that any non-_bacterium or _sp. strain is shown
@@ -625,8 +625,8 @@ string_fixed_len = function (x, len=30) {
   else return(x)
 }
 
-print.data.table2 = function (dt, width=himap_option('string_maxwidth'),
-                             topn=himap_option('maxrows')) {
+print.data.table2 = function (dt, width=rexmap_option('string_maxwidth'),
+                             topn=rexmap_option('maxrows')) {
    dt2 = head(dt, topn)
    extra_rows = nrow(dt) - topn
    for (j in names(dt2)) {
@@ -678,8 +678,8 @@ write_table = function (table, output, sep='\t', verbose=F, ...) {
 #'
 #' @export
 filter_and_trim = function (fq_in, fq_out, maxEE=2,
-                            multithread=himap_option('ncpu'),
-                            verbose=himap_option('verbose'),
+                            multithread=rexmap_option('ncpu'),
+                            verbose=rexmap_option('verbose'),
                             compress=FALSE,
                             ...) {
   dada2::filterAndTrim(fq_in, fq_out, maxEE=maxEE, multithread=multithread,

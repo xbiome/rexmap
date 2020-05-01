@@ -4,9 +4,15 @@
 \alias{collapse}
 \title{Collapse sequences that are exact matches, up to shifts and/or length}
 \usage{
-collapse(ab_in, verbose = himap_option("verbose"),
-  ncpu = himap_option("ncpu"), temp_dir = tempdir(), ws_scale = 0.8,
-  max_target_seqs = 50, copy_table = TRUE)
+collapse(
+  ab_in,
+  verbose = rexmap_option("verbose"),
+  ncpu = rexmap_option("ncpu"),
+  temp_dir = tempdir(),
+  ws_scale = 0.8,
+  max_target_seqs = 50,
+  copy_table = TRUE
+)
 }
 \description{
 Like \code{\link{dada2::collapseNoMismatch}} but a lot faster, multithreaded

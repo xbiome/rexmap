@@ -7,7 +7,7 @@ using namespace Rcpp;
 
 // value_map
 std::map<int, std::vector<int> > value_map(std::vector<int> x);
-RcppExport SEXP _himap_value_map(SEXP xSEXP) {
+RcppExport SEXP _rexmap_value_map(SEXP xSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -18,7 +18,7 @@ END_RCPP
 }
 // partid_to_fastqid
 std::map<int, std::vector<int> > partid_to_fastqid(std::vector<int> dada_map, std::vector<int> derep_map);
-RcppExport SEXP _himap_partid_to_fastqid(SEXP dada_mapSEXP, SEXP derep_mapSEXP) {
+RcppExport SEXP _rexmap_partid_to_fastqid(SEXP dada_mapSEXP, SEXP derep_mapSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -30,7 +30,7 @@ END_RCPP
 }
 // consensus_sequence
 std::string consensus_sequence(std::vector<std::string> seqs);
-RcppExport SEXP _himap_consensus_sequence(SEXP seqsSEXP) {
+RcppExport SEXP _rexmap_consensus_sequence(SEXP seqsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -41,7 +41,7 @@ END_RCPP
 }
 // hamming
 int hamming(std::string s1, std::string s2);
-RcppExport SEXP _himap_hamming(SEXP s1SEXP, SEXP s2SEXP) {
+RcppExport SEXP _rexmap_hamming(SEXP s1SEXP, SEXP s2SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -53,7 +53,7 @@ END_RCPP
 }
 // compare_alignment
 IntegerVector compare_alignment(std::string s1, std::string s2);
-RcppExport SEXP _himap_compare_alignment(SEXP s1SEXP, SEXP s2SEXP) {
+RcppExport SEXP _rexmap_compare_alignment(SEXP s1SEXP, SEXP s2SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -65,7 +65,7 @@ END_RCPP
 }
 // load_posterior
 std::vector< std::vector<int> > load_posterior(std::string filename);
-RcppExport SEXP _himap_load_posterior(SEXP filenameSEXP) {
+RcppExport SEXP _rexmap_load_posterior(SEXP filenameSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -76,7 +76,7 @@ END_RCPP
 }
 // nwalign_endsfree_test
 Rcpp::CharacterVector nwalign_endsfree_test(std::string s1, std::string s2, std::string q1, std::string q2, int match, int mismatch);
-RcppExport SEXP _himap_nwalign_endsfree_test(SEXP s1SEXP, SEXP s2SEXP, SEXP q1SEXP, SEXP q2SEXP, SEXP matchSEXP, SEXP mismatchSEXP) {
+RcppExport SEXP _rexmap_nwalign_endsfree_test(SEXP s1SEXP, SEXP s2SEXP, SEXP q1SEXP, SEXP q2SEXP, SEXP matchSEXP, SEXP mismatchSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -92,7 +92,7 @@ END_RCPP
 }
 // C_mergepairs
 Rcpp::CharacterVector C_mergepairs(std::string s1, std::string s2, std::string q1, std::string q2, std::string posterior_match_file, std::string posterior_mismatch_file, int match, int mismatch, int gap_p, double min_pct_sim, int min_aln_len);
-RcppExport SEXP _himap_C_mergepairs(SEXP s1SEXP, SEXP s2SEXP, SEXP q1SEXP, SEXP q2SEXP, SEXP posterior_match_fileSEXP, SEXP posterior_mismatch_fileSEXP, SEXP matchSEXP, SEXP mismatchSEXP, SEXP gap_pSEXP, SEXP min_pct_simSEXP, SEXP min_aln_lenSEXP) {
+RcppExport SEXP _rexmap_C_mergepairs(SEXP s1SEXP, SEXP s2SEXP, SEXP q1SEXP, SEXP q2SEXP, SEXP posterior_match_fileSEXP, SEXP posterior_mismatch_fileSEXP, SEXP matchSEXP, SEXP mismatchSEXP, SEXP gap_pSEXP, SEXP min_pct_simSEXP, SEXP min_aln_lenSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -113,7 +113,7 @@ END_RCPP
 }
 // C_nwalign
 Rcpp::CharacterVector C_nwalign(std::string s1, std::string s2, int match, int mismatch, int indel);
-RcppExport SEXP _himap_C_nwalign(SEXP s1SEXP, SEXP s2SEXP, SEXP matchSEXP, SEXP mismatchSEXP, SEXP indelSEXP) {
+RcppExport SEXP _rexmap_C_nwalign(SEXP s1SEXP, SEXP s2SEXP, SEXP matchSEXP, SEXP mismatchSEXP, SEXP indelSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -128,19 +128,19 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_himap_value_map", (DL_FUNC) &_himap_value_map, 1},
-    {"_himap_partid_to_fastqid", (DL_FUNC) &_himap_partid_to_fastqid, 2},
-    {"_himap_consensus_sequence", (DL_FUNC) &_himap_consensus_sequence, 1},
-    {"_himap_hamming", (DL_FUNC) &_himap_hamming, 2},
-    {"_himap_compare_alignment", (DL_FUNC) &_himap_compare_alignment, 2},
-    {"_himap_load_posterior", (DL_FUNC) &_himap_load_posterior, 1},
-    {"_himap_nwalign_endsfree_test", (DL_FUNC) &_himap_nwalign_endsfree_test, 6},
-    {"_himap_C_mergepairs", (DL_FUNC) &_himap_C_mergepairs, 11},
-    {"_himap_C_nwalign", (DL_FUNC) &_himap_C_nwalign, 5},
+    {"_rexmap_value_map", (DL_FUNC) &_rexmap_value_map, 1},
+    {"_rexmap_partid_to_fastqid", (DL_FUNC) &_rexmap_partid_to_fastqid, 2},
+    {"_rexmap_consensus_sequence", (DL_FUNC) &_rexmap_consensus_sequence, 1},
+    {"_rexmap_hamming", (DL_FUNC) &_rexmap_hamming, 2},
+    {"_rexmap_compare_alignment", (DL_FUNC) &_rexmap_compare_alignment, 2},
+    {"_rexmap_load_posterior", (DL_FUNC) &_rexmap_load_posterior, 1},
+    {"_rexmap_nwalign_endsfree_test", (DL_FUNC) &_rexmap_nwalign_endsfree_test, 6},
+    {"_rexmap_C_mergepairs", (DL_FUNC) &_rexmap_C_mergepairs, 11},
+    {"_rexmap_C_nwalign", (DL_FUNC) &_rexmap_C_nwalign, 5},
     {NULL, NULL, 0}
 };
 
-RcppExport void R_init_himap(DllInfo *dll) {
+RcppExport void R_init_rexmap(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }

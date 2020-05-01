@@ -4,9 +4,15 @@
 \alias{filter_and_trim}
 \title{Filter and trim reads. Wrapper for dada2::filterAndTrim}
 \usage{
-filter_and_trim(fq_in, fq_out, maxEE = 2,
-  multithread = himap_option("ncpu"),
-  verbose = himap_option("verbose"), compress = FALSE, ...)
+filter_and_trim(
+  fq_in,
+  fq_out,
+  maxEE = 2,
+  multithread = rexmap_option("ncpu"),
+  verbose = rexmap_option("verbose"),
+  compress = FALSE,
+  ...
+)
 }
 \description{
 Filter and trim reads. Wrapper for dada2::filterAndTrim

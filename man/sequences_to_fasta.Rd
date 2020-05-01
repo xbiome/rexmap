@@ -2,7 +2,7 @@
 % Please edit documentation in R/fastx_io.R
 \name{sequences_to_fasta}
 \alias{sequences_to_fasta}
-\title{Saves sequences from HiMAP sequence abundance table to FASTA file}
+\title{Saves sequences from RExMap sequence abundance table to FASTA file}
 \usage{
 sequences_to_fasta(abundance_table, fasta_out, remove_from_table = F)
 }
@@ -13,5 +13,5 @@ sequences_to_fasta(abundance_table, fasta_out, remove_from_table = F)
 is removed from the data table after the FASTA file is written to disk.}
 }
 \description{
-Saves sequences from HiMAP sequence abundance table to FASTA file
+Saves sequences from RExMap sequence abundance table to FASTA file
 }

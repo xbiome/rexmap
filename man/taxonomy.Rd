@@ -4,8 +4,13 @@
 \alias{taxonomy}
 \title{Add NCBI taxonomy to an OSU table}
 \usage{
-taxonomy(osu_table, verbose = himap_option("verbose"),
-  show_count = TRUE, ws = "_", split_char = ",")
+taxonomy(
+  osu_table,
+  verbose = rexmap_option("verbose"),
+  show_count = TRUE,
+  ws = "_",
+  split_char = ","
+)
 }
 \arguments{
 \item{table}{Data table containing columns 'osu_id', 'pctsim' and 'species'.

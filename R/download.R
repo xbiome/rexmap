@@ -1,15 +1,15 @@
 #' Download blastn and makeblastdb executables
 #'
 #' Downloads NCBI blastn and makeblastdb executables for the Operating System
-#' running R and copies it to the HiMAP package folder. This is executed automatically
-#' if blastn and makeblastdb executables are missing upon attaching HiMAP package.
+#' running R and copies it to the RExMap package folder. This is executed automatically
+#' if blastn and makeblastdb executables are missing upon attaching RExMap package.
 #'
 #' @param verbose (default: TRUE) Whether or not to print progress during download.
 #'
 #' @export
 download_blast = function (verbose=T, override_os=NULL) {
    # First find the platform
-   if (verbose) cat('HiMAP: Download blastn+makeblastdb command line utilities\n')
+   if (verbose) cat('RExMap: Download blastn+makeblastdb command line utilities\n')
 
    if (is.null(override_os)) {
       sys_os = detect_os()
@@ -55,22 +55,22 @@ download_blast = function (verbose=T, override_os=NULL) {
    untar(blast_file_gz, verbose=F, exdir = tempdir())
    if (verbose) cat(' OK.\n')
 
-   # Copy to HiMAP folder
+   # Copy to RExMap folder
    if (verbose) cat('* Copying...')
    blast_exec = file.path(dirname(blast_file_gz),
                           grep('/bin/blastn$', blast_files, value=T))
    makedb_exec = file.path(dirname(blast_file_gz),
                           grep('/bin/makeblastdb$', blast_files, value=T))
-   himap_path = find.package('himap')
-   himap_blastn_path = file.path(himap_path, 'exec', paste0('blastn_', sys_os))
-   himap_makedb_path = file.path(himap_path, 'exec', paste0('makeblastdb_',
+   rexmap_path = find.package('rexmap')
+   rexmap_blastn_path = file.path(rexmap_path, 'exec', paste0('blastn_', sys_os))
+   rexmap_makedb_path = file.path(rexmap_path, 'exec', paste0('makeblastdb_',
                                                             sys_os))
-   copy_success = file.copy(blast_exec, himap_blastn_path, overwrite=T)
+   copy_success = file.copy(blast_exec, rexmap_blastn_path, overwrite=T)
    if (!copy_success) stop('Error. Failed: ', blast_exec, ' --[copy]--> ',
-                           himap_blastn_path)
-   copy_success = file.copy(makedb_exec, himap_makedb_path, overwrite=T)
+                           rexmap_blastn_path)
+   copy_success = file.copy(makedb_exec, rexmap_makedb_path, overwrite=T)
    if (!copy_success) stop('Error. Failed: ', makedb_exec, ' --[copy]--> ',
-                           himap_makedb_path)
+                           rexmap_makedb_path)
    if (verbose) cat(' OK.\n')
 
    # Clean up files in the temp folder
@@ -102,8 +102,8 @@ curl_path = function () {
    curl_sys_path = suppressWarnings(system2(c('which', 'curl'), stdout=T,
                                             stderr=F))
    if (length(curl_sys_path) > 0) return(curl_sys_path)
-   # Curl not found in system path use the one bundled in HiMAP
-   return(file.path(find.package('himap'), 'exec', paste0('curl_', detect_os())))
+   # Curl not found in system path use the one bundled in RExMap
+   return(file.path(find.package('rexmap'), 'exec', paste0('curl_', detect_os())))
 }
 
 
@@ -131,20 +131,20 @@ latest_blast_url = function () {
 #'
 #' @export
 update_pcr_primers_table = function (backup_old=T, verbose=T) {
-   himap_database_path = file.path(find.package('himap'), 'database')
-   if (!dir.exists(himap_database_path)) {
-      stop('\nError: HiMAP database folder ', himap_database_path, ' not found!')
+   rexmap_database_path = file.path(find.package('rexmap'), 'database')
+   if (!dir.exists(rexmap_database_path)) {
+      stop('\nError: RExMap database folder ', rexmap_database_path, ' not found!')
    }
-   pcr_sequences_filename = system.file('extdata', 'pcr_primer_sequences.txt', package='himap')
+   pcr_sequences_filename = system.file('extdata', 'pcr_primer_sequences.txt', package='rexmap')
    if (pcr_sequences_filename == '') {
-      stop('\nError: HiMAP file with PCR sequences pcr_primer_sequences.txt not found!')
+      stop('\nError: RExMap file with PCR sequences pcr_primer_sequences.txt not found!')
    }
    pcr_sequences.dt = data.table::fread(pcr_sequences_filename)
    if (verbose) {
-      cat('* scanning ', himap_database_path, ' folder...')
+      cat('* scanning ', rexmap_database_path, ' folder...')
    }
-   himap_database_path_files = dir(himap_database_path, full.names=T)
-   himap_database_path_files_base = basename(himap_database_path_files)
+   rexmap_database_path_files = dir(rexmap_database_path, full.names=T)
+   rexmap_database_path_files_base = basename(rexmap_database_path_files)
    if (verbose) cat(' OK.\n')
    # Find pairs of files matching regex:
    # ^(V[^_]+)_([0-9]+F\\-[0-9]+R)_hang([0-9]+).*\\.([^\\.]+)$
@@ -158,7 +158,7 @@ update_pcr_primers_table = function (backup_old=T, verbose=T) {
    regex_prefix = '^(V[^_]+)_([0-9]+F\\-[0-9]+R)_hang([0-9]+)[_]?([0-9]{4}\\-[0-9]{2}\\-[0-9]{2})?.*'
    # Find potential database entries
    potential_db_entries = unique(sub(
-      regex_prefix, '\\1_\\2_hang\\3_\\4', basename(himap_database_path_files)
+      regex_prefix, '\\1_\\2_hang\\3_\\4', basename(rexmap_database_path_files)
    ))
    if (verbose) cat('.')
    potential_db_entries = sub('_$', '', potential_db_entries)
@@ -174,9 +174,9 @@ update_pcr_primers_table = function (backup_old=T, verbose=T) {
 
    for (db_entry in potential_db_entries) {
       if (verbose) cat('.')
-      nhr_file = grep(paste0(db_entry, '.*\\.nhr$'), himap_database_path_files_base, value=T)
-      nin_file = grep(paste0(db_entry, '.*\\.nin$'), himap_database_path_files_base, value=T)
-      nsq_file = grep(paste0(db_entry, '.*\\.nsq$'), himap_database_path_files_base, value=T)
+      nhr_file = grep(paste0(db_entry, '.*\\.nhr$'), rexmap_database_path_files_base, value=T)
+      nin_file = grep(paste0(db_entry, '.*\\.nin$'), rexmap_database_path_files_base, value=T)
+      nsq_file = grep(paste0(db_entry, '.*\\.nsq$'), rexmap_database_path_files_base, value=T)
       # Do all three files exist?
       if (length(nhr_file) == 0 | length(nin_file) == 0 | length(nsq_file) == 0) {
          next
@@ -189,7 +189,7 @@ update_pcr_primers_table = function (backup_old=T, verbose=T) {
          next
       }
       # Do we find _R.txt file with the same database_prefix??
-      r_file = grep(paste0(db_entry, '.*_R\\.txt$'), himap_database_path_files_base, value=T)
+      r_file = grep(paste0(db_entry, '.*_R\\.txt$'), rexmap_database_path_files_base, value=T)
       if (length(r_file) == 0) {
          next
       }
@@ -240,7 +240,7 @@ update_pcr_primers_table = function (backup_old=T, verbose=T) {
    # Overwrite old table
    # save old copy
    if (verbose) cat('* saving output file... ')
-   old_table_filename = system.file('extdata', 'pcr_primers_table.txt', package='himap')
+   old_table_filename = system.file('extdata', 'pcr_primers_table.txt', package='rexmap')
    if (backup_old) {
       new_table_filename = file.path(
          dirname(old_table_filename),
@@ -254,7 +254,7 @@ update_pcr_primers_table = function (backup_old=T, verbose=T) {
    }
 
    data.table::fwrite(final_db_table.dt, old_table_filename)
-   himap_setoption('blast_dbs', final_db_table.dt)
+   rexmap_setoption('blast_dbs', final_db_table.dt)
    if (verbose) cat('OK.\n')
    # print(final_db_table.dt)
 
@@ -264,37 +264,37 @@ update_pcr_primers_table = function (backup_old=T, verbose=T) {
 
 
 
-#' Update the HiMAP database
+#' Update the RExMap database
 #'
-#' Updates the database from a HiMAP GitHub repository with files pre-generated by
-#' the HiMAP authors. For manual database generation see:
-#' https://www.github.com/taolonglab/himapdb .
+#' Updates the database from a RExMap GitHub repository with files pre-generated by
+#' the RExMap authors. For manual database generation see:
+#' https://www.github.com/taolonglab/rexmapdb .
 #'
 #' @param verbose Verbose output, print status message during execution.
-#' @param source_repo Download HiMAP DB from himap Github repository
-#' (default: 'himap') or HiMAP db repository ('himapdb').
-#' @param update_ref_table Download and update reference table from the HiMAP
+#' @param source_repo Download RExMap DB from rexmap Github repository
+#' (default: 'rexmap') or RExMap db repository ('rexmapdb').
+#' @param update_ref_table Download and update reference table from the RExMap
 #' repository. Typically this table can be generated automatically on update
 #' when this is set to FALSE (default).
 #'
 #' @export
-update_database = function (verbose=T, source_repo='himap', update_ref_table=FALSE) {
-   if (verbose) cat('HiMAP database update\n')
+update_database = function (verbose=T, source_repo='rexmap', update_ref_table=FALSE) {
+   if (verbose) cat('RExMap database update\n')
    if (verbose) cat('* check internet connection... ')
    if (!internet_connection()) stop('\nError: Internet connection unavailable.')
    if (verbose) cat('OK.\n')
    if (verbose) cat('* downloading database files:\n')
-   himap_database_path = file.path(find.package('himap'), 'inst', 'database')
+   rexmap_database_path = file.path(find.package('rexmap'), 'inst', 'database')
    # Implements this method:
    # https://medium.com/@caludio/how-to-download-large-files-from-github-4863a2dbba3b
    curlpath = curl_path()
-   if (source_repo == 'himap') {
+   if (source_repo == 'rexmap') {
       json_out = paste(system2(curlpath, c(
-         '-L', 'https://api.github.com/repos/taolonglab/himap/contents/inst/database/'
+         '-L', 'https://api.github.com/repos/taolonglab/rexmap/contents/inst/database/'
       ), stdout=T, stderr=F), collapse='')
-   } else if (source_repo == 'himapdb') {
+   } else if (source_repo == 'rexmapdb') {
       json_out = paste(system2(curlpath, c(
-         '-L', 'https://api.github.com/repos/taolonglab/himapdb/contents/database_latest/'
+         '-L', 'https://api.github.com/repos/taolonglab/rexmapdb/contents/database_latest/'
       ), stdout=T, stderr=F), collapse='')
    }
 
@@ -304,12 +304,12 @@ update_database = function (verbose=T, source_repo='himap', update_ref_table=FAL
    for (i in 1:nrow(db.dt)) {
       f = db.dt[i, `_links.git`]
       if (verbose) cat('* -', db.dt[i, name], '\n')
-      # download.file(f, file.path(himap_database_path, basename(f)), extra=c(
+      # download.file(f, file.path(rexmap_database_path, basename(f)), extra=c(
       system2(curlpath, c(
          '-s',
          '-H', '"Accept: application/vnd.github.v3.raw"',
          '-L', f,
-         '-o', file.path(himap_database_path, db.dt[i, name])
+         '-o', file.path(rexmap_database_path, db.dt[i, name])
       ), stdout=F, stderr=F)
    }
    if (verbose) cat('* OK.\n')
@@ -318,8 +318,8 @@ update_database = function (verbose=T, source_repo='himap', update_ref_table=FAL
       system2(curlpath, c(
          '-s',
          '-H', '"Accept: application/vnd.github.v3.raw"',
-         '-L', 'https://api.github.com/repos/taolonglab/himap/contents/inst/extdata/pcr_primers_table.txt',
-         '-o', system.file('extdata', 'pcr_primers_table.txt', package='himap')
+         '-L', 'https://api.github.com/repos/taolonglab/rexmap/contents/inst/extdata/pcr_primers_table.txt',
+         '-o', system.file('extdata', 'pcr_primers_table.txt', package='rexmap')
       ), stdout=F, stderr=F)
       if (verbose) cat('OK.\n')
    } else {

@@ -4,17 +4,35 @@
 \alias{print_species}
 \title{Plot-friendly OSU labels}
 \usage{
-print_species(x, xsep = ",", xws = "_", ws = " ", sep = ", ",
-  include_sp = "single", decreasing = TRUE, show_count = TRUE,
-  show_single = FALSE, count_wrap = c("[", "]"), group_genera = TRUE,
-  group_genera_sep = "/", trim_genera_len = NULL,
-  trim_species_len = NULL, trim_symbol = ".",
-  replace_bacterium = TRUE, max_species = NULL,
-  multi_species_sub = "spp.", keep_family_strains = FALSE,
-  keep_order_strains = FALSE, keep_class_strains = FALSE,
-  keep_phylum_strains = FALSE, keep_sp_strains = FALSE,
-  keep_sp_strains_symbol = "_", return_single_entry = TRUE,
-  debug = FALSE, show_progress = TRUE)
+print_species(
+  x,
+  xsep = ",",
+  xws = "_",
+  ws = " ",
+  sep = ", ",
+  include_sp = "single",
+  decreasing = TRUE,
+  show_count = TRUE,
+  show_single = FALSE,
+  count_wrap = c("[", "]"),
+  group_genera = TRUE,
+  group_genera_sep = "/",
+  trim_genera_len = NULL,
+  trim_species_len = NULL,
+  trim_symbol = ".",
+  replace_bacterium = TRUE,
+  max_species = NULL,
+  multi_species_sub = c("sp.", "spp."),
+  keep_family_strains = FALSE,
+  keep_order_strains = FALSE,
+  keep_class_strains = FALSE,
+  keep_phylum_strains = FALSE,
+  keep_sp_strains = FALSE,
+  keep_sp_strains_symbol = "_",
+  return_single_entry = TRUE,
+  debug = FALSE,
+  show_progress = TRUE
+)
 }
 \arguments{
 \item{x}{(Required) A character vector of strain names.}
@@ -85,8 +103,9 @@ this is set to TRUE any names ending with `bacterium` and `cf.` are substituted
 with `sp.` for consistency. Default: TRUE}
 
 \item{multi_species_sub}{If there are too many species under a single
-genus (greater than max_species), then use this string as replacement.
-(default: `spp.`)}
+genus (greater than max_species), then use this string as replacement. First element
+is the replacement if the hit is one species, second if there are more hits.
+(default: `c(sp., spp.)``)}
 
 \item{keep_family_strains}{Keep strains that do not even have genus assigned, such as
 Ruminococcaceae sp. if there are other, strains with named genera.}
