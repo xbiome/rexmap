@@ -67,5 +67,5 @@ By default, multithreading is enabled and supported only on Linux and macOS, thr
 If DADA2 package installation fails due to `latticeExtra` package requiring R version 3.6 and you are running 3.5, you can use this to install an older version of the `latticeExtra` package:
 
 ```R
-devtools::install_github('taolonglab/rexmap')
+devtools::install_version('latticeExtra', version='0.6-28', repos='http://cran.us.r-project.org')
 ```
