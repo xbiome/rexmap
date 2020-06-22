@@ -1,6 +1,6 @@
 # RExMap: Reference-based exact Mapping Pipeline
 
-A pipeline for an exact (100% identity) local alignment of 16S sequences to the reference database RExMapDB of known isolate microbial strains.
+A 16S pipeline for a reference-based local alignment of 16S sequences to the reference database RExMapDB of known isolate microbial strains.
 
 ## Installation from source
 
