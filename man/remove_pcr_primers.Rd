@@ -13,10 +13,10 @@ remove_pcr_primers(
   pr_fwd_maxoff = 10,
   pr_rev_maxoff = 10,
   return_noprimer = T,
-  ncpu = himap_option("ncpu"),
+  ncpu = rexmap_option("ncpu"),
   max_mismatch = 2,
   timing = F,
-  verbose = himap_option("verbose"),
+  verbose = rexmap_option("verbose"),
   overwrite = TRUE
 )
 }

@@ -8,7 +8,7 @@ print_strains(
   strains,
   raw = F,
   deduplicate = T,
-  nmax = himap_option("print_strains_nmax")
+  nmax = rexmap_option("print_strains_nmax")
 )
 }
 \arguments{

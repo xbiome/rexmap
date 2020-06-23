@@ -14,7 +14,7 @@ merge_pairs(
   mismatch = -5L,
   gap_p = -7L,
   rc_reverse = TRUE,
-  ncpu = himap_option("ncpu"),
+  ncpu = rexmap_option("ncpu"),
   verbose = FALSE,
   timing = FALSE
 )

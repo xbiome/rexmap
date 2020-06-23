@@ -6,8 +6,8 @@
 \usage{
 collapse(
   ab_in,
-  verbose = himap_option("verbose"),
-  ncpu = himap_option("ncpu"),
+  verbose = rexmap_option("verbose"),
+  ncpu = rexmap_option("ncpu"),
   temp_dir = tempdir(),
   ws_scale = 0.8,
   max_target_seqs = 50,

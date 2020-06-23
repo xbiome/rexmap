@@ -8,8 +8,8 @@ filter_and_trim(
   fq_in,
   fq_out,
   maxEE = 2,
-  multithread = himap_option("ncpu"),
-  verbose = himap_option("verbose"),
+  multithread = rexmap_option("ncpu"),
+  verbose = rexmap_option("verbose"),
   compress = FALSE,
   ...
 )

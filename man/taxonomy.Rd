@@ -6,7 +6,7 @@
 \usage{
 taxonomy(
   osu_table,
-  verbose = himap_option("verbose"),
+  verbose = rexmap_option("verbose"),
   show_count = TRUE,
   ws = "_",
   split_char = ","
