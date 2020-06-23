@@ -11,7 +11,7 @@ lineagecsv_to_robj = function (lincsv, out) {
    saveRDS(taxonomy.dt, file=out, compress=T)
 }
 
-#' Load HiMAP taxonomy reference file
+#' Load RExMap taxonomy reference file
 #'
 #' This is a NCBI Taxonomy database, exported as an compressed R object.
 #'
