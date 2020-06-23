@@ -16,10 +16,10 @@ lineagecsv_to_robj = function (lincsv, out) {
 #' This is a NCBI Taxonomy database, exported as an compressed R object.
 #'
 #' @param tax_file Full path to the Rdata taxonomy file. Default:
-#' himap_option('taxonomy_file').
+#' rexmap_option('taxonomy_file').
 #'
 #' @export
-load_taxonomy = function (tax_file=himap_option('taxonomy_file')) {
+load_taxonomy = function (tax_file=rexmap_option('taxonomy_file')) {
    readRDS(tax_file)
 }
 
@@ -69,7 +69,7 @@ osuab_genuses = function (osuab, ws='_', split_char=',') {
 #' function.
 #'
 #' @export
-taxonomy = function (osu_table, verbose=himap_option('verbose'), show_count=TRUE,
+taxonomy = function (osu_table, verbose=rexmap_option('verbose'), show_count=TRUE,
                      ws='_', split_char=',') {
   if (show_count) {
     sep_str = '_['

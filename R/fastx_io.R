@@ -29,7 +29,7 @@ sfastq_reader = function (file_name) {
        'qual'=as.character(Biostrings::quality(Biostrings::quality(x))))
 }
 
-fastq_list_writer = function (fastq_list, output, ncpu=himap_option('ncpu')) {
+fastq_list_writer = function (fastq_list, output, ncpu=rexmap_option('ncpu')) {
   # Write FASTQ file at once. Input is a list where each element is a list
   # with names 'meta', 'seq' and 'qual'. I use this to save the result from (mc)mapply.
   list_paste = function (l) {

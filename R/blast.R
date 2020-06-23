@@ -25,15 +25,15 @@ blast_best_seq_matches = function (dt, id_col='dada_seqid', match_col='match_str
 }
 
 blast_out_to_best_cp = function (
-   blast_output, region=NULL, ref_cp=NULL, aln_params=himap_option('aln_params'),
-   blast_out_fmt=himap_option('blast_out_fmt'),
-   verbose=T, ncpu=himap_option('ncpu'), variant_sep='-',
+   blast_output, region=NULL, ref_cp=NULL, aln_params=rexmap_option('aln_params'),
+   blast_out_fmt=rexmap_option('blast_out_fmt'),
+   verbose=T, ncpu=rexmap_option('ncpu'), variant_sep='-',
    show_alignment=F, skip_cp=F
   )
 {
   # Select region all ref_cp from file
   if (!is.null(region)) { # If region is given, ignore ref_cp
-    ref_cp = himap_option('blast_dbs')[Hypervariable_region==region, table]
+    ref_cp = rexmap_option('blast_dbs')[Hypervariable_region==region, table]
     ref_cp = system.file('database', ref_cp, package='himap')
     if (length(ref_cp) == 0) stop('blast: invalid hyper-variable region.')
   } else { # Region is not given, just check if ref_cp file exist
@@ -155,7 +155,7 @@ blast_out_to_best_cp = function (
 # OSU binning and abundance estimation
 blast_cp_to_osu_dt = function (
   blast_best.dt, cp.dt, ab_tab_nochim_m.dt,
-  ncpu = himap_option('ncpu'),
+  ncpu = rexmap_option('ncpu'),
   verbose=T
 ) {
   pctsim_min = 100.00 # Min. pct sim for OSU binning
@@ -235,7 +235,7 @@ blast_cp_to_osu_dt = function (
 #' is specified, then the \code{ref_db} and \code{ref_cp} arguments are ignored and a
 #' reference database is chosen
 #' from the pre-computed set for that hyper-variable region. For available databases
-#' see columns DB and table in \code{himap_option('blast_dbs')}.
+#' see columns DB and table in \code{rexmap_option('blast_dbs')}.
 #' This function returns a blast-class object (named list; see ?blast-class for info).
 #'
 #' @param sequences (Required) Either a FASTA file, a character vector of DNA sequences, or
@@ -250,11 +250,11 @@ blast_cp_to_osu_dt = function (
 #'
 #' @export
 blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
-                  ref_cp=NULL, max_target_seqs=himap_option('blast_max_seqs'),
-                  word_size=himap_option('blast_word_size'),
-                  verbose=himap_option('verbose'),
+                  ref_cp=NULL, max_target_seqs=rexmap_option('blast_max_seqs'),
+                  word_size=rexmap_option('blast_word_size'),
+                  verbose=rexmap_option('verbose'),
                   show_args=F, output_error=F, show_alignment=F,
-                  ncpu=himap_option('ncpu'), temp_dir=tempdir()) {
+                  ncpu=rexmap_option('ncpu'), temp_dir=tempdir()) {
 
   # Pre-blastn sequence argument check
   # Sequences can be either FASTA file (ends with either .fa or .fasta),
@@ -350,7 +350,7 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
   names(blast_cp) = c('alignments', 'cp')
   blast_cp$parameters = list(
     'max_target_seqs'=max_target_seqs, 'word_size'=word_size, 'alignment_parameters'=
-    paste(c('match', 'mismatch', 'gap_open', 'gap_extend'), himap_option('aln_params'),
+    paste(c('match', 'mismatch', 'gap_open', 'gap_extend'), rexmap_option('aln_params'),
           collapse=', ', sep=': '))
 
   if (class(sequences)[1] == 'character') {
@@ -401,17 +401,17 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
 
 blastn = function (
   seqs_fa, output, region=NULL, ref_db=NULL,
-  blast_path=himap_option('path_blastn'),
-  match=himap_option('aln_params')[1], mismatch=himap_option('aln_params')[2],
-  gapopen=-himap_option('aln_params')[3], gapextend=-himap_option('aln_params')[4],
-  word_size=himap_option('blast_word_size'), ncpu=himap_option('ncpu'),
-  max_target_seqs=himap_option('blast_max_seqs'),
-  perc_identity=75, outfmt=paste0('6 ', himap_option('blast_out_fmt')),
+  blast_path=rexmap_option('path_blastn'),
+  match=rexmap_option('aln_params')[1], mismatch=rexmap_option('aln_params')[2],
+  gapopen=-rexmap_option('aln_params')[3], gapextend=-rexmap_option('aln_params')[4],
+  word_size=rexmap_option('blast_word_size'), ncpu=rexmap_option('ncpu'),
+  max_target_seqs=rexmap_option('blast_max_seqs'),
+  perc_identity=75, outfmt=paste0('6 ', rexmap_option('blast_out_fmt')),
   dust='20 64 1',
-  output_err=F, verbose=himap_option('verbose')
+  output_err=F, verbose=rexmap_option('verbose')
   ) {
 
-  dbs = himap_option('blast_dbs')
+  dbs = rexmap_option('blast_dbs')
   if (!is.null(region)) {
     # Region is specificed, ignore ref_db
     if (!(region %in% dbs[, Hypervariable_region])) {

@@ -32,8 +32,8 @@ remove_pcr_primers = Vectorize(function (fq_in, fq_out, region=NULL,
                               pr_rev=NULL,
                               pr_fwd_maxoff=10, pr_rev_maxoff=10,
                               return_noprimer=T,
-                              ncpu=himap_option('ncpu'), max_mismatch=2,
-                              timing=F, verbose=himap_option('verbose'),
+                              ncpu=rexmap_option('ncpu'), max_mismatch=2,
+                              timing=F, verbose=rexmap_option('verbose'),
                               overwrite=TRUE) {
   # fq_in = input fastq file
   # fq_out = output fastq file (without primers)
@@ -62,13 +62,13 @@ remove_pcr_primers = Vectorize(function (fq_in, fq_out, region=NULL,
 
   # if region is specified, check that primers exist in the reference table
   if (!is.null(region)) {
-    if (nrow(himap_option('blast_dbs')[Hypervariable_region==region]) == 0) {
+    if (nrow(rexmap_option('blast_dbs')[Hypervariable_region==region]) == 0) {
       # Missing hypervariable region
       stop('PCR primer remover: hypervariable region \"', region, '\" not found.')
     }
-    pr_fwd = himap_option('blast_dbs')[Hypervariable_region==region, Primer1_sequence_5to3]
+    pr_fwd = rexmap_option('blast_dbs')[Hypervariable_region==region, Primer1_sequence_5to3]
     pr_rev = reverse_complement(
-      himap_option('blast_dbs')[Hypervariable_region==region, Primer2_sequence_3to5]
+      rexmap_option('blast_dbs')[Hypervariable_region==region, Primer2_sequence_3to5]
     )
     if (verbose) cat('* PCR primer remover mode: region', region, paste0('(fwd: ',
       pr_fwd, ', rev: ', pr_rev, ')'), fill=T)

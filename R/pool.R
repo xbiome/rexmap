@@ -26,7 +26,7 @@
 # osu_ab_2.dt = readRDS('~/data/twinsuk_2014/Rdata/osu_ab.dt')
 # osu_seq_2.dt = readRDS('~/data/twinsuk_2014/Rdata/osu_seq.dt')
 #
-# osu_offset = himap_option('osu_offset')
+# osu_offset = rexmap_option('osu_offset')
 # dataset_names = c('SKOREA', 'TwinsUK_2014')
 # Dataset names need to be added as columns to each data table before we begin
 # pairwise merging
@@ -88,7 +88,7 @@ fremove = function (filename) {
    }
 }
 
-vcat = function (..., verbose=himap_option('verbose')) {
+vcat = function (..., verbose=rexmap_option('verbose')) {
    if (verbose) {
       cat(...)
    }
@@ -197,8 +197,8 @@ spectrum_match = function (v1, v2, sep1=',', sep2=':',
 }
 
 
-collapse_2 = function (ab_in, verbose=himap_option('verbose'),
-                     ncpu=himap_option('ncpu'), temp_dir=tempdir(),
+collapse_2 = function (ab_in, verbose=rexmap_option('verbose'),
+                     ncpu=rexmap_option('ncpu'), temp_dir=tempdir(),
                      ws_scale=0.85, max_target_seqs=NULL,
                      blast_verbose=T) {
    # Provide ab_tab_nochim as an input argument, same as dada2::collapseNoMismatch
@@ -227,7 +227,7 @@ collapse_2 = function (ab_in, verbose=himap_option('verbose'),
    }
    blast_status = blastn(fasta, ref_db=db,
                          output=blast_out, max_target_seqs=max_target_seqs,
-                         outfmt=paste0('6 ', himap_option('blast_coll_fmt')),
+                         outfmt=paste0('6 ', rexmap_option('blast_coll_fmt')),
                          perc_identity=100, word_size=ws, ncpu=ncpu,
                          verbose=blast_verb)
    vcat('blast status: ', blast_status)
@@ -240,7 +240,7 @@ collapse_2 = function (ab_in, verbose=himap_option('verbose'),
    if (verbose) cat('* selecting ends-free alignments...')
    blast.dt = data.table::fread(blast_out)
 
-   names(blast.dt) = strsplit(himap_option('blast_coll_fmt'), ' ', fixed=T)[[1]]
+   names(blast.dt) = strsplit(rexmap_option('blast_coll_fmt'), ' ', fixed=T)[[1]]
    blast2.dt = blast.dt[(qseqid != sseqid) & (pident==100)]
    # Select only ends-free alignments
    blast3.dt = blast2.dt[(qstart==1 & qend==qlen) | (sstart==1 & send==slen) |
@@ -335,7 +335,7 @@ lu = function (x) length(unique(x))
 
 
 pool_two_himap_outputs_2 = function (osu_1, osu_2,
-                                   osu_offset=himap_option('osu_offset'),
+                                   osu_offset=rexmap_option('osu_offset'),
                                    verbose=TRUE, temp_dir=tempdir(),
                                    blast_verbose=F) {
 
@@ -385,7 +385,7 @@ pool_two_himap_outputs_2 = function (osu_1, osu_2,
       blast_status = blastn(fasta_out_2, ref_db=db_prefix_1,
                             output=blast_out, max_target_seqs=1000,
                             match=1, mismatch=-2, gapopen=1, gapextend=1,
-                            outfmt=paste0('6 ', himap_option('blast_coll_fmt')),
+                            outfmt=paste0('6 ', rexmap_option('blast_coll_fmt')),
                             perc_identity=100, word_size=ws, verbose=blast_verbose)
       vcat('blast status: ', blast_status, fill=T)
 
@@ -408,7 +408,7 @@ pool_two_himap_outputs_2 = function (osu_1, osu_2,
       vcat('* selecting ends-free alignments')
       blast.dt = data.table::fread(blast_out)
       vcat('.')
-      names(blast.dt) = strsplit(himap_option('blast_coll_fmt'), ' ', fixed=T)[[1]]
+      names(blast.dt) = strsplit(rexmap_option('blast_coll_fmt'), ' ', fixed=T)[[1]]
 
       # Remove last temporary file (blast output)
       if (delete_temp) {
@@ -1171,7 +1171,7 @@ pool_two_himap_outputs_2 = function (osu_1, osu_2,
 
 
 pool_two_himap_outputs = function (osu_1, osu_2,
-                                   osu_offset=himap_option('osu_offset'),
+                                   osu_offset=rexmap_option('osu_offset'),
                                    verbose=T, temp_dir=tempdir()) {
 
    # SET _1 = SUBJECT
@@ -1218,7 +1218,7 @@ pool_two_himap_outputs = function (osu_1, osu_2,
       blast_status = blastn(fasta_out_2, ref_db=db_prefix_1,
                             output=blast_out, max_target_seqs=NULL,
                             match=1, mismatch=-2, gapopen=1, gapextend=1,
-                            outfmt=paste0('6 ', himap_option('blast_coll_fmt')),
+                            outfmt=paste0('6 ', rexmap_option('blast_coll_fmt')),
                             perc_identity=100, word_size=ws, verbose=T)
       vcat('blast status: ', blast_status, fill=T)
 
@@ -1239,7 +1239,7 @@ pool_two_himap_outputs = function (osu_1, osu_2,
       vcat('* selecting ends-free alignments')
       blast.dt = data.table::fread(blast_out)
       vcat('.')
-      names(blast.dt) = strsplit(himap_option('blast_coll_fmt'), ' ', fixed=T)[[1]]
+      names(blast.dt) = strsplit(rexmap_option('blast_coll_fmt'), ' ', fixed=T)[[1]]
 
       # Remove last temporary file (blast output)
       fremove(blast_out)
