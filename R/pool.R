@@ -1,6 +1,6 @@
 
 
-# Pool two experiments (final HiMAP outputs) and generate a new HiMAP output
+# Pool two experiments (final RExMap outputs) and generate a new RExMap output
 # Input consists of two lists:
 #   osu_ab.list = list of osu_ab.dt data tables (output from abundance())
 #   osu_seq.list = list of osu_seq.dt data tables (output from osu_sequences())
@@ -31,9 +31,9 @@
 # Dataset names need to be added as columns to each data table before we begin
 # pairwise merging
 
-#' Pool multiple HiMAP outputs
+#' Pool multiple RExMap outputs
 #'
-#' Combine HiMAP outputs from multiple datasets into a single table.
+#' Combine RExMap outputs from multiple datasets into a single table.
 #'
 #' @param result_list A \code{list()} with each element being a list of two
 #' data tables.
@@ -58,7 +58,7 @@
 #' @param verbose TRUE/FALSE: Print progress during dataset pooling.
 #'
 #' @export
-pool_himap_results = function (result_list, dataset_names = NULL,
+pool_rexmap_results = function (result_list, dataset_names = NULL,
                                verbose=T) {
    # Add dataset name columns
    if (!is.null(dataset_names)){
@@ -486,7 +486,7 @@ pool_two_himap_outputs_2 = function (osu_1, osu_2,
    }
 
    vcat('\n')
-   vcat('------------------  HiMAP POOL TWO DATASETS ----------------- \n')
+   vcat('------------------  RExMap POOL TWO DATASETS ----------------- \n')
 
    osu_ab_1.dt = osu_1[[1]]
    osu_seq_1.dt = na.omit(osu_1[[2]])
