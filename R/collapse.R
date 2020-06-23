@@ -9,7 +9,7 @@ get_makeblastdb_path = function () {
 }
 
 makeblastdb = function (fasta_in, db_out, verbose=TRUE,
-                        makeblastdb_path=himap_option('path_makeblastdb')) {
+                        makeblastdb_path=rexmap_option('path_makeblastdb')) {
   # Generate a BLAST database from fasta_in
   # db_out contains a full location and prefix for BLASTDB files
   # This function does not return anything, but can optionally
@@ -51,8 +51,8 @@ min_seq_len = function (fasta_files, n=50) {
 #' @importFrom igraph groups
 #' @importFrom igraph clusters
 #' @export
-collapse = function (ab_in, verbose=himap_option('verbose'),
-                     ncpu=himap_option('ncpu'), temp_dir=tempdir(),
+collapse = function (ab_in, verbose=rexmap_option('verbose'),
+                     ncpu=rexmap_option('ncpu'), temp_dir=tempdir(),
                      ws_scale=0.8, max_target_seqs=50, copy_table=TRUE) {
   # Provide ab_tab_nochim as an input argument, same as dada2::collapseNoMismatch
   if (verbose) cat('collapse:', fill=T)
@@ -80,7 +80,7 @@ collapse = function (ab_in, verbose=himap_option('verbose'),
   if (verbose) cat('* running blast...')
   blast_status = blastn(fasta, ref_db=db,
                         output=blast_out, max_target_seqs=max_target_seqs,
-                        outfmt=paste0('6 ', himap_option('blast_coll_fmt')),
+                        outfmt=paste0('6 ', rexmap_option('blast_coll_fmt')),
                         perc_identity=100, word_size=ws, ncpu=ncpu)
   cat('blast status: ', blast_status, fill=T)
   if (blast_status != 0) {
@@ -92,7 +92,7 @@ collapse = function (ab_in, verbose=himap_option('verbose'),
   if (verbose) cat('* selecting ends-free alignments...')
   blast.dt = data.table::fread(blast_out)
 
-  names(blast.dt) = strsplit(himap_option('blast_coll_fmt'), ' ', fixed=T)[[1]]
+  names(blast.dt) = strsplit(rexmap_option('blast_coll_fmt'), ' ', fixed=T)[[1]]
   blast2.dt = blast.dt[(qseqid != sseqid) & (pident==100)]
   # Select only ends-free alignments
   blast3.dt = blast2.dt[(qstart==1 & qend==qlen) | (sstart==1 & send==slen) |

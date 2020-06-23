@@ -45,7 +45,7 @@ fasta_writer = function (meta, seqs, output) {
             output, eos=NULL)
 }
 
-#' Saves sequences from HiMAP sequence abundance table to FASTA file
+#' Saves sequences from RExMap sequence abundance table to FASTA file
 #'
 #' @param abundance_table Output from \code{\link{sequence_abundance}} function.
 #' @param remove_from_table If TRUE, column with sequences (names sequences)
