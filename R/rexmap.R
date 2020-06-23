@@ -13,6 +13,9 @@ NULL
 
 pname = 'RExMap'
 pname_l = 'rexmap'
+# If you rename the pipeline (again), don't forget to re-run
+# Rcpp::compileAttributes()
+
 
 #' Detect operating system
 detect_os = function () {
