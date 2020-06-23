@@ -1,5 +1,5 @@
 #include <Rcpp.h>
-#include "himap.h"
+#include "rexmap.h"
 using namespace std;
 // [[Rcpp::plugins(cpp11)]]
 

@@ -1,5 +1,5 @@
 // #include <Rcpp.h>
-#include "himap.h"
+#include "rexmap.h"
 using namespace Rcpp;
 
 // Precomputer posterior q scores for matching and mismatching bases
