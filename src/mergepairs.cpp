@@ -1,5 +1,6 @@
-#include <Rcpp.h>
+// #include <Rcpp.h>
 #include "himap.h"
+using namespace Rcpp;
 
 // Precomputer posterior q scores for matching and mismatching bases
 std::vector< std::vector<int> > post_q_match;
@@ -487,5 +488,6 @@ Rcpp::CharacterVector C_mergepairs(std::string s1, std::string s2,
   free(merged[1]);
   return(rval);
 }
+
 
 

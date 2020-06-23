@@ -4,10 +4,17 @@
 \alias{sequence_abundance}
 \title{Sequence abundance table}
 \usage{
-sequence_abundance(dada_result, remove_bimeras = T,
-  collapse_sequences = T, verbose = T,
-  remove_bimeras_method = "consensus", remove_bimeras_oneoff = T,
-  fq_prefix_split = ".", fq_prefix_split_n = 1, ncpu = TRUE)
+sequence_abundance(
+  dada_result,
+  remove_bimeras = T,
+  collapse_sequences = T,
+  verbose = T,
+  remove_bimeras_method = "consensus",
+  remove_bimeras_oneoff = T,
+  fq_prefix_split = ".",
+  fq_prefix_split_n = 1,
+  ncpu = TRUE
+)
 }
 \arguments{
 \item{dada_result}{dada() result}

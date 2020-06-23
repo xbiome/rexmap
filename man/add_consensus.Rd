@@ -4,8 +4,15 @@
 \alias{add_consensus}
 \title{Untrim trimmed sequences in a DADA2 object}
 \usage{
-add_consensus(dada_res, derep, fq_tri, fq_fil, truncLen, verbose = T,
-  ncpu = himap_option("ncpu"))
+add_consensus(
+  dada_res,
+  derep,
+  fq_tri,
+  fq_fil,
+  truncLen,
+  verbose = T,
+  ncpu = himap_option("ncpu")
+)
 }
 \arguments{
 \item{dada_res}{DADA2 object with sequences to un-trim.}

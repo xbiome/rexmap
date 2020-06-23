@@ -21,5 +21,5 @@ Imports:
    ShortRead (>= 1.36.1),
    stringr (>= 1.3.0),
    utils (>= 3.4.4)
-RoxygenNote: 6.1.1
+RoxygenNote: 7.1.0
 StagedInstall: false

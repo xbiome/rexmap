@@ -4,9 +4,16 @@
 \alias{abundance}
 \title{OSU abundance table}
 \usage{
-abundance(abundance_table, blast_object, ncpu = himap_option("ncpu"),
-  verbose = himap_option("verbose"), raw_strains = TRUE,
-  pso_n = 1000, custom_sampleids = NULL, debug = FALSE)
+abundance(
+  abundance_table,
+  blast_object,
+  ncpu = himap_option("ncpu"),
+  verbose = himap_option("verbose"),
+  raw_strains = TRUE,
+  pso_n = 1000,
+  custom_sampleids = NULL,
+  debug = FALSE
+)
 }
 \arguments{
 \item{abundance_table}{Sequence abundance table. Data table with 3 columns

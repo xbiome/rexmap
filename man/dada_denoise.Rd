@@ -4,10 +4,16 @@
 \alias{dada_denoise}
 \title{DADA2 denoising}
 \usage{
-dada_denoise(fastq_trimmed, fastq_untrimmed, pvalue = 1e-04,
-  pvalue_adjusted = NULL, multithread = himap_option("ncpu"),
-  verbose = himap_option("verbose"), timing = himap_option("timing"),
-  dada_errors_path = NULL)
+dada_denoise(
+  fastq_trimmed,
+  fastq_untrimmed,
+  pvalue = 1e-04,
+  pvalue_adjusted = NULL,
+  multithread = himap_option("ncpu"),
+  verbose = himap_option("verbose"),
+  timing = himap_option("timing"),
+  dada_errors_path = NULL
+)
 }
 \arguments{
 \item{pvalue}{P-value threshold before Bonferroni correction for DADA2.}

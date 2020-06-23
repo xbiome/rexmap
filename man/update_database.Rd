@@ -4,8 +4,7 @@
 \alias{update_database}
 \title{Update the HiMAP database}
 \usage{
-update_database(verbose = T, source_repo = "himap",
-  update_ref_table = FALSE)
+update_database(verbose = T, source_repo = "himap", update_ref_table = FALSE)
 }
 \arguments{
 \item{verbose}{Verbose output, print status message during execution.}

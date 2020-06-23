@@ -4,8 +4,7 @@
 \alias{random_sequences}
 \title{Generate random sequence of given length}
 \usage{
-random_sequences(len = 50, n = 10, dictionary = c("A", "C", "G",
-  "T"))
+random_sequences(len = 50, n = 10, dictionary = c("A", "C", "G", "T"))
 }
 \description{
 Generate random sequence of given length

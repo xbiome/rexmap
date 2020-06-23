@@ -4,12 +4,21 @@
 \alias{blast}
 \title{BLAST sequences against a reference database}
 \usage{
-blast(sequences, blast_output = NULL, region = NULL, ref_db = NULL,
-  ref_cp = NULL, max_target_seqs = himap_option("blast_max_seqs"),
+blast(
+  sequences,
+  blast_output = NULL,
+  region = NULL,
+  ref_db = NULL,
+  ref_cp = NULL,
+  max_target_seqs = himap_option("blast_max_seqs"),
   word_size = himap_option("blast_word_size"),
-  verbose = himap_option("verbose"), show_args = F, output_error = F,
-  show_alignment = F, ncpu = himap_option("ncpu"),
-  temp_dir = tempdir())
+  verbose = himap_option("verbose"),
+  show_args = F,
+  output_error = F,
+  show_alignment = F,
+  ncpu = himap_option("ncpu"),
+  temp_dir = tempdir()
+)
 }
 \arguments{
 \item{sequences}{(Required) Either a FASTA file, a character vector of DNA sequences, or
