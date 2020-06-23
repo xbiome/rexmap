@@ -2,7 +2,8 @@
 % Please edit documentation in R/download.R
 \name{update_pcr_primers_table}
 \alias{update_pcr_primers_table}
-\title{Construct the pcr_primers_table after database update}
+\title{Construct the pcr_primers_table after database update
+(this is not finished yet)}
 \usage{
 update_pcr_primers_table(backup_old = T, verbose = T)
 }

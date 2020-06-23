@@ -1,10 +1,10 @@
 Package: rexmap
 Type: Package
-Title: Reference-based Exact Mapping Amplicon Pipeline
+Title: Reference-based exact Mapping Pipeline
 Version: 1.1
 Author: Igor Segota <is246@cornell.edu>, Tao Long <tlong@sbpdiscovery.org>
 Maintainer: Igor Segota <is246@cornell.edu>
-Description: Pipeline for exact matching of amplicon sequence variants (ASVs) to a custom reference database RExMapDB.
+Description: Reference-based exact Mapping Pipeline
 License: LGPL-3
 Encoding: UTF-8
 LazyData: true

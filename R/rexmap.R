@@ -1,5 +1,3 @@
-#' @title RExMap
-#'
 #' Import these functions for everything
 #' @importFrom data.table data.table
 #' @importFrom data.table as.data.table
@@ -12,6 +10,11 @@
 #' @importFrom stringr str_sub
 #' @useDynLib rexmap
 NULL
+
+pname = 'RExMap'
+pname_l = 'rexmap'
+# If you rename the pipeline (again), don't forget to re-run
+# Rcpp::compileAttributes()
 
 
 #' Detect operating system
@@ -35,75 +38,75 @@ exec_file = function (filename) {
 
 
 #-- Default options -----------------------------------------------------------
-rexmap_opts = new.env()
+himap_opts = new.env()
 allowed_options = c('aln_params', 'blast_max_seqs', 'blast_word_size',
                     'ncpu', 'print_strains_nmax', 'string_maxwidth',
                     'timing', 'verbose')
-assign('rexmap_path', '', env=rexmap_opts)
+assign('himap_path', '', env=himap_opts)
 # FUll current path is obtained by:
 # assign()
 # BLAST blast() output format
 assign('blast_out_fmt',
        'qseqid sseqid qlen length qstart qend sstart send slen qseq sseq',
-       env=rexmap_opts)
+       env=himap_opts)
 # BLAST collapse() format. Changing this might break collapse function
 # used only for debugging.
 assign('blast_coll_fmt',
        'qseqid sseqid qlen slen length qstart qend sstart send pident',
-       env=rexmap_opts)
+       env=himap_opts)
 # BLAST executables paths
 assign('path_makeblastdb',
-       system.file('exec', exec_file('makeblastdb'), package='rexmap'),
-       env=rexmap_opts)
+       system.file('exec', exec_file('makeblastdb'), package=pname_l),
+       env=himap_opts)
 assign('path_blastn',
-       system.file('exec', exec_file('blastn'), package='rexmap'),
-       env=rexmap_opts)
+       system.file('exec', exec_file('blastn'), package=pname_l),
+       env=himap_opts)
 # BLAST alignment parameters
-assign('aln_params', c(5L, -4L, -8L, -6L), env=rexmap_opts)
+assign('aln_params', c(5L, -4L, -8L, -6L), env=himap_opts)
 # Autodetect number of available threads for multithreading parts
 # Set to 1 if you always  want to use only 1 thread.
 # These (5,-5,-8,-6) are good ones for collapsing sequences using overlap
 # alignments, if the lengths of query and subject aren't too different.
-assign('osu_offset', 1000000L, env=rexmap_opts)
-assign('ncpu', parallel::detectCores(), env=rexmap_opts)
+assign('osu_offset', 1000000L, env=himap_opts)
+assign('ncpu', parallel::detectCores(), env=himap_opts)
 
 # BLAST databases
 assign('blast_dbs',
        data.table::fread(
-         system.file('extdata', 'pcr_primers_table.txt', package='rexmap')
+         system.file('extdata', 'pcr_primers_table.txt', package=pname_l)
        ),
-       env=rexmap_opts)
-assign('blast_max_seqs', 500, env=rexmap_opts)
-assign('blast_word_size', 50, env=rexmap_opts)
-assign('database_build_version', '2020-01-29', env=rexmap_opts)
+       env=himap_opts)
+assign('blast_max_seqs', 500, env=himap_opts)
+assign('blast_word_size', 50, env=himap_opts)
+assign('database_build_version', '2020-01-29', env=himap_opts)
 
 # Read merging
 assign('mergepairs_matchqs',
-       system.file('merge_tables', 'rexmap_mergepairs_match_qs.txt',
-                   package='rexmap'),
-       env=rexmap_opts)
+       system.file('merge_tables', 'himap_mergepairs_match_qs.txt',
+                   package=pname_l),
+       env=himap_opts)
 assign('mergepairs_mismatchqs',
-       system.file('merge_tables', 'rexmap_mergepairs_mismatch_qs.txt',
-                   package='rexmap'),
-       env=rexmap_opts)
+       system.file('merge_tables', 'himap_mergepairs_mismatch_qs.txt',
+                   package=pname_l),
+       env=himap_opts)
 # Taxonomy
 assign('taxonomy_file',
        system.file('database', 'lineages-2020-02-14_bacteria_archaea.Rdata',
-                   package='rexmap'),
-       env=rexmap_opts)
+                   package=pname_l),
+       env=himap_opts)
 
 # Printing and Data.table adjustments
-assign('string_maxwidth', 50, env=rexmap_opts)
-assign('print_strains_nmax', 10, env=rexmap_opts)
+assign('string_maxwidth', 50, env=himap_opts)
+assign('print_strains_nmax', 10, env=himap_opts)
 
 # Display progress and timing of each function that supports these arguments
-assign('verbose', FALSE, env=rexmap_opts)
-assign('timing', FALSE, env=rexmap_opts)
+assign('verbose', FALSE, env=himap_opts)
+assign('timing', FALSE, env=himap_opts)
 
 
 
 
-# assign('maxrows', 12, env=rexmap_opts)
+# assign('maxrows', 12, env=himap_opts)
 
 #' RExMap options
 #'
@@ -113,18 +116,20 @@ assign('timing', FALSE, env=rexmap_opts)
 #' @export
 rexmap_option = function (option_names=NULL) {
   if (is.null(option_names)) {
-    cat('RExMap: available options', fill=T)
-    return(sapply(ls(rexmap_opts), rexmap_option))
+    cat(paste0(pname, ': available options'), fill=T)
+    return(sapply(ls(himap_opts), rexmap_option))
   }
-  if(!all(option_names %in% ls(rexmap_opts))) {
-    warning("Invalid  option: ", option_names[!(option_names %in% ls(rexmap_opts))])
-    option_names = option_names[option_names %in% ls(rexmap_opts)]
+  if(!all(option_names %in% ls(himap_opts))) {
+    warning("Invalid  option: ", option_names[!(option_names %in% ls(himap_opts))])
+    option_names = option_names[option_names %in% ls(himap_opts)]
   }
   if (length(option_names) == 0) stop("Invalid options.")
-  # get(option_names, env=rexmap_opts)
-  if (length(option_names) == 1) get(option_names, env=rexmap_opts)
-  else sapply(option_names, get, env=rexmap_opts)
+  # get(option_names, env=himap_opts)
+  if (length(option_names) == 1) get(option_names, env=himap_opts)
+  else sapply(option_names, get, env=himap_opts)
 }
+
+# rexmap_option = rexmap_option
 
 
 #' RExMap set default options
@@ -145,17 +150,19 @@ rexmap_setoption = function (option_name, value) {
   } else if (option_name == 'string_maxwidth') {
     # Check that value is integer
     options('datatable.prettyprint.char'=value)
-    assign('string_maxwidth', value, env=rexmap_opts)
+    assign('string_maxwidth', value, env=himap_opts)
   } else if (option_name %in% c('verbose', 'timing')) {
     if (!(value %in% c(TRUE, FALSE))) stop(option_name, ' can only be TRUE or FALSE.')
-    else assign(option_name, value, env=rexmap_opts)
+    else assign(option_name, value, env=himap_opts)
   } else if (option_name == 'aln_params') {
     # Check each possible combination for megablast
   } else {
     # Else just assign stuff
-    assign(option_name, value, env=rexmap_opts)
+    assign(option_name, value, env=himap_opts)
   }
 }
+
+himap_setoption = rexmap_setoption
 
 
 #' Run this when the package is loaded and attached in R
@@ -164,8 +171,8 @@ rexmap_setoption = function (option_name, value) {
 
   # Check if the blastn and makeblastdb executable files are missing for the running
   # system platform. If they are missing, download them.
-  blastn_file = system.file('exec', exec_file('blastn'), package='rexmap')
-  makedb_file = system.file('exec', exec_file('makeblastdb'), package='rexmap')
+  blastn_file = system.file('exec', exec_file('blastn'), package=pname_l)
+  makedb_file = system.file('exec', exec_file('makeblastdb'), package=pname_l)
   if (blastn_file=='' | makedb_file=='') {
     download_blast()
   }
@@ -207,13 +214,14 @@ rexmap_setoption = function (option_name, value) {
 rexmap_db_version = function (region=NULL) {
   if (is.null(region)) {
     return(as.Date(file.info(system.file(
-      'database', rexmap_option('blast_dbs')[, table], package='rexmap'))$mtime))
+      'database', rexmap_option('blast_dbs')[, table], package=pname_l))$mtime))
   } else {
     return(as.Date(file.info(system.file(
       'database', rexmap_option('blast_dbs')[Hypervariable_region==region, table],
-      package='rexmap'))$mtime))
+      package=pname_l))$mtime))
   }
 }
+himap_db_version = rexmap_db_version
 
 
 #' Frequency table of sequence lengths

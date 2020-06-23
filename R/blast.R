@@ -34,7 +34,7 @@ blast_out_to_best_cp = function (
   # Select region all ref_cp from file
   if (!is.null(region)) { # If region is given, ignore ref_cp
     ref_cp = rexmap_option('blast_dbs')[Hypervariable_region==region, table]
-    ref_cp = system.file('database', ref_cp, package='rexmap')
+    ref_cp = system.file('database', ref_cp, package='himap')
     if (length(ref_cp) == 0) stop('blast: invalid hyper-variable region.')
   } else { # Region is not given, just check if ref_cp file exist
     if (is.null(ref_cp)) stop('blast: reference copy number table argument missing.')
@@ -317,7 +317,7 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
 
   # Run Blastn
   # Run blast_out_to_best_cp
-  # Return rexmap object
+  # Return himap object
   if (is.null(blast_output)) {
     # Generate temporary blast output file
     rand_id = sample(LETTERS, 10)
@@ -422,7 +422,7 @@ blastn = function (
       } else {
         ref_db = system.file('database',
                              paste0(dbs[Hypervariable_region==region, DB], '.nhr'),
-                             package='rexmap')
+                             package='himap')
         if (ref_db == '') {
           stop('blast: missing database.')
         } else {

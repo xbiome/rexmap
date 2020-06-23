@@ -1,5 +1,6 @@
-#include <Rcpp.h>
+// #include <Rcpp.h>
 #include "rexmap.h"
+using namespace Rcpp;
 
 // Precomputer posterior q scores for matching and mismatching bases
 std::vector< std::vector<int> > post_q_match;
@@ -116,7 +117,7 @@ void int2nt(char *oseq, const char *iseq) {
   return;
 }
 
-char **rexmap_nwalign_endsfree(const char *s1, const char *s2,
+char **himap_nwalign_endsfree(const char *s1, const char *s2,
                               const char *q1, const char *q2,
                               int score[5][5], int gap_p) {
   static size_t nnw = 0;
@@ -289,7 +290,7 @@ char **rexmap_nwalign_endsfree(const char *s1, const char *s2,
   return al;
 }
 
-char **rexmap_merge_alignment(char** al) {
+char **himap_merge_alignment(char** al) {
   // al[0] seq1, al[1] seq2, al[2] qual1, al[3] qual 2
   long unsigned int i, len = strlen(al[0]);
   int q1, q2, q;
@@ -368,7 +369,7 @@ Rcpp::CharacterVector nwalign_endsfree_test (std::string s1, std::string s2, std
   const char *qs1 = q1.c_str();
   const char *qs2 = q2.c_str();
   int gap_p = -7;
-  char** al = rexmap_nwalign_endsfree(seq1, seq2, qs1, qs2, c_score, gap_p);
+  char** al = himap_nwalign_endsfree(seq1, seq2, qs1, qs2, c_score, gap_p);
   int2nt(al[0], al[0]);
   int2nt(al[1], al[1]);
   Rcpp::CharacterVector rval;
@@ -428,7 +429,7 @@ Rcpp::CharacterVector C_mergepairs(std::string s1, std::string s2,
   const char *qs2 = q2.c_str();
 
   // Perform alignment and convert back to ACGT
-  al = rexmap_nwalign_endsfree(seq1, seq2, qs1, qs2, c_score, gap_p);
+  al = himap_nwalign_endsfree(seq1, seq2, qs1, qs2, c_score, gap_p);
   int2nt(al[0], al[0]);
   int2nt(al[1], al[1]);
 
@@ -468,7 +469,7 @@ Rcpp::CharacterVector C_mergepairs(std::string s1, std::string s2,
   free(seq1);
   free(seq2);
   // Now merge the aligned sequences
-  merged = rexmap_merge_alignment(al);
+  merged = himap_merge_alignment(al);
 
   free(al[0]);
   free(al[1]);
@@ -487,5 +488,6 @@ Rcpp::CharacterVector C_mergepairs(std::string s1, std::string s2,
   free(merged[1]);
   return(rval);
 }
+
 
 

@@ -17,8 +17,8 @@
 # temp_dir = tempdir()
 #
 # # Example FINRISK will be first
-# # osu_ab_1.dt = fread('~/data/finrisk/data/rexmap-analysis/osu_ab.dt.txt')
-# # osu_seq_1.dt = readRDS('~/data/finrisk/data/rexmap-analysis/osu_seq.dt')
+# # osu_ab_1.dt = fread('~/data/finrisk/data/himap-analysis/osu_ab.dt.txt')
+# # osu_seq_1.dt = readRDS('~/data/finrisk/data/himap-analysis/osu_seq.dt')
 # osu_ab_1.dt = readRDS('~/data/skorea/Rdata/osu_ab.dt')
 # osu_seq_1.dt = readRDS('~/data/skorea/Rdata/osu_seq.dt')
 #
@@ -77,7 +77,7 @@ pool_rexmap_results = function (result_list, dataset_names = NULL,
    }
 
    #                    v---internal function--v  v--list---v
-   pooled_list = Reduce(pool_two_rexmap_outputs_2, result_list)
+   pooled_list = Reduce(pool_two_himap_outputs_2, result_list)
 
    return(pooled_list)
 }
@@ -334,16 +334,11 @@ collapse_dt = function (dt, seq_col='sequence', id_col='qseqid',
 lu = function (x) length(unique(x))
 
 
-pool_two_rexmap_outputs_2 = function (osu_1, osu_2,
+pool_two_himap_outputs_2 = function (osu_1, osu_2,
                                    osu_offset=rexmap_option('osu_offset'),
-                                   verbose=rexmap_option('verbose'), temp_dir=tempdir(),
+                                   verbose=TRUE, temp_dir=tempdir(),
                                    blast_verbose=F) {
 
-   vcat = function (..., verbose=verbose) {
-      if (verbose) {
-         cat(...)
-      }
-   }
    # SET _1 = SUBJECT
    # SET _2 = QUERY
    pool_blast = function (qseq_1.dt, qseq_2.dt,
@@ -1175,7 +1170,7 @@ pool_two_rexmap_outputs_2 = function (osu_1, osu_2,
 }
 
 
-pool_two_rexmap_outputs = function (osu_1, osu_2,
+pool_two_himap_outputs = function (osu_1, osu_2,
                                    osu_offset=rexmap_option('osu_offset'),
                                    verbose=T, temp_dir=tempdir()) {
 

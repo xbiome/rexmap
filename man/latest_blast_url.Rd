@@ -2,10 +2,12 @@
 % Please edit documentation in R/download.R
 \name{latest_blast_url}
 \alias{latest_blast_url}
-\title{Get latest BLAST executable path}
+\title{Get latest BLAST executable path
+(currently only for MacOS)}
 \usage{
 latest_blast_url()
 }
 \description{
 Get latest BLAST executable path
+(currently only for MacOS)
 }
