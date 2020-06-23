@@ -2,7 +2,7 @@
 % Please edit documentation in R/rexmap.R
 \name{rexmap_db_version}
 \alias{rexmap_db_version}
-\title{Show HiMAP database version based on the last modification date}
+\title{Show RExMap database version based on the last modification date}
 \usage{
 rexmap_db_version(region = NULL)
 }

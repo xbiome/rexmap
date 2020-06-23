@@ -11,6 +11,6 @@ download_blast(verbose = T, override_os = NULL)
 }
 \description{
 Downloads NCBI blastn and makeblastdb executables for the Operating System
-running R and copies it to the HiMAP package folder. This is executed automatically
-if blastn and makeblastdb executables are missing upon attaching HiMAP package.
+running R and copies it to the RExMap package folder. This is executed automatically
+if blastn and makeblastdb executables are missing upon attaching RExMap package.
 }

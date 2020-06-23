@@ -2,7 +2,7 @@
 % Please edit documentation in R/taxonomy.R
 \name{load_taxonomy}
 \alias{load_taxonomy}
-\title{Load HiMAP taxonomy reference file}
+\title{Load RExMap taxonomy reference file}
 \usage{
 load_taxonomy(tax_file = rexmap_option("taxonomy_file"))
 }
