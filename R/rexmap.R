@@ -8,7 +8,7 @@
 #' @importFrom data.table copy
 #' @importFrom dada2 filterAndTrim
 #' @importFrom stringr str_sub
-#' @useDynLib himap
+#' @useDynLib rexmap
 NULL
 
 pname = 'RExMap'
@@ -126,7 +126,7 @@ rexmap_option = function (option_names=NULL) {
   else sapply(option_names, get, env=himap_opts)
 }
 
-rexmap_option = rexmap_option
+# rexmap_option = rexmap_option
 
 
 #' RExMap set default options
@@ -139,7 +139,7 @@ rexmap_option = rexmap_option
 #'
 #' @export
 rexmap_setoption = function (option_name, value) {
-  # Simply set option_name to value. Used to change HiMAP defaults. Not finished yet.
+  # Simply set option_name to value. Used to change RExMap defaults. Not finished yet.
   # Allowed options
   if (option_name == 'ncpu') {
     # Check that it is an integer
@@ -204,7 +204,7 @@ himap_setoption = rexmap_setoption
   packageStartupMessage(startup_message_full)
 }
 
-#' Show HiMAP database version based on the last modification date
+#' Show RExMap database version based on the last modification date
 #'
 #' Version == last modified date of the *_unique_variants_R.txt table.
 #' @export
