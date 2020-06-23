@@ -108,6 +108,7 @@ curl_path = function () {
 
 
 #' Get latest BLAST executable path
+#' (currently only for MacOS)
 latest_blast_url = function () {
    curlpath = curl_path()
    latest_files = system2(
@@ -121,6 +122,7 @@ latest_blast_url = function () {
 }
 
 #' Construct the pcr_primers_table after database update
+#' (this is not finished yet)
 #'
 #' Automatically generates and verified inst/extdata/pcr_primers_table.txt
 #' file based on the files in database/ folder.
@@ -129,13 +131,14 @@ latest_blast_url = function () {
 #' overwritting. Default: TRUE
 #' @param verbose Verbose output, print status.
 #'
-#' @export
+# #' @export
 update_pcr_primers_table = function (backup_old=T, verbose=T) {
-   himap_database_path = file.path(find.package('himap'), 'database')
+   himap_database_path = file.path(find.package(pname_l), 'inst', 'database')
    if (!dir.exists(himap_database_path)) {
       stop('\nError: RExMap database folder ', himap_database_path, ' not found!')
    }
-   pcr_sequences_filename = system.file('extdata', 'pcr_primer_sequences.txt', package='himap')
+   pcr_sequences_filename = system.file('extdata', 'pcr_primer_sequences.txt',
+                                        package=pname_l)
    if (pcr_sequences_filename == '') {
       stop('\nError: RExMap file with PCR sequences pcr_primer_sequences.txt not found!')
    }
@@ -207,7 +210,7 @@ update_pcr_primers_table = function (backup_old=T, verbose=T) {
       }
 
       db_date = sub(regex_prefix, '\\4', db_entry)
-      if (db_date %like% '^V' | db_date == '') db_date = '0000-00-00'
+      if (grepl('^V', db_date) | db_date == '') db_date = '0000-00-00'
 
       final_db_entries[[length(final_db_entries)+1]] = data.table(
          Primer1=fr_primers[1],
@@ -228,19 +231,26 @@ update_pcr_primers_table = function (backup_old=T, verbose=T) {
    # Each hypervariable region should have a unique name, and we use that name
    # to call functions such as blast()
    # Automatically omit date from the latest versions ()
-   final_db_table.dt = rbindlist(final_db_entries)
+   final_db_table.dt = data.table::rbindlist(final_db_entries)
+   print(head(final_db_table.dt))
+
    if (verbose) cat('.')
    final_db_table.dt = final_db_table.dt[order(Hypervariable_region, -date)]
    final_db_table.dt[
-      , Hypervariable_region := na.omit(c(Hypervariable_region[1], hr_date[2:.N])), by=hr]
-
+      , Hypervariable_region2 := na.omit(c(Hypervariable_region[1], hr_date[2:.N])), by=hr]
+   final_db_table.dt[
+      , Hypervariable_region := Hypervariable_region2
+   ]
+   final_db_table.dt[
+      , Hypervariable_region2 := NULL
+   ]
    final_db_table.dt[, c('hr', 'hr_date') := NULL]
    if (verbose) cat('OK.\n')
 
    # Overwrite old table
    # save old copy
    if (verbose) cat('* saving output file... ')
-   old_table_filename = system.file('extdata', 'pcr_primers_table.txt', package='himap')
+   old_table_filename = system.file('extdata', 'pcr_primers_table.txt', package=pname_l)
    if (backup_old) {
       new_table_filename = file.path(
          dirname(old_table_filename),
@@ -254,7 +264,7 @@ update_pcr_primers_table = function (backup_old=T, verbose=T) {
    }
 
    data.table::fwrite(final_db_table.dt, old_table_filename)
-   himap_setoption('blast_dbs', final_db_table.dt)
+   rexmap_setoption('blast_dbs', final_db_table.dt)
    if (verbose) cat('OK.\n')
    # print(final_db_table.dt)
 
@@ -284,7 +294,7 @@ update_database = function (verbose=T, source_repo='rexmap', update_ref_table=FA
    if (!internet_connection()) stop('\nError: Internet connection unavailable.')
    if (verbose) cat('OK.\n')
    if (verbose) cat('* downloading database files:\n')
-   himap_database_path = file.path(find.package(pname), 'inst', 'database')
+   himap_database_path = file.path(find.package(pname_l), 'inst', 'database')
    # Implements this method:
    # https://medium.com/@caludio/how-to-download-large-files-from-github-4863a2dbba3b
    curlpath = curl_path()
@@ -302,7 +312,7 @@ update_database = function (verbose=T, source_repo='rexmap', update_ref_table=FA
    # Select only database files for hypervariable regions
    db.dt = db.dt[grepl('V[0-9][-]?(V[0-9])?', name)]
    for (i in 1:nrow(db.dt)) {
-      f = db.dt[i, `_links.git`]
+      f = db.dt[i, 3]
       if (verbose) cat('* -', db.dt[i, name], '\n')
       # download.file(f, file.path(himap_database_path, basename(f)), extra=c(
       system2(curlpath, c(
@@ -319,7 +329,7 @@ update_database = function (verbose=T, source_repo='rexmap', update_ref_table=FA
          '-s',
          '-H', '"Accept: application/vnd.github.v3.raw"',
          '-L', 'https://api.github.com/repos/taolonglab/rexmap/contents/inst/extdata/pcr_primers_table.txt',
-         '-o', system.file('extdata', 'pcr_primers_table.txt', package=pname)
+         '-o', system.file('extdata', 'pcr_primers_table.txt', package=pname_l)
       ), stdout=F, stderr=F)
       if (verbose) cat('OK.\n')
    } else {
