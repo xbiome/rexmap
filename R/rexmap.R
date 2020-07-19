@@ -938,7 +938,7 @@ sequence_abundance = function (dada_result, remove_bimeras=T, collapse_sequences
                       fq_prefix_split_n=fq_prefix_split_n))
 }
 
-#' Generate a table with sequences assigne to each OSU
+#' Generate a table with sequences assigned to each OSU
 #'
 #' @param osu_abundances Data table with OSU abundances; output from the
 #' \code{\link{abundance}} function.
@@ -962,5 +962,45 @@ osu_sequences = function (osu_abundances, blast_output) {
   )
   return(osu_var.dt[order(osu_id), .(osu_id, species, qseqid, copy_number, pctsim, sequence)])
 }
+
+#' Generate a table with a full list of all best-matched strains
+#'
+#' @param osu_abundances Data table with OSU abundances; output from the
+#' \code{\link{abundance}} function.
+#' @param blast_output Blast output class. Output from \code{\link{blast}}
+#' function.
+#'
+#' @export
+osu_matches = function (blast_output,
+                        osu_offset=rexmap_option('osu_offset')) {
+
+  # 100% hits are in the cp table
+  osu_strain_exact.dt = unique(blast_output$cp[, .(osu_id, strain)])
+  osu_strain_exact.dt[, pctsim := 100.00]
+
+  # OSU offset is by default 1000000, i.e. the first OSU which is non-exact
+  # hit.
+  nonexact_osus_ref.dt = unique(
+    blast_output$sequences[osu_id >= osu_offset, .(qseqid, osu_id)]
+  )
+  nonexact_seqs_ref.dt = unique(
+    blast_output$alignments[, .(qseqid, strain, pctsim)]
+  )
+  osu_strain_nonexact.dt = unique(merge(
+    nonexact_osus_ref.dt,
+    nonexact_seqs_ref.dt,
+    by='qseqid'
+  )[, .(osu_id, strain, pctsim)])
+
+  # Combine
+  osu_strain.dt = data.table::rbindlist(list(
+    osu_strain_exact.dt,
+    osu_strain_nonexact.dt
+  ))
+  # Non-100% hits are in the
+  return(osu_strain.dt[order(osu_id, strain)])
+}
+
+
 
 

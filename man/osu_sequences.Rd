@@ -2,7 +2,7 @@
 % Please edit documentation in R/rexmap.R
 \name{osu_sequences}
 \alias{osu_sequences}
-\title{Generate a table with sequences assigne to each OSU}
+\title{Generate a table with sequences assigned to each OSU}
 \usage{
 osu_sequences(osu_abundances, blast_output)
 }
@@ -14,5 +14,5 @@ osu_sequences(osu_abundances, blast_output)
 function.}
 }
 \description{
-Generate a table with sequences assigne to each OSU
+Generate a table with sequences assigned to each OSU
 }
