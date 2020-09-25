@@ -337,7 +337,7 @@ lu = function (x) length(unique(x))
 pool_two_himap_outputs_2 = function (osu_1, osu_2,
                                    osu_offset=rexmap_option('osu_offset'),
                                    verbose=TRUE, temp_dir=tempdir(),
-                                   blast_verbose=F) {
+                                   blast_verbose=F, return_mapping=F) {
 
    # SET _1 = SUBJECT
    # SET _2 = QUERY
@@ -1163,12 +1163,62 @@ pool_two_himap_outputs_2 = function (osu_1, osu_2,
 
 
 
-   return(list(
-      osu_ab_new.dt,
-      unique(osu_seq_new2.dt[order(osu_id)])
-   ))
+   if (!return_mapping) {
+      # Default output when called from the main pooling function
+      return(list(
+         osu_ab_new.dt,
+         unique(osu_seq_new2.dt[order(osu_id)])
+      ))
+
+   } else {
+      # Output for OSU ID1 vs OSU ID2 from two datasets
+      return(list(
+         osu_seq_maps_12_3.dt,
+         osu_seq_maps_12_non100.dt
+      ))
+   }
 }
 
+
+#' Match OSUs across datasets
+#'
+#'
+#' @param osu_1 A list of two data tables.
+#'
+#' 1. OSU abundance data table (output from \code{\link{abundance}}) with
+#' columns:
+#'
+#' \code{sample_id | osu_id | osu_count | pctsim | species}\cr
+#'
+#' Additionally, this data table can contain an extra \code{dataset} column
+#' which contains a name of that dataset.
+#'
+#' 2. OSU sequences data table (output from \code{\link{osu_sequences}}) with
+#' columns:
+#'
+#' \code{osu_id | species | qseqid | copy_number | pctsim | sequence}\cr
+#'
+#' @param osu_2 Same as \code{osu_1} just for a second dataset.
+#'
+#' @export
+osu_dataset_match = function (
+   osu_1, osu_2, dataset_names = c('dataset1', 'dataset2'),
+   osu_offset=rexmap_option('osu_offset'), verbose=T,
+   temp_dir=tempdir(), blast_verbose=T) {
+   osu_1[[1]]$dataset = dataset_names[1]
+   osu_2[[1]]$dataset = dataset_names[2]
+   # Run
+   mappings.list = pool_two_himap_outputs_2(
+      osu_1=osu_1, osu_2=osu_2, osu_offset=osu_offset, verbose=verbose,
+      temp_dir=temp_dir, blast_verbose=blast_verbose, return_mapping=T
+   )
+   map.dt = rbindlist(list(
+      mappings.list[[1]][, .(osu_id_1, species_1, pctsim_1, osu_id_2, species_2, pctsim_2)],
+      mappings.list[[2]][, .(osu_id_1, species_1, pctsim_1, osu_id_2, species_2, pctsim_2)]
+   ))
+   map.dt = map.dt[order(osu_id_1)]
+   return(map.dt)
+}
 
 pool_two_himap_outputs = function (osu_1, osu_2,
                                    osu_offset=rexmap_option('osu_offset'),
