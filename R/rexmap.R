@@ -14,7 +14,8 @@ NULL
 pname = 'RExMap'
 pname_l = 'rexmap'
 # If you rename the pipeline (again), don't forget to re-run
-# Rcpp::compileAttributes()
+# Rcpp::compileAttributes(). This will update package name in the compiled
+# C++ files as well.
 
 
 #' Detect operating system
