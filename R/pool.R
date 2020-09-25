@@ -1213,8 +1213,12 @@ osu_dataset_match = function (
       temp_dir=temp_dir, blast_verbose=blast_verbose, return_mapping=T
    )
    map.dt = rbindlist(list(
-      mappings.list[[1]][, .(osu_id_1, species_1, pctsim_1, osu_id_2, species_2, pctsim_2)],
-      mappings.list[[2]][, .(osu_id_1, species_1, pctsim_1, osu_id_2, species_2, pctsim_2)]
+      unique(
+         mappings.list[[1]][, .(osu_id_1, species_1, pctsim_1, osu_id_2, species_2, pctsim_2)]
+      ),
+      unique(
+         mappings.list[[2]][, .(osu_id_1, species_1, pctsim_1, osu_id_2, species_2, pctsim_2)]
+      )
    ))
    map.dt = map.dt[order(osu_id_1)]
    return(map.dt)
