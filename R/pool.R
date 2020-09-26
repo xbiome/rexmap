@@ -894,7 +894,8 @@ pool_two_himap_outputs_2 = function (osu_1, osu_2,
 
    #---------------- Pool everything together into a new data table ------------
    vcat('* merging mapping tables..')
-   osu_seq_remap_1.dt = rbindlist(list(
+
+   osu_seq_remap_1.dt = data.table::rbindlist(list(
       # 100% that match something from _2
       unique(
          osu_seq_maps_12_3.dt[
@@ -906,7 +907,7 @@ pool_two_himap_outputs_2 = function (osu_1, osu_2,
       unique(
          osu_seq_1_nonmatched.dt[
             !is.na(pctsim)
-            , .(osu_id_2=osu_id, osu_id_new, species_new=species,
+            , .(osu_id_1=osu_id, osu_id_new, species_new=species,
                 pctsim_new=pctsim, sequence_new=sequence,
                 qseqid_new, copy_number_new=copy_number)]
       ),
@@ -927,7 +928,7 @@ pool_two_himap_outputs_2 = function (osu_1, osu_2,
    ))
    vcat('.')
 
-   osu_seq_remap_2.dt = rbindlist(list(
+   osu_seq_remap_2.dt = data.table::rbindlist(list(
       # 100% that match something from _2
       unique(
          osu_seq_maps_12_3.dt[
@@ -1050,9 +1051,9 @@ pool_two_himap_outputs_2 = function (osu_1, osu_2,
    vcat(' OK.\n')
 
    vcat('* final merging full spectrum matches...')
-   osu_ab_new.dt = rbindlist(list(osu_ab_1_new.dt, osu_ab_2_new.dt))
+   osu_ab_new.dt = data.table::rbindlist(list(osu_ab_1_new.dt, osu_ab_2_new.dt))
    vcat('.')
-   osu_seq_new.dt = unique(rbindlist(list(osu_seq_1_new.dt, osu_seq_2_new.dt)))
+   osu_seq_new.dt = unique(data.table::rbindlist(list(osu_seq_1_new.dt, osu_seq_2_new.dt)))
    vcat(' OK.\n')
    osu_seq_new.dt[, qseqid := .GRP, by=sequence]
 
@@ -1116,7 +1117,7 @@ pool_two_himap_outputs_2 = function (osu_1, osu_2,
 
    osu_seq_new_ch.dt[, c('osu_id_new', 'species_new', 'pctsim_new') := NULL]
 
-   osu_seq_new2.dt = rbindlist(list(osu_seq_new_unch.dt, osu_seq_new_ch.dt))
+   osu_seq_new2.dt = data.table::rbindlist(list(osu_seq_new_unch.dt, osu_seq_new_ch.dt))
    osu_seq_new2.dt[, spectrum := NULL]
    setcolorder(osu_seq_new2.dt, osu_seq_1_colorder)
    vcat('. OK.\n')
@@ -1212,7 +1213,7 @@ osu_dataset_match = function (
       osu_1=osu_1, osu_2=osu_2, osu_offset=osu_offset, verbose=verbose,
       temp_dir=temp_dir, blast_verbose=blast_verbose, return_mapping=T
    )
-   map.dt = rbindlist(list(
+   map.dt = data.table::rbindlist(list(
       unique(
          mappings.list[[1]][, .(osu_id_1, species_1, pctsim_1, osu_id_2, species_2, pctsim_2)]
       ),
@@ -1772,7 +1773,7 @@ pool_two_himap_outputs = function (osu_1, osu_2,
                   osu_id_new := .GRP + osu_100_last, by=osu_id_1]
    osu_renum_1.dt[osu_id_1 >= osu_offset,
                   osu_id_new := .GRP + osu_non100_last, by=osu_id_1]
-   osu_renum_all_1.dt = rbindlist(list(
+   osu_renum_all_1.dt = data.table::rbindlist(list(
       osu_renum_1.dt, unique(osu_matching_spectra.dt[, .(osu_id_1, osu_id_new)])
    ))[order(osu_id_new)]
    vcat(' OK.\n')
@@ -1786,7 +1787,7 @@ pool_two_himap_outputs = function (osu_1, osu_2,
                   osu_id_new := .GRP + osu_100_last, by=osu_id_2]
    osu_renum_2.dt[osu_id_2 >= as.integer(osu_offset),
                   osu_id_new := .GRP + osu_non100_last, by=osu_id_2]
-   osu_renum_all_2.dt = rbindlist(list(
+   osu_renum_all_2.dt = data.table::rbindlist(list(
       osu_renum_2.dt, unique(osu_matching_spectra.dt[, .(osu_id_2, osu_id_new)])
    ))[order(osu_id_new)]
    vcat(' OK.\n')
