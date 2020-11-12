@@ -339,6 +339,7 @@ pool_two_himap_outputs_2 = function (osu_1, osu_2,
                                    verbose=TRUE, temp_dir=tempdir(),
                                    blast_verbose=F, return_mapping=F) {
 
+
    # SET _1 = SUBJECT
    # SET _2 = QUERY
    pool_blast = function (qseq_1.dt, qseq_2.dt,
@@ -1163,7 +1164,7 @@ pool_two_himap_outputs_2 = function (osu_1, osu_2,
    vcat('* Output: ', osu_seq_new2.dt[, lu(osu_id)], ' final OSUs.\n', sep='')
 
 
-
+   #------------------------- Return output ------------------------------------
    if (!return_mapping) {
       # Default output when called from the main pooling function
       return(list(
@@ -1206,6 +1207,7 @@ osu_dataset_match = function (
    osu_1, osu_2, dataset_names = c('dataset1', 'dataset2'),
    osu_offset=rexmap_option('osu_offset'), verbose=T,
    temp_dir=tempdir(), blast_verbose=T) {
+
    osu_1[[1]]$dataset = dataset_names[1]
    osu_2[[1]]$dataset = dataset_names[2]
    # Run
