@@ -693,10 +693,16 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
       dimnames(B)[[1]] = Ab.dt[, variant_id]
 
       # Solve
+      if (debug) {
+        cat('Solving linear model...')
+      }
       sol = tryCatch(
          lsei(A, B, fulloutput=T, G=diag(ncol(A)), H=matrix(c(0), nrow=ncol(A), ncol=1), type=2),
          error = function (x) NA
       )
+      if (debug) {
+        cat(' completed.\n')
+      }
       if (class(sol) == 'logical') {
         if (is.na(sol)) {
           # Least square model failed for some reason; in which case just
@@ -873,10 +879,14 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
 
     if (n_opt > 0 & n_non > 0) {
       # Merge OSU analysis with low sim sequences
-      all_ab.dt = merge(osu_ab5.dt,
-                        ab_tab2.dt,
-                        by=intersect(names(osu_ab5.dt), names(ab_tab2.dt)),
-                        all=T)
+      # all_ab.dt = merge(osu_ab5.dt,
+      #                   ab_tab2.dt,
+      #                   by=intersect(names(osu_ab5.dt), names(ab_tab2.dt)),
+      #                   all=T)
+      all_ab.dt = data.table::rbindlist(list(
+        osu_ab5.dt[, .(osu_id, osu_count, species, pctsim)],
+        ab_tab2.dt[, .(osu_id, osu_count, species, pctsim)]
+      ))
     } else if (n_opt == 0 & n_non > 0) {
       all_ab.dt = ab_tab2.dt
     } else if (n_opt > 0 & n_non == 0) {
