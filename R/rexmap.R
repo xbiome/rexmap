@@ -182,14 +182,14 @@ himap_setoption = rexmap_setoption
   # files and 1 table with matching primers...
 
   # Generate a unique list of all available hypervariable regions
-  hregions = sub('[0-9]{4}-[0-9]{2}-[0-9]{2}$', '',
-                 rexmap_option('blast_dbs')[, Hypervariable_region])
+  hregions = sub('_$', '', sub('[0-9]{4}-[0-9]{2}-[0-9]{2}$', '',
+                 rexmap_option('blast_dbs')[, Hypervariable_region]))
 
   hregions_str = paste(unique(sort(hregions)), collapse=', ')
   last_date = rexmap_option('blast_dbs')[, max(date)]
 
   startup_message = paste0(
-     '| RExMap loaded',
+     '| RExMap',
     # ' | Updated ', rexmap_option('database_build_version'),
     ' | Updated ', last_date,
     ' Regions ',
