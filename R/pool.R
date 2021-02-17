@@ -881,8 +881,20 @@ pool_two_himap_outputs_2 = function (osu_1, osu_2,
    vcat(' OK] [Set 2 < 100% hits')
 
    #------------- < 100% unmatched from set _2 ---------------------------------
-   osu_id_new_offset = osu_seq_1_nonmatched_non100.dt[, max(osu_id_new, na.rm=T)]
-   qseqid_new_offset = osu_seq_1_nonmatched_non100.dt[, max(qseqid_new, na.rm=T)]
+   osu_id_new_offset = max(
+      c(
+         # osu_seq_1_nonmatched_non100.dt[, osu_id_new],
+         osu_seq_1_nonmatched.dt[, osu_id_new],
+         osu_offset
+      ), na.rm=T)
+   # qseqid_new_offset = osu_seq_1_nonmatched_non100.dt[
+   #    , max(qseqid_new, na.rm=T)]
+   qseqid_new_offset = max(
+      c(
+         osu_seq_1_nonmatched_non100.dt[, qseqid_new],
+         osu_seq_1_nonmatched.dt[, qseqid_new]
+      )
+   )
    osu_seq_2_nonmatched_non100.dt = osu_seq_2.dt[
       osu_id >= osu_offset &
          !(osu_id %in% osu_seq_maps_12_non100.dt[, unique(osu_id_2)])
