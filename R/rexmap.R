@@ -180,13 +180,23 @@ himap_setoption = rexmap_setoption
 
   # Check if database files are missing. Need at least one set of blastdb
   # files and 1 table with matching primers...
+
+  # Generate a unique list of all available hypervariable regions
+  hregions = sub('[0-9]{4}-[0-9]{2}-[0-9]{2}$', '',
+                 rexmap_option('blast_dbs')[, Hypervariable_region])
+
+  hregions_str = paste(unique(sort(hregions)), collapse=', ')
+  last_date = rexmap_option('blast_dbs')[, max(date)]
+
   startup_message = paste0(
      '| RExMap loaded',
-    ' | Database ', rexmap_option('database_build_version'),
+    # ' | Updated ', rexmap_option('database_build_version'),
+    ' | Updated ', last_date,
     ' Regions ',
-    paste(unique(sort(rexmap_option('blast_dbs')[
-      , sub('_$', '', sub('^(V[0-9]+(\\-|_)(V[0-9]+)?).*$', '\\1', Hypervariable_region))]
-    )), collapse=', '),
+    hregions_str,
+    # paste(unique(sort(rexmap_option('blast_dbs')[
+    #   , sub('_$', '', sub('^(V[0-9]+(\\-|_)(V[0-9]+)?).*$', '\\1', Hypervariable_region))]
+    # )), collapse=', '),
     ' | Threads: ', rexmap_option('ncpu'), ' |'
   )
   # Positions of separators
