@@ -190,6 +190,9 @@ himap_setoption = rexmap_setoption
   # Check if database files are missing. Need at least one set of blastdb
   # files and 1 table with matching primers...
 
+  # Reload database info
+  reload_blast_dbs()
+
   # Generate a unique list of all available hypervariable regions
   hregions = sub('_$', '', sub('[0-9]{4}-[0-9]{2}-[0-9]{2}$', '',
                  rexmap_option('blast_dbs')[, Hypervariable_region]))
@@ -225,7 +228,6 @@ himap_setoption = rexmap_setoption
   )
 
   packageStartupMessage(startup_message_full)
-  reload_blast_dbs()
 }
 
 #' Show RExMap database version based on the last modification date
