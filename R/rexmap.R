@@ -130,6 +130,15 @@ rexmap_option = function (option_names=NULL) {
   else sapply(option_names, get, env=himap_opts)
 }
 
+reload_blast_dbs = function () {
+  assign('blast_dbs',
+         data.table::fread(
+           system.file('extdata', 'pcr_primers_table.txt', package=pname_l)
+         ),
+         env=himap_opts)
+}
+
+
 # rexmap_option = rexmap_option
 
 
