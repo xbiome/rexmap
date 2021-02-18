@@ -196,6 +196,8 @@ himap_setoption = rexmap_setoption
   # Generate a unique list of all available hypervariable regions
   hregions = sub('_$', '', sub('[0-9]{4}-[0-9]{2}-[0-9]{2}$', '',
                  rexmap_option('blast_dbs')[, Hypervariable_region]))
+  hregions = sub('_mux', '*', hregions, fixed=T)
+  hregions = hregions[hregions != '']
 
   hregions_str = paste(unique(sort(hregions)), collapse=', ')
   last_date = rexmap_option('blast_dbs')[, max(date)]
@@ -203,8 +205,8 @@ himap_setoption = rexmap_setoption
   startup_message = paste0(
      '| RExMap',
     # ' | Updated ', rexmap_option('database_build_version'),
-    ' | Updated ', last_date,
-    ' Regions ',
+    ' | ', last_date,
+    ' | ',
     hregions_str,
     # paste(unique(sort(rexmap_option('blast_dbs')[
     #   , sub('_$', '', sub('^(V[0-9]+(\\-|_)(V[0-9]+)?).*$', '\\1', Hypervariable_region))]
