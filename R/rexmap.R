@@ -225,6 +225,7 @@ himap_setoption = rexmap_setoption
   )
 
   packageStartupMessage(startup_message_full)
+  reload_blast_dbs()
 }
 
 #' Show RExMap database version based on the last modification date
