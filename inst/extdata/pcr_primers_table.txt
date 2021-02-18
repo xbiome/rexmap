@@ -8,7 +8,7 @@ Primer1	Primer2	Primer1_sequence_5to3	Primer2_sequence_3to5	Hypervariable_region
 8F	1492R	AGAGTTTGATCCTGGCTCAG	ACCTTGTTACGACTT	V1-V8_mux	V1-V2_V3-V4_V5-V6_V7-V8_hang22_2021-02-13_wrefseq_sequences_unique_variants	V1-V2_V3-V4_V5-V6_V7-V8_hang22_2021-02-13_wrefseq_table_unique_variants_R.txt	2021-02-13
 337F	805R	GACTCCTACGGGAGGCWGCAG	GACTACCAGGGTATCTAATC	V3-V4	V3-V4_337F-805R_hang22_2021-02-13_wrefseq_sequences_unique_variants	V3-V4_337F-805R_hang22_2021-02-13_wrefseq_table_unique_variants_R.txt	2021-02-13
 515F	805R	GTGCCAGCMGCCGCGGTAA	GACTACCAGGGTATCTAATC	V4	V4_515F-805R_hang22_2020-01-29_wrefseq_sequences_unique_variants	V4_515F-805R_hang22_2020-01-29_wrefseq_table_unique_variants_R.txt	2020-01-29
-27F	338R	AGAGTTTGATCCTGGCTCAG	TGCTGCCTCCCGTAGGAGT	V1-V2_27F-338R	V1-V2_27F-338R_hang22_2021-02-13_wrefseq_sequences_unique_variants	V1-V2_27F-338R_hang22_2021-02-13_wrefseq_sequences_unique_variants_R.txt	2021-02-13
+27F	338R	AGAGTTTGATCCTGGCTCAG	TGCTGCCTCCCGTAGGAGT	V1-V2	V1-V2_27F-338R_hang22_2021-02-13_wrefseq_sequences_unique_variants	V1-V2_27F-338R_hang22_2021-02-13_wrefseq_sequences_unique_variants_R.txt	2021-02-13
 27F	805R	AGAGTTTGATCCTGGCTCAG	GACTACCAGGGTATCTAATC	V1-V4_mux	V1-V2_V3-V4_hang22_2021-02-13_wrefseq_sequences_unique_variants	V1-V2_V3-V4_hang22_2021-02-13_wrefseq_sequences_unique_variants_R.txt	2021-02-13
 27F	1185mR	AGAGTTTGATCCTGGCTCAG	KGGATGACGTCAARTC	V1-V6_mux	V1-V2_V3-V4_V5-V6_hang22_2021-02-13_wrefseq_sequences_unique_variants	V1-V2_V3-V4_V5-V6_hang22_2021-02-13_wrefseq_sequences_unique_variants_R.txt	2021-02-13
 							
