@@ -568,11 +568,13 @@ pctsim_range = function (p) return(max(p, na.rm=T))
 #' @export
 abundance = function (abundance_table, blast_object,
                       ncpu=rexmap_option('ncpu'),
-                      verbose=rexmap_option('verbose'),
+                      ncpu_sample=1,
                       raw_strains=TRUE,
                       pso_n=1000,
                       custom_sampleids=NULL,
-                      debug=FALSE) {
+                      verbose=rexmap_option('verbose'),
+                      debug=FALSE,
+                      timing=FALSE) {
 
   # Check that abundance table has only 1 qseqid per sample_id; this issue
   # may occur in case of incorrectly extracting sample_ids from dada2
@@ -583,7 +585,16 @@ abundance = function (abundance_table, blast_object,
   #         abundance table.')
   # }
 
+  debug_print = function (...) {
+    if (debug) {
+      cat(...)
+    }
+  }
+
+  # Initial timestamp
+  t0 = Sys.time()
   # Generate OSU data table first
+  debug_print('* Generating strain spectra (osu_data_m.dt)...')
   osu_data_m.dt = blast_cp_to_osu_dt(
     blast_best.dt=blast_object$alignments,
     cp.dt=blast_object$cp,
@@ -592,9 +603,10 @@ abundance = function (abundance_table, blast_object,
     ncpu=ncpu,
     verbose=verbose
   )
-
+  t1 = Sys.time()
+  t1mt0 = t1-t0
   if (debug) {
-    cat('\nDEBUG: osu_data_m.dt \n')
+    cat(' OK. [', round(t1mt0, 1), ' ', attr(t1mt0, 'units'), ']\n', sep='')
     print(head(osu_data_m.dt))
   }
   # Now generate osu abundance table
@@ -603,7 +615,9 @@ abundance = function (abundance_table, blast_object,
                                 blast_object$alignments,
                                 blast_object$cp,
                                 osu_data_m.dt,
-                                ncpu=ncpu, verbose=verbose,
+                                ncpu=ncpu,
+                                ncpu_sample=ncpu_sample,
+                                verbose=verbose,
                                 pso_n=pso_n,
                                 raw=raw_strains,
                                 custom_sampleids=custom_sampleids,
@@ -631,13 +645,24 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
                               blast_best.dt,
                               cp.dt,
                               osu_data_m.dt,
-                              ncpu=rexmap_option('ncpu'), verbose=T,
+                              ncpu=rexmap_option('ncpu'),
+                              ncpu_sample=1,
+                              verbose=T,
+                              timing=F,
                               pso_n=1000,
                               raw=TRUE, debug=FALSE,
                               custom_sampleids=NULL) {
 
+  debug_print = function (...) {
+    if (debug) {
+      cat(...)
+    }
+  }
+
+  t0 = Sys.time()
   pctsim_min = 100
   osu_offset = rexmap_option('osu_offset')
+
 
   if (verbose) cat('Preparing blast tables...')
   var_count.dt = unique(osu_data_m.dt[, .(variant_id, raw_count, sample_id)])
@@ -646,7 +671,11 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
   blast_best2.dt = blast_best.dt[
     pctsim < pctsim_min, .(pctsim=pctsim_range(pctsim),
                            species=print_strains(strain, raw=raw)), by=qseqid]
-  if (verbose) cat('OK.\n')
+  t1 = Sys.time()
+  t1mt0 = t1-t0
+  if (verbose) {
+    cat('OK. [', round(t1mt0, 1), ' ', attr(t1mt0, 'units'), ']\n', sep='')
+  }
 
   if (debug) {
     cat('DEBUG: var_count.dt \n')
@@ -672,6 +701,8 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
         by=osu_id][raw_count > 0, .(osu_id, variant_id, copy_number)]
     )
   }
+  t2 = Sys.time()
+
   if (debug) {
     cat('DEBUG: osu_data_m_single.dt \n')
     print(head(osu_data_m_single.dt))
@@ -686,7 +717,11 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
   } else {
     sample_ids = ab_tab_nochim_m.dt[, unique(sample_id)]
   }
-  if (verbose) cat('OK.\n')
+  t3 = Sys.time()
+  t3mt1 = t3 - t1
+  if (verbose) {
+    cat('OK. [', round(t3mt1, 1), ' ', attr(t3mt1, 'units'), ']\n', sep='')
+  }
   if (verbose) cat('Calculating abundances (', ncpu, ' threads)...\n', sep='')
 
   all_abs.dt = data.table::rbindlist(parallel::mclapply(sample_ids, function (s) {
@@ -695,8 +730,11 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
     # Numbers of rows for optimized and non-optimized OSUs
     n_opt = 0
     n_non = 0
+    t00 = Sys.time()
+    debug_print('sample_id: ', s, '\n')
 
     # First prepare < 100% matches
+    debug_print('  Preparing matrices for 100% matches...')
     if (nrow(osu_data_m.dt[sample_id==s & raw_count > 0]) > 0) {
 
       Ab.dt = dcast(
@@ -716,17 +754,23 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
       B = as.matrix(Ab.dt[, raw_count])
       dimnames(B)[[1]] = Ab.dt[, variant_id]
 
+      t01 = Sys.time()
+      t01mt00 = t01 - t00
+      debug_print(' OK. [', round(t01mt00), ' ', attr(t01mt00, 'units'), ']\n',
+                  sep='')
+
       # Solve
-      if (debug) {
-        cat('Solving linear model...')
-      }
+      debug_print('  Solving linear model...')
       sol = tryCatch(
          lsei(A, B, fulloutput=T, G=diag(ncol(A)), H=matrix(c(0), nrow=ncol(A), ncol=1), type=2),
          error = function (x) NA
       )
-      if (debug) {
-        cat(' completed.\n')
-      }
+      t02 = Sys.time()
+      t02mt01 = t02 - t01
+      debug_print(' OK. [', round(t02mt01), ' ', attr(t02mt01, 'units'), ']\n',
+                  sep='')
+
+
       if (class(sol) == 'logical') {
         if (is.na(sol)) {
           # Least square model failed for some reason; in which case just
@@ -734,6 +778,8 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
           return(data.table())
         }
       }
+
+      debug_print('  Generating graph from the Ar matrix...')
 
       osu_th = 1e-1
       osu_ab = sol$X
@@ -778,13 +824,30 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
          }
       }
       g = as.undirected(g)
+      t03 = Sys.time()
+      t03mt02 = t03 - t02
+      debug_print(' OK. [', round(t03mt02), ' ', attr(t03mt02, 'units'), ']\n',
+                  sep='')
+
+
+      debug_print('  Finding connected clusters...')
       # Find all connected clusters
-      cls = lapply(groups(clusters(g)), function (x) if (length(x[x<=ncol(Ar)]) > 1) x else NA)
+      cls = parallel::mclapply(
+        groups(clusters(g)),
+        function (x) if (length(x[x<=ncol(Ar)]) > 1) x else NA,
+        mc.cores=ncpu_sample)
       cls = cls[!is.na(cls)]
       osu_ab2.dt = copy(osu_ab.dt)
+      t04 = Sys.time()
+      debug_print(' OK. ', length(cls), ' clusters found. [',
+                  round(t04mt03), ' ', attr(t04mt03, 'units'), ']\n',
+                  sep='')
+
       # For each cluster i
       if (length(cls) > 0) {
-        for (i in 1:length(cls)) {
+        debug_print('  Solving individual clusters....')
+        # for (i in 1:length(cls)) {
+        osu_ab3_list = parallel::mclapply(1:length(cls), function (i) {
           # Add back any osu with a single variant_id
           # Sometimes, optimization will omit osu_ids with mapping to single
           # variant_ids so we bring those back here manually.
@@ -842,12 +905,12 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
           res = tmp[which.min(sapply(tmp, function (x) x[[2]]))]
 
           osu_ab3.dt[, osu_count := as.integer(res[[1]][[1]])]
-          osu_ab2.dt = merge(
-            osu_ab2.dt[!(osu_id %in% colnames(Ar3))],
-            osu_ab3.dt,
-            all=T,
-            by=names(osu_ab3.dt)
-          )
+          # osu_ab2.dt = merge(
+          #   osu_ab2.dt[!(osu_id %in% colnames(Ar3))],
+          #   osu_ab3.dt,
+          #   all=T,
+          #   by=names(osu_ab3.dt)
+          # )
 
           # rm(Ar2, ar3, tmp, osu_ab3.dt, Ar3.dt)
           if (exists('Ar2')) rm(Ar2)
@@ -856,9 +919,31 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
           if (exists('osu_ab3.dt')) rm(osu_ab3.dt)
           if (exists('Ar3.dt')) rm(Ar3.dt)
 
+          # New for mclapply
+          return(list(osu_ab3.dt, colnames(Ar3)))
 
+        }, mc.cores=ncpu_sample)
+        t05 = Sys.time()
+        t05mt04 = t05 - t04
+        debug_print(' OK. [', round(t05mt04), ' ', attr(t05mt04, 'units'), ']\n',
+                    sep='')
+
+        debug_print('  Merging tables...')
+        for (osu_ab3_item in osu_ab3_list) {
+          osu_ab2.dt = merge(
+            osu_ab2.dt[!(osu_id %in% osu_ab3_item[[2]])],
+            osu_ab3_item[[1]],
+            all=T,
+            by=names(osu_ab3_item[[1]])
+          )
         }
-      }
+        t06mt05 = t06 - t05
+        debug_print(' OK. [', round(t06mt05), ' ', attr(t06mt05, 'units'), ']\n',
+                    sep='')
+
+
+      } # end if length(cls) > 0
+
       # rm(g, cls, Ar, Br, sol, A, B)
       if (exists('g')) rm(g)
       if (exists('cls')) rm(cls)
@@ -868,10 +953,10 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
       if (exists('A')) rm(A)
       if (exists('B')) rm(B)
 
-
+      debug_print('  Finalizing < 100% OSU table...')
       osu_ab2.dt = osu_ab2.dt[osu_count > 0]
 
-      # Join table to OSU abundances
+      # Add OSU labels (species_label from osu_sp.dt)
       osu_ab4.dt = merge(osu_ab2.dt, osu_sp.dt, by='osu_id',
                         all.x=T)
       data.table::setorder(osu_ab4.dt, -osu_count)
@@ -886,8 +971,25 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
       if (exists('osu_ab4.dt')) rm(osu_ab4.dt)
       if (exists('Ab.dt')) rm(Ab.dt)
       n_opt = nrow(osu_ab5.dt)
-    }
 
+      if (exists('t06')) {
+        t07mt06 = t06 - t04
+        debug_print(' OK. [', round(t05mt04), ' ', attr(t05mt04, 'units'), ']\n',
+                    sep='')
+
+      } else {
+        t07mt06 = t05 - t04
+        debug_print(' OK. [', round(t05mt04), ' ', attr(t05mt04, 'units'), ']\n',
+                    sep='')
+      }
+
+
+
+    } else {
+      debug_print(' No < 100% matches found.\n')
+    }
+    t08 = Sys.time()
+    debug_print('  Processing < 100% matches...')
     # Check < 100% matches
     if (nrow(blast_best2.dt) > 0) {
       ab_tab2.dt = merge(
@@ -923,10 +1025,16 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
     all_ab.dt[, sample_id := s]
     data.table::setcolorder(all_ab.dt, c('sample_id', 'osu_id', 'osu_count', 'species',
                              'pctsim'))
-    if (verbose) cat('- sample_id:', s, '\n')
+    if (verbose) cat('- sample_id:', s, ' completed.\n')
+    t09 = Sys.time()
+    t09mt08 = t09 - t08
+    debug_print('OK. [', round(t09mt08, 1), ' ', attr(t09mt08, 'units'), ']\n',
+                sep='')
+
     return(all_ab.dt[osu_count>0])
 
   }, mc.cores=ncpu))
+
   if (verbose) cat('OK.\n')
   return(unique(all_abs.dt))
 }
