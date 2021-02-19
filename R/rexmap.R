@@ -1023,6 +1023,10 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
       return(data.table())
     }
     all_ab.dt[, sample_id := s]
+    if (debug) {
+      print(head(all_ab.dt))
+    }
+
     data.table::setcolorder(all_ab.dt, c('sample_id', 'osu_id', 'osu_count', 'species',
                              'pctsim'))
     if (verbose) cat('- sample_id:', s, ' completed.\n')
