@@ -678,11 +678,11 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
   }
 
   if (debug) {
-    cat('DEBUG: var_count.dt \n')
-    print(head(var_count.dt))
+    # cat('DEBUG: var_count.dt \n')
+    # print(head(var_count.dt))
 
-    cat('DEBUG: blast_best2.dt \n')
-    print(head(blast_best2.dt))
+    # cat('DEBUG: blast_best2.dt \n')
+    # print(head(blast_best2.dt))
   }
 
   # Define optimization function
@@ -704,13 +704,13 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
   t2 = Sys.time()
 
   if (debug) {
-    cat('DEBUG: osu_data_m_single.dt \n')
-    print(head(osu_data_m_single.dt))
+    # cat('DEBUG: osu_data_m_single.dt \n')
+    # print(head(osu_data_m_single.dt))
   }
   osu_sp.dt = cp.dt[, .(species = print_strains(strain, raw=raw)), by=osu_id]
   if (debug) {
-    cat('DEBUG: osu_sp.dt \n')
-    print(head(osu_sp.dt))
+    # cat('DEBUG: osu_sp.dt \n')
+    # print(head(osu_sp.dt))
   }
   if (!is.null(custom_sampleids)) {
     sample_ids = strsplit(custom_sampleids, split=',', fixed=T)[[1]]
@@ -761,6 +761,10 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
 
       # Solve
       debug_print('  Solving linear model...')
+      if (debug) {
+        saveRDS(A, paste0(s, '_matrix_A.Rdata'))
+        saveRDS(B, paste0(s, '_matrix_B.Rdata'))
+      }
       sol = tryCatch(
          lsei(A, B, fulloutput=T, G=diag(ncol(A)), H=matrix(c(0), nrow=ncol(A), ncol=1), type=2),
          error = function (x) NA
@@ -772,6 +776,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
 
 
       if (class(sol) == 'logical') {
+        debug_print('  Linear model failed. [class(sol) == logical]')
         if (is.na(sol)) {
           # Least square model failed for some reason; in which case just
           # return an empty data table. Likely problematic inpjut sequene counts.
