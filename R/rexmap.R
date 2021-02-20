@@ -764,7 +764,8 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
       if (debug) {
         saveRDS(A, paste0(s, '_matrix_A.Rdata'))
         saveRDS(B, paste0(s, '_matrix_B.Rdata'))
-        saveRDS(A, paste0(s, '_Ab.dt.Rdata'))
+        saveRDS(Ab.dt, paste0(s, '_Ab.dt.Rdata'))
+        saveRDS(osu_data_m.dt, paste0(s, 'osu_data_m.dt.Rdata'))
       }
       sol = tryCatch(
          lsei(A, B, fulloutput=T, G=diag(ncol(A)), H=matrix(c(0), nrow=ncol(A), ncol=1), type=2),
