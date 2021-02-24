@@ -846,6 +846,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
       cls = cls[!is.na(cls)]
       osu_ab2.dt = copy(osu_ab.dt)
       t04 = Sys.time()
+      t04mt03 = t04 - t03
       debug_print(' OK. ', length(cls), ' clusters found. [',
                   round(t04mt03), ' ', attr(t04mt03, 'units'), ']\n',
                   sep='')
