@@ -86,11 +86,22 @@ blast_out_to_best_cp = function (
   cp.dt = data.table::fread(ref_cp, colClasses=c('character', 'character', 'integer'))
 
   # Prepare copy number table columns
-  cp.dt[, strain := gsub('_@rrn[0-9]+', '', strain_name)]
+  # This is for compatibility with old database versions where variant_name
+  # used to be called 'strain_name' (the column with _rrn00 added to strain
+  # names)
+  if (names(cp.dt)[2] == 'strain_name' & !('variant_name' %in% names(cp.dt))) {
+    names(cp.dt)[2] = 'variant_name'
+  }
+  cp.dt[, strain := gsub('_@rrn[0-9]+', '', variant_name)]
 
   # Generate strain index
   cp.dt[, strain_id := .GRP, by=strain]
-  cp.dt[, strain_name := NULL]
+  if ('variant_name' %in% names(cp.dt)) {
+     cp.dt[, variant_name := NULL]
+  }
+  if ('strain_name' %in% names(cp.dt)) {
+     cp.dt[, strain_name := NULL]
+  }
 
   # How many unique 16S rrna variants of each strain?
   cp.dt[, rrn_uniq := length(unique(variant_id)), by=strain]
