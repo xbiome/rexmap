@@ -765,7 +765,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
         saveRDS(A, paste0(s, '_matrix_A.Rdata'))
         saveRDS(B, paste0(s, '_matrix_B.Rdata'))
         saveRDS(Ab.dt, paste0(s, '_Ab.dt.Rdata'))
-        saveRDS(osu_data_m.dt, paste0(s, 'osu_data_m.dt.Rdata'))
+        saveRDS(osu_data_m.dt, paste0(s, '_osu_data_m.dt.Rdata'))
       }
       sol = tryCatch(
          lsei(A, B, fulloutput=T, G=diag(ncol(A)), H=matrix(c(0), nrow=ncol(A), ncol=1), type=2),
@@ -853,15 +853,18 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
 
       # For each cluster i
       if (length(cls) > 0) {
-        debug_print('  Solving individual clusters....')
+        debug_print('  Solving individual clusters\n')
         # for (i in 1:length(cls)) {
         osu_ab3_list = parallel::mclapply(1:length(cls), function (i) {
           # Add back any osu with a single variant_id
           # Sometimes, optimization will omit osu_ids with mapping to single
           # variant_ids so we bring those back here manually.
+          debug_print('  cluster #', i, '\n')
           cl = cls[i][[1]]
           osu_ids = vxs[cl[cl<=ncol(Ar)]]
           variant_ids = vxs[cl[cl>ncol(Ar)]]
+          debug_print('  - osu_ids:', paste(osu_ids, collapse=','), '\n')
+          debug_print('  - variant_ids: ', paste(variant_ids, collapse=','), '\n')
           # osu_ids = c(osu_ids, osu_data_m_single.dt[variant_id %in% variant_ids][, osu_id])
           # variant_ids = c(variant_ids, osu_data_m_single.dt[variant_id %in% variant_ids][, osu_id])
           Ar2 = Ar[variant_ids, osu_ids, drop=F]
@@ -885,9 +888,14 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
           }
 
           Br3 = as.matrix(B[rownames(Ar3),])
-          osu_ab3.dt = merge(osu_ab.dt, data.table(osu_id=as.integer(colnames(Ar3))),
+          debug_print('  - osu_ab3.dt creation:\n')
+          debug_print(head(osu_ab.dt))
+
+          osu_ab3.dt = merge(osu_ab.dt,
+                             data.table(osu_id=as.integer(colnames(Ar3))),
                              by='osu_id', all.y=T)
           osu_ab3.dt[is.na(osu_count), osu_count := 0L]
+          debug_print(head(osu_ab3.dt))
           # setorder(osu_ab3.dt, osu_id)
 
           x0 = osu_ab3.dt[, osu_count]
@@ -897,6 +905,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
 
           ar3 = copy(Ar3)
           for (r in 1:nrow(Ar3)) ar3[r,] = ar3[r,] / Br3[r]
+          debug_print('  - pso running...')
           tmp = lapply(1:pso_n, function (it) {
             pso = psoptim(
               rep(0, length(x0)),
@@ -911,7 +920,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
                  pso$value)
           })
           res = tmp[which.min(sapply(tmp, function (x) x[[2]]))]
-
+          debug_print(' OK.\n')
           osu_ab3.dt[, osu_count := as.integer(res[[1]][[1]])]
           # osu_ab2.dt = merge(
           #   osu_ab2.dt[!(osu_id %in% colnames(Ar3))],
@@ -924,7 +933,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
           if (exists('Ar2')) rm(Ar2)
           if (exists('ar3')) rm(ar3)
           if (exists('tmp')) rm(tmp)
-          if (exists('osu_ab3.dt')) rm(osu_ab3.dt)
+          # if (exists('osu_ab3.dt')) rm(osu_ab3.dt)
           if (exists('Ar3.dt')) rm(Ar3.dt)
 
           # New for mclapply
@@ -945,6 +954,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
             by=names(osu_ab3_item[[1]])
           )
         }
+        t06 = Sys.time()
         t06mt05 = t06 - t05
         debug_print(' OK. [', round(t06mt05), ' ', attr(t06mt05, 'units'), ']\n',
                     sep='')
