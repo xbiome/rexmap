@@ -574,7 +574,8 @@ abundance = function (abundance_table, blast_object,
                       custom_sampleids=NULL,
                       verbose=rexmap_option('verbose'),
                       debug=FALSE,
-                      timing=FALSE) {
+                      timing=FALSE,
+                      lm_solver='lsei') {
 
   # Check that abundance table has only 1 qseqid per sample_id; this issue
   # may occur in case of incorrectly extracting sample_ids from dada2
@@ -621,7 +622,8 @@ abundance = function (abundance_table, blast_object,
                                 pso_n=pso_n,
                                 raw=raw_strains,
                                 custom_sampleids=custom_sampleids,
-                                debug=debug)
+                                debug=debug,
+                                lm_solver=lm_solver)
 
   setcolorder(osu_ab.dt, c('sample_id', 'osu_id', 'osu_count', 'pctsim', 'species'))
   setorder(osu_ab.dt, sample_id, -osu_count)
@@ -651,11 +653,19 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
                               timing=F,
                               pso_n=1000,
                               raw=TRUE, debug=FALSE,
-                              custom_sampleids=NULL) {
+                              custom_sampleids=NULL,
+                              lm_solver='lsei') {
+
+  # lm_solver either 'lsei' or 'quadprogpp'
 
   debug_print = function (...) {
     if (debug) {
       cat(...)
+    }
+  }
+  debug_print_head = function (dt) {
+    if (debug) {
+      print(head(dt))
     }
   }
 
@@ -760,20 +770,40 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
                   sep='')
 
       # Solve
-      debug_print('  Solving linear model...')
+      debug_print('  Solving linear model:\n')
       if (debug) {
         saveRDS(A, paste0(s, '_matrix_A.Rdata'))
         saveRDS(B, paste0(s, '_matrix_B.Rdata'))
         saveRDS(Ab.dt, paste0(s, '_Ab.dt.Rdata'))
         saveRDS(osu_data_m.dt, paste0(s, '_osu_data_m.dt.Rdata'))
       }
-      sol = tryCatch(
-         lsei(A, B, fulloutput=T, G=diag(ncol(A)), H=matrix(c(0), nrow=ncol(A), ncol=1), type=2),
-         error = function (x) NA
-      )
+      if (lm_solver == 'lsei') {
+        debug_print('  - Using limSolve::lsei() as least square solver.\n')
+        sol = tryCatch(
+          lsei(A, B, fulloutput=T, G=diag(ncol(A)), H=matrix(c(0), nrow=ncol(A),
+                                                             ncol=1), type=2),
+          error = function (x) NA
+        )
+      } else if (lm_solver == 'quadprogpp') {
+        debug_print('  - Using quadprogpp as least square solver.\n')
+        t01a = Sys.time()
+        debug_print('  - Transforming matrices... ')
+        dvec = crossprod(A, B)
+        Dmat = crossprod(A, A)
+        diag(Dmat) = diag(Dmat) + 1e-8
+        Amat = t(diag(ncol(A)))
+        bvec = matrix(c(0), nrow=ncol(A), ncol=1)
+        t01b = Sys.time()
+        t01bmt01a = t01b - t01a
+        debug_print(' OK. [', round(t01bmt01a), ' ', attr(t01bmt01a, 'units'), ']\n')
+        sol_vector = tryCatch(
+          quadprogpp::quadprog.solve.QP(Dmat, dvec, Amat, bvec),
+          error = function (x) NA
+        )
+      }
       t02 = Sys.time()
       t02mt01 = t02 - t01
-      debug_print(' OK. [', round(t02mt01), ' ', attr(t02mt01, 'units'), ']\n',
+      debug_print('  Done. [', round(t02mt01), ' ', attr(t02mt01, 'units'), ']\n',
                   sep='')
 
 
@@ -889,13 +919,13 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
 
           Br3 = as.matrix(B[rownames(Ar3),])
           debug_print('  - osu_ab3.dt creation:\n')
-          debug_print(head(osu_ab.dt))
+          debug_print_head(osu_ab.dt)
 
           osu_ab3.dt = merge(osu_ab.dt,
                              data.table(osu_id=as.integer(colnames(Ar3))),
                              by='osu_id', all.y=T)
           osu_ab3.dt[is.na(osu_count), osu_count := 0L]
-          debug_print(head(osu_ab3.dt))
+          debug_print_head(osu_ab3.dt)
           # setorder(osu_ab3.dt, osu_id)
 
           x0 = osu_ab3.dt[, osu_count]

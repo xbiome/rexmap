@@ -2,7 +2,7 @@ Package: rexmap
 Type: Package
 Title: Reference-based exact Mapping Pipeline
 Version: 1.1
-Author: Igor Segota <is246@cornell.edu>, Tao Long <tlong@sbpdiscovery.org>
+Author: Igor Segota <is246@cornell.edu>, Tao Long <tlong@health.ucsd.edu>
 Maintainer: Igor Segota <is246@cornell.edu>
 Description: Reference-based exact Mapping Pipeline
 License: LGPL-3
@@ -16,9 +16,10 @@ Imports:
    limSolve (>= 1.5.5.3),
    parallel (>= 3.4.4),
    pso (>= 1.0.3),
+   quadprogpp (>= 1.1),
    Rcpp (>= 0.12.16),
    ShortRead (>= 1.36.1),
    stringr (>= 1.3.0),
    utils (>= 3.4.4)
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
 StagedInstall: false
