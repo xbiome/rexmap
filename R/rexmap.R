@@ -800,6 +800,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
           quadprogpp::quadprog.solve.QP(Dmat, dvec, Amat, bvec),
           error = function (x) NA
         )
+        sol = list(X=sol_vector$solution)
       }
       t02 = Sys.time()
       t02mt01 = t02 - t01
