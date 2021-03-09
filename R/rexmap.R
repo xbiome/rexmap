@@ -994,6 +994,10 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
 
       } # end if length(cls) > 0
 
+      if (!exists('t05')) {
+        t05 = Sys.time()
+      }
+
       # rm(g, cls, Ar, Br, sol, A, B)
       if (exists('g')) rm(g)
       if (exists('cls')) rm(cls)
