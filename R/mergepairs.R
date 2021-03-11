@@ -67,8 +67,11 @@ merge_pairs = Vectorize(function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_
   # Go through each read entry, do alignment
   r_fwd = ShortRead::yield(f_fwd)
   if (length(r_fwd) == 0) break
-  if (rc_reverse) r_rev = ShortRead::reverseComplement(ShortRead::yield(f_rev))
-  else r_rev = ShortRead::yield(f_rev)
+  if (rc_reverse) {
+    r_rev = ShortRead::reverseComplement(ShortRead::yield(f_rev))
+  } else {
+    r_rev = ShortRead::yield(f_rev)
+  }
 
   # Process chunk
   read_fwd = as.character(ShortRead::sread(r_fwd))
@@ -77,6 +80,37 @@ merge_pairs = Vectorize(function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_
   qual_rev = as.character(Biostrings::quality(Biostrings::quality(r_rev)))
   ids = gsub('^([^ ]+) .*', '\\1', as.character(ShortRead::id(r_fwd)))
   m(' OK.\n')
+
+  # Filter out useless/invalid reads at this point before sending it to C++
+  # function.
+
+  m('Removing invalid reads...')
+  # NNNNN reads
+  n_mask = grepl('^[N]+$', read_fwd) & grepl('^[N]+$', read_rev)
+  if (sum(n_mask) > 0) {
+    read_fwd = read_fwd[!n_mask]
+    read_rev = read_rev[!n_mask]
+    qual_fwd = qual_fwd[!n_mask]
+    qual_rev = qual_rev[!n_mask]
+    ids = ids[!n_mask]
+  }
+
+  # Non-ACGTN reads
+  x_mask = grepl('[^ACGTN]+', read_fwd) & grepl('[^ACGTN]+', read_rev)
+  if (sum(x_mask) > 0) {
+    read_fwd = read_fwd[!x_mask]
+    read_rev = read_rev[!x_mask]
+    qual_fwd = qual_fwd[!x_mask]
+    qual_rev = qual_rev[!x_mask]
+    ids = ids[!x_mask]
+  }
+  m(' OK.\n')
+
+  # print(head(read_fwd))
+  # print(head(read_rev))
+  # print(head(qual_fwd))
+  # print(head(qual_rev))
+
 
   # Apply mergepairs
   m('Merging pairs...')
@@ -88,6 +122,8 @@ merge_pairs = Vectorize(function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_
                          mc.cores=ncpu
                        )
   m(' OK.\n')
+
+  # Filter out low % sim and low aln length alignments
   merged_aln_filter = as.logical(unname(merged_list[3, ])) &
     as.logical(unname(merged_list[4, ]))
 
@@ -110,14 +146,6 @@ merge_pairs = Vectorize(function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_
   final_qual = final_qual[final_filter]
   final_ids  = final_ids[final_filter]
 
-  # any NULL sequences? (no idea why/how this happens sometime) seems like a
-  # multithreading issue
-
-  merged_sread = ShortRead::ShortReadQ(
-    sread = Biostrings::DNAStringSet(final_seqs),
-    quality = Biostrings::BStringSet(final_qual),
-    id = Biostrings::BStringSet(final_ids)
-  )
 
   # Generate statistics for filtered-out reads
   stats = list(
@@ -126,13 +154,28 @@ merge_pairs = Vectorize(function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_
     'low_aln_len'=length(merged_aln_filter) - sum(as.logical(merged_list[4, ]))
   )
 
+  # Sometimes there are no sequences left, in which case just return
+  # stats
+
+  if (length(final_seqs) > 1) {
+    merged_sread = ShortRead::ShortReadQ(
+      sread = Biostrings::DNAStringSet(final_seqs),
+      quality = Biostrings::BStringSet(final_qual),
+      id = Biostrings::BStringSet(final_ids)
+    )
+  }
+
+
   # Free memory and close file connections
   rm(merged_list)
 
   # If file exists, delete it, then write new one
   if (file.exists(fq_mer)) file_remove_result = file.remove(fq_mer)
-
-  ShortRead::writeFastq(merged_sread, fq_mer, compress = F)
+  if (length(final_seqs) > 1) {
+    ShortRead::writeFastq(merged_sread, fq_mer, compress = F)
+  } else {
+    m(' (No reads merged!) ')
+  }
   m(' OK.\n')
   if (timing) {
     end_time = Sys.time()

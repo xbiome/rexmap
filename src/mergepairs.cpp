@@ -302,6 +302,18 @@ char **himap_merge_alignment(char** al) {
   for (i=0; i<len; i++) {
     q1 = int(al[2][i]) - PHRED_OFFSET;
     q2 = int(al[3][i]) - PHRED_OFFSET;
+    // post_q_match and post_q_mismatch should have exact same dimensions
+    // so its enough to just check one of them.
+    if (q1 >= post_q_match.size()) {
+      q1 = post_q_match.size() - 1;
+    } else if (q1 < 0) {
+      q1 = 0;
+    }
+    if (q2 >= post_q_match[0].size()) {
+      q2 = post_q_match[0].size() - 1;
+    } else if (q2 < 0) {
+      q2 = 0;
+    }
     // std::cout << "q1: " << q1 << ", q2: " << q2 << "\n";
     //q = post_q_match[q1][q2] + PHRED_OFFSET;
     // std::cout << "q: " << q << "\n";
@@ -436,7 +448,7 @@ Rcpp::CharacterVector C_mergepairs(std::string s1, std::string s2,
   len_al = static_cast<int>(strlen(al[0]));
 
   // Rcpp::stop("Checkpoint1.");
-
+  // std::cout << "- post himap_nwalign_endsfree checkpoint.\n";
   // Calculate the number of matching letters in the alignment
   // Since it is ends-free - vs anything will be a mismatch automatically.
   for (i=0; i<len_al; i++) {
@@ -468,6 +480,11 @@ Rcpp::CharacterVector C_mergepairs(std::string s1, std::string s2,
   // Clean up
   free(seq1);
   free(seq2);
+
+  // if (debug == TRUE) {
+  //   std::cout << "DEBUG FWD: " << qs1
+  // }
+
   // Now merge the aligned sequences
   merged = himap_merge_alignment(al);
 
