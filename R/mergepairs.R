@@ -99,6 +99,7 @@ merge_pairs = Vectorize(function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_
       read_rev = read_rev[1:read_cap]
       qual_fwd = qual_fwd[1:read_cap]
       qual_rev = qual_rev[1:read_cap]
+      ids = ids[1:read_cap]
     }
 
   }
@@ -190,7 +191,9 @@ merge_pairs = Vectorize(function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_
   rm(merged_list)
 
   # If file exists, delete it, then write new one
-  if (file.exists(fq_mer)) file_remove_result = file.remove(fq_mer)
+  if (file.exists(fq_mer)) {
+    file_remove_result = file.remove(fq_mer)
+  }
   if (length(final_seqs) > 1) {
     ShortRead::writeFastq(merged_sread, fq_mer, compress = F)
   } else {
