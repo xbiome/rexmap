@@ -13,6 +13,7 @@
 #' @param gap_p Score for gap penalty, either gap opening on gap extension (default: -7).
 #' @param rc_reverse TRUE/FALSE Reverse complement reverse reads? (default: TRUE)
 #' @param ncpu Number of CPU threads to use for multithreading.
+#' @param force Do not stop merging on fatal errors. (default: FALSE)
 #' @param verbose TRUE/FALSE Display of status messages.
 #' @param timing TRUE/FALSE Time merging.
 #'
@@ -20,6 +21,7 @@
 merge_pairs = Vectorize(function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
                               match=5L, mismatch=-5L, gap_p=-7L, rc_reverse=TRUE,
                               ncpu = rexmap_option('ncpu'),
+                              force=FALSE,
                               verbose=FALSE, timing=FALSE
                               ) {
   # fq_fwd = vector of filenames (incl. paths) to forward reads
@@ -83,6 +85,24 @@ merge_pairs = Vectorize(function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_
 
   # Filter out useless/invalid reads at this point before sending it to C++
   # function.
+  if (length(read_fwd) != length(read_rev)) {
+    m(' * Error: Unequal number of reads in forward and reverse files.\n')
+    m('   Forward file: ', length(read_fwd), ' reads | Reverse file: ',
+      length(read_rev), ' reads.\n')
+    if (!force) {
+      m('   Stop.\n')
+      return(list('total'=NA, 'low_pct_sim'=NA, 'low_aln_len'=NA))
+    } else {
+      m('   Proceeding by ignoring extra reads.\n')
+      read_cap = min(length(read_fwd), length(read_rev))
+      read_fwd = read_fwd[1:read_cap]
+      read_rev = read_rev[1:read_cap]
+      qual_fwd = qual_fwd[1:read_cap]
+      qual_rev = qual_rev[1:read_cap]
+    }
+
+  }
+
 
   m('Removing invalid reads...')
   # NNNNN reads
