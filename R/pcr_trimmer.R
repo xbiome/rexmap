@@ -30,7 +30,7 @@
 remove_pcr_primers = Vectorize(function (fq_in, fq_out, region=NULL,
                               pr_fwd=NULL,
                               pr_rev=NULL,
-                              pr_fwd_maxoff=10, pr_rev_maxoff=10,
+                              pr_fwd_maxoff=35, pr_rev_maxoff=35,
                               return_noprimer=T,
                               ncpu=rexmap_option('ncpu'), max_mismatch=2,
                               timing=F, verbose=rexmap_option('verbose'),
