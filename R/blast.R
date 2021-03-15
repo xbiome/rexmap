@@ -359,7 +359,7 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
                                     show_alignment=show_alignment, verbose=verbose)
   } else {
     blast_cp = blast_out_to_best_cp(blast_output, ref_cp=ref_cp,
-                                    show_alignment=show_alignment)
+                                    show_alignment=show_alignment, verbose=verbose)
   }
 
   names(blast_cp) = c('alignments', 'cp')
