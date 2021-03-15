@@ -27,7 +27,7 @@ blast_best_seq_matches = function (dt, id_col='dada_seqid', match_col='match_str
 blast_out_to_best_cp = function (
    blast_output, region=NULL, ref_cp=NULL, aln_params=rexmap_option('aln_params'),
    blast_out_fmt=rexmap_option('blast_out_fmt'),
-   verbose=T, ncpu=rexmap_option('ncpu'), variant_sep='-',
+   verbose=T, debug=F, ncpu=rexmap_option('ncpu'), variant_sep='-',
    show_alignment=F, skip_cp=F
   )
 {
@@ -264,6 +264,7 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
                   ref_cp=NULL, max_target_seqs=rexmap_option('blast_max_seqs'),
                   word_size=rexmap_option('blast_word_size'),
                   verbose=rexmap_option('verbose'),
+                  debug=FALSE,
                   show_args=F, output_error=F, show_alignment=F,
                   ncpu=rexmap_option('ncpu'), temp_dir=tempdir()) {
 
@@ -334,6 +335,9 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
     rand_id = sample(LETTERS, 10)
     blast_output = file.path(temp_dir, paste(c('blast_output_', rand_id, '.txt'),
                                               collapse=''))
+    if (verbose) {
+      cat('* blast output temp: ', blast_output, fill=T)
+    }
   }
   if (!is.null(region)) {
     blast_status = blastn(fasta_file, blast_output, region=region,
