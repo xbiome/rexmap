@@ -224,7 +224,15 @@ mergeout_to_table = function (mergestats) {
   return(mergestats.dt)
 }
 
-
+#' Auto-detect overlap length in paired-end reads
+#'
+#' Tests different minimum overlap lengths for `merge_pairs()`
+#'
+#' @param min_sim Minimum % similarity in the overlap region to
+#' accept the overlap alignment as valid
+#' @param ncpu Number of threads
+#'
+#' @export
 detect_overlap_length = function (
   fq_fwd, fq_rev,
   min_sim=0.75,
@@ -379,11 +387,11 @@ detect_overlap_length = function (
   min_aln_lens_best = sapply(out, function (pm.dt) {
     max_pct_merged = pm.dt[, max(pct_merged)]
     max2_pct_merged = (1-minalnlen_drop_pct/100)*max_pct_merged
-    best_index = pm.dt[
-      , which(
-        abs(pct_merged-max2_pct_merged)==min(abs(pct_merged-max2_pct_merged)))
-    ]
-    return(pm.dt[best_index, min_aln_len])
+    best_pct_merged = pm.dt[
+      abs(pct_merged-max2_pct_merged)==min(
+        abs(pct_merged-max2_pct_merged))
+    ][min_aln_len==max(min_aln_len), pct_merged]
+    return(best_pct_merged)
   })
   min_aln_len_best = round(mean(min_aln_lens_best))
   m(' * min_aln_len with largest overlap: ', min_aln_len_best)
