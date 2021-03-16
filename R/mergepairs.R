@@ -223,3 +223,170 @@ mergeout_to_table = function (mergestats) {
   )
   return(mergestats.dt)
 }
+
+
+detect_overlap_length = function (
+  fq_fwd, fq_rev,
+  min_sim=0.75,
+  match=5L, mismatch=-5L, gap_p=-7L, rc_reverse=TRUE,
+  ncpu = rexmap_option('ncpu'),
+  nseqs=1000, nseqs_seed=42,
+  minalnlen_min=10, minalnlen_max=70, minalnlen_step=5,
+  minalnlen_drop_pct=5,
+  force=T,
+  verbose=T
+) {
+  # Try different min_aln_len and rc_reverse TRUE/FALSE if we cant merge much
+  # fq_fwd and fq_rev are characters vectors with forward and reverse reads
+  # sample nseqs each run to speed it up
+  if (length(fq_fwd) != length(fq_rev)) {
+    stop('fq_fwd and fq_rev have different lengths.')
+  }
+  fq_fwd_exist = file.exists(fq_fwd)
+  fq_rev_exist = file.exists(fq_rev)
+  if (any(!fq_fwd_exist)) {
+    stop('Some forward read files do not exist: ', paste(fq_fwd[!fq_fwd_exist], collapse=','))
+  }
+  if (any(!fq_rev_exist)) {
+    stop('Some reverse read files do not exist: ', paste(fq_rev[!fq_rev_exist], collapse=','))
+  }
+
+  m = function (..., fill=TRUE, time_stamp=TRUE) {
+    if (!time_stamp) {
+      cat(..., append=TRUE, fill=fill)
+    } else {
+      cat(as.character(as.POSIXlt(Sys.time())), ' | ', ...,
+          append=TRUE, fill=fill)
+    }
+  }
+  m('-------- Detect forward/reverse overlap lengths --------')
+  min_aln_lens = seq(minalnlen_min, minalnlen_max, minalnlen_step)
+  out = parallel::mcmapply(function(fqf, fqr) {
+    # Load files fqf and fqr
+    m(paste0('Loading FASTQ reads: ', basename(fqf), ', ', basename(fqr), ' ...'),
+      fill=F)
+    f_fwd = ShortRead::FastqStreamer(fqf)
+    f_rev = ShortRead::FastqStreamer(fqr)
+    # Go through each read entry, do alignment
+    r_fwd = ShortRead::yield(f_fwd)
+    if (length(r_fwd) == 0) break
+    if (rc_reverse) {
+      r_rev = ShortRead::reverseComplement(ShortRead::yield(f_rev))
+    } else {
+      r_rev = ShortRead::yield(f_rev)
+    }
+
+    # Process chunk
+    read_fwd = as.character(ShortRead::sread(r_fwd))
+    read_rev = as.character(ShortRead::sread(r_rev))
+    qual_fwd = as.character(Biostrings::quality(Biostrings::quality(r_fwd)))
+    qual_rev = as.character(Biostrings::quality(Biostrings::quality(r_rev)))
+    ids = gsub('^([^ ]+) .*', '\\1', as.character(ShortRead::id(r_fwd)))
+    m(' OK.', time_stamp=F)
+
+    # Filter out useless/invalid reads at this point before sending it to C++
+    # function.
+    if (length(read_fwd) != length(read_rev)) {
+      m(' * Error: Unequal number of reads in forward and reverse files.')
+      m('   Forward file: ', length(read_fwd), ' reads | Reverse file: ',
+        length(read_rev), ' reads.')
+      if (!force) {
+        m('   Stop.')
+        return(list('total'=NA, 'low_pct_sim'=NA, 'low_aln_len'=NA))
+      } else {
+        m('   Proceeding by ignoring extra reads.')
+        read_cap = min(length(read_fwd), length(read_rev))
+        read_fwd = read_fwd[1:read_cap]
+        read_rev = read_rev[1:read_cap]
+        qual_fwd = qual_fwd[1:read_cap]
+        qual_rev = qual_rev[1:read_cap]
+        ids = ids[1:read_cap]
+      }
+
+    }
+
+
+    m('Removing invalid reads...', fill=F)
+    # NNNNN reads
+    n_mask = grepl('^[N]+$', read_fwd) & grepl('^[N]+$', read_rev)
+    if (sum(n_mask) > 0) {
+      read_fwd = read_fwd[!n_mask]
+      read_rev = read_rev[!n_mask]
+      qual_fwd = qual_fwd[!n_mask]
+      qual_rev = qual_rev[!n_mask]
+      ids = ids[!n_mask]
+    }
+
+    # Non-ACGTN reads
+    x_mask = grepl('[^ACGTN]+', read_fwd) & grepl('[^ACGTN]+', read_rev)
+    if (sum(x_mask) > 0) {
+      read_fwd = read_fwd[!x_mask]
+      read_rev = read_rev[!x_mask]
+      qual_fwd = qual_fwd[!x_mask]
+      qual_rev = qual_rev[!x_mask]
+      ids = ids[!x_mask]
+    }
+    m(' OK.', time_stamp=F)
+
+    # Subsample reads to nseqs or all reads if there are less than nseqs
+    nseqs_max = min(nseqs, length(read_fwd))
+    set.seed(nseqs_seed)
+    read_sampler = sample(1:length(read_fwd), nseqs_max)
+    # Sample reads
+    read_fwd = read_fwd[read_sampler]
+    read_rev = read_rev[read_sampler]
+    qual_fwd = qual_fwd[read_sampler]
+    qual_rev = qual_rev[read_sampler]
+
+    # For each min_aln_len run this
+    # Apply mergepairs
+    pct_merged_list = lapply(min_aln_lens, function (min_aln_len) {
+      m('* Minimum overlap length: ', min_aln_len, fill=F)
+      # m('  Merging pairs...', fill=F)
+      merged_list = parallel::mcmapply(
+        C_mergepairs, read_fwd, read_rev, qual_fwd, qual_rev,
+        match=match, mismatch=mismatch, gap_p=gap_p,
+        min_pct_sim=min_sim, min_aln_len=min_aln_len,
+        posterior_match_file=rexmap_option('mergepairs_matchqs'),
+        posterior_mismatch_file=rexmap_option('mergepairs_mismatchqs'),
+        mc.cores=ncpu
+      )
+      # m(' OK.', time_stamp=F)
+      # Filter out low % sim and low aln length alignments
+      merged_aln_filter = as.logical(unname(merged_list[3, ])) &
+        as.logical(unname(merged_list[4, ]))
+
+      final_seqs = unname(merged_list[1, merged_aln_filter])
+      final_qual = unname(merged_list[2, merged_aln_filter])
+      final_filter = !is.null(final_seqs) & !is.null(final_qual)
+      final_seqs = final_seqs[final_filter]
+      final_qual = final_qual[final_filter]
+      pct_merged = 100*length(final_seqs)/nseqs_max
+      m(' | ', round(pct_merged, 1), '% reads merged.', time_stamp=F)
+      return(pct_merged)
+    })
+
+    pct_merged.dt = data.table(min_aln_len=min_aln_lens,
+                               pct_merged=as.numeric(pct_merged_list))
+
+    # Free memory
+    close(f_fwd)
+    close(f_rev)
+    rm(read_fwd, read_rev, qual_fwd, qual_rev, f_fwd, f_rev, r_fwd, r_rev)
+    return(pct_merged.dt)
+
+  }, fq_fwd, fq_rev, mc.cores=1, SIMPLIFY=F, USE.NAMES=F)
+  min_aln_lens_best = sapply(out, function (pm.dt) {
+    max_pct_merged = pm.dt[, max(pct_merged)]
+    max2_pct_merged = (1-minalnlen_drop_pct/100)*max_pct_merged
+    best_index = pm.dt[
+      , which(
+        abs(pct_merged-max2_pct_merged)==min(abs(pct_merged-max2_pct_merged)))
+    ]
+    return(pm.dt[best_index, min_aln_len])
+  })
+  min_aln_len_best = round(mean(min_aln_lens_best))
+  m(' * min_aln_len with largest overlap: ', min_aln_len_best)
+
+  return(min_aln_len_best)
+}
