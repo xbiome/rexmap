@@ -390,7 +390,7 @@ detect_overlap_length = function (
     best_pct_merged = pm.dt[
       abs(pct_merged-max2_pct_merged)==min(
         abs(pct_merged-max2_pct_merged))
-    ][min_aln_len==max(min_aln_len), pct_merged]
+    ][, max(min_aln_len)]
     return(best_pct_merged)
   })
   min_aln_len_best = round(mean(min_aln_lens_best))
