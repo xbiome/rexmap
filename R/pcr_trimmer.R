@@ -1,4 +1,278 @@
+detect_pcr_primers = function (fq, verbose=T, debug=F,
+                               pr_fwd_maxoff=35, pr_rev_maxoff=35, max_mismatch=2,
+                               nseqs=1000, nseqs_seed=42, min_seqs_pct=5,
+                               ncpu=1, ncpu_seqs=4
+                               ) {
+   # Detect PCR primers in a single or multiple FASTQ files, given as an input
+   # character vector 'fq'
+   # - nseqs: Randomly sample nseqs from the input fastq files
+   if (verbose) {
+      cat('------- Detect PCR primers -------', fill=T)
+   }
 
+   #---------------------- Check FASTQ files ---------------------------------
+   # Check if all files in fq exist
+   fq_exist = file.exists(fq)
+   fq_good = fq[fq_exist]
+   if (sum(!fq_exist) > 0) {
+      if (verbose) {
+         cat('* Warning: Files: ', paste(fq[!fq_exist], collapse=','),
+             ' do not exist.')
+      }
+      if (length(fq_good) == 0) {
+         stop('No files can be processed.')
+      }
+   }
+
+   #------------------- Prepare primer table ---------------------------------
+   primers.dt = rexmap_option('blast_dbs')[
+      , .(Primer1, Primer2, `Primer1_sequence_5to3`, `Primer2_sequence_3to5`,
+          Primer1_reg=sub('^(V[0-9])[_]?(V[0-9])?.*$', '\\1', Hypervariable_region),
+          Primer2_reg=sub('^(V[0-9])[-]?(V[0-9])?.*$', '\\2', Hypervariable_region))]
+   primers.dt[Primer2_reg=='', Primer2_reg := Primer1_reg]
+   primers.dt = unique(primers.dt[Primer1 != ''])
+   primers.dt[, Primer1_sequence_3to5 := sapply(Primer1_sequence_5to3, reverse_complement)]
+   primers.dt[, Primer2_sequence_5to3 := sapply(Primer2_sequence_3to5, reverse_complement)]
+
+   pr_m.dt = melt(
+     primers.dt,
+     measure.vars=list(
+       c('Primer1', 'Primer2'),
+       c('Primer1_sequence_5to3', 'Primer2_sequence_5to3'),
+       c('Primer1_sequence_3to5', 'Primer2_sequence_3to5'),
+       c('Primer1_reg', 'Primer2_reg'))
+    )
+   pr_m.dt[, variable := NULL]
+   names(pr_m.dt) = c('pr_name', 'pr_5to3', 'pr_3to5', 'pr_lab')
+   pr_m.dt[, pr_id := paste(pr_lab, sub('^[^RF]+([RF])$', '\\1', pr_name), sep='')]
+   pr.dt = unique(melt(pr_m.dt, id.vars='pr_id', measure.vars=c('pr_5to3', 'pr_3to5'),
+                       variable.name='pr_dir', value.name='seq_ext'))
+   pr.dt[, seq_id := paste(pr_id, sub('pr_', '', pr_dir), sep='_')]
+
+
+   # Load the files 'fq_good'
+   # if (verbose) {
+   #   t0 = Sys.time()
+   # }
+   fq_list = lapply(fq_good, fastq_reader)
+   # if (verbose) {
+   #   t1 = Sys.time
+   #   t1mt0 = t1-t0
+   # }
+   set.seed(nseqs_seed)
+   seqs_all = unlist(lapply(fq_list, function (x) x$seqs))
+   nseqs_max = min(nseqs, length(seqs_all))
+   seqs_sampled = sample(seqs_all, nseqs_max)
+   if (verbose) {
+     cat('* Sampled: ', nseqs_max, 'sequences.', fill=T)
+   }
+
+   # Search of any primer, 5'->3' or 3'->5' directions
+   primer_alignments.dt = rbindlist(parallel::mcmapply(
+     function (seq_ext, seq_id, pr_id) {
+       # Convert seq_ext -> seq_ext_n (replace all extd nt codes w/ N )
+       # Align seq_ext_n vs each of the sequences seqs_sampled
+       seq_ext_n = gsub('[^ACGT]', 'N', seq_ext)
+
+       # Run alignments in C
+       alns = parallel::mcmapply(function (read_seq) {
+
+         # Run local sequence alignment between primer sequence (seq_ext_n)
+         # and a read sequence read_seq
+         aln = C_nwalign(seq_ext_n, read_seq, match=1, mismatch=-1, indel=-1)
+         # This will result in a character vector of length 2 showing the
+         # alignment, e.g.
+         # ----------------ACACAACA----------------------   (primer)
+         # ACTGACTAGCTACGTAACACAACATGCTACGACTGATCGACTACGT   (read)
+
+         # aln_left_offset measures how much primer hangs over the beginning
+         # of the read, e.g.
+         # ACACAACA----------------------
+         # ---CAACATGCTACGACTGATCGACTACGT
+         # aln_left_offset = 4 (read begins at position 4 of the alignment)
+         aln_left_offset = regexpr('[^-]', aln[2])[1]
+
+         # pr_left and pr_right are the coordinates of the aligned part of the
+         # sequences (without trailing -----s) in the **alignment** coordinate
+         # system.
+         # Primer left alignment offset. In the original case this is position
+         # 17 (how far primer is into the read)
+         pr_left = max(regexpr('[^-]', aln[1])[1], aln_left_offset)
+         pr_right = regexpr('[-]{1,}$', aln[1])[1]-1
+
+         # Number of Ns?
+         pr_n = lengths(regmatches(seq_ext_n, gregexpr('N', seq_ext_n)))
+
+         # Compare only the aligned part
+         aln_stat = compare_alignment(
+           str_sub(aln[1], start=pr_left, end=pr_right),
+           str_sub(aln[2], start=pr_left, end=pr_right)
+         )
+         # Forward primer alignment is acceptable if it's near beginning (within first 5 nts)
+         # and if it doesn't have more than 2 mismatches for non-N symbols, which includes indels.
+         # pr_fwd_found = FALSE
+         # pr_rev_found = FALSE
+         pr_pot_dir = 'NA'
+         if (pr_left < pr_fwd_maxoff &
+             aln_stat[2]+aln_stat[3]+aln_stat[4]-pr_n <= max_mismatch) {
+           # aln_stat[2]+aln_stat[3]+aln_stat[4]-pr_n = number of mismatches +
+           # gap openings + gap extensions in the alignment
+           # pr_fwd_found = TRUE
+           # Potential direction for this primer is FORWARD (its near the begin)
+           pr_pot_dir = 'F'
+         }
+         else if (pr_left > nchar(read_seq)-nchar(seq_ext_n)-pr_rev_maxoff &
+             aln_stat[2]+aln_stat[3]+aln_stat[4]-pr_n <= max_mismatch) {
+           # Reverse primer found
+           pr_pot_dir = 'R'
+         }
+
+         # Trim if needed
+         # start = 1L
+         # end = -1L
+         # if (pr_pot_dir != 'NA') {
+         #   start = pr_right - aln_left_offset + 2
+         #   end = pr_left - 1
+         # } else {
+         #
+         # }
+         return(pr_pot_dir)
+       }, seqs_sampled, mc.cores=ncpu_seqs, USE.NAMES=F)
+       # Generate statistics
+       alns_stat_pct = round(
+         100*table(factor(alns, levels=c('F', 'R', 'NA')))/nseqs_max,
+         1)
+
+       seq.dt = data.table(
+         pr_id=pr_id, seq_id=seq_id, seq_ext=seq_ext,
+         fwd_pct=alns_stat_pct['F'],
+         rev_pct=alns_stat_pct['R'],
+         na_pct=alns_stat_pct['NA']
+       )
+       return(seq.dt)
+
+     }, pr.dt[, seq_ext], pr.dt[, seq_id], pr.dt[, pr_id],
+     mc.cores=ncpu, USE.NAMES=F, SIMPLIFY=F
+   ))
+
+   # Use this statistics to find primer pair where either fwd or rev pct
+   # matching sequence is greater than e.g. 5%
+   primer_alignments.dt[, fwd_pct_bin := cut(fwd_pct, seq(0, 100, 10), right=T,
+                                             include.lowest=T)]
+   primer_alignments.dt[, rev_pct_bin := cut(rev_pct, seq(0, 100, 10), right=T,
+                                             include.lowest=T)]
+   good_alignments.dt = primer_alignments.dt[
+     fwd_pct > min_seqs_pct | rev_pct > min_seqs_pct]
+
+
+   if (nrow(good_alignments.dt) == 0) {
+     if (verbose) {
+       cat('* No primer alignments found.', fill=T)
+     }
+     return(NA)
+   } else {
+
+     if (verbose) {
+       cat('* Found the following primer alignments:', fill=T)
+       print(good_alignments.dt)
+     }
+
+     fwd_primer_best.dt = primer_alignments.dt[
+       fwd_pct_bin==sort(fwd_pct_bin, decreasing=T)[1] & grepl('F$', pr_id)]
+
+     if (verbose & debug) {
+       cat('* fwd_primer_best.dt:', fill=T)
+       print(fwd_primer_best.dt)
+     }
+
+     if (nrow(fwd_primer_best.dt) > 0) {
+       # if (nrow(fwd_primer_best.dt[grepl('F$', pr_id)]) > 0) {
+       #   fwd_primer_best.dt = fwd_primer_best.dt[grepl('F$', pr_id)][1]
+       # } else {
+       #   # Multiple of the same primer in the primer table
+         fwd_primer_best.dt = fwd_primer_best.dt[1]
+       # }
+     } else {
+       fwd_primer_best.dt = primer_alignments.dt[
+         fwd_pct_bin==sort(fwd_pct_bin, decreasing=T)[1] & grepl('R$', pr_id)][1]
+     }
+     if (verbose & debug) {
+       cat('* fwd_primer_best.dt:', fill=T)
+       print(fwd_primer_best.dt)
+     }
+
+     # Extract F or R for the primer detected to be the forward
+     fwd_primer_best_dir = fwd_primer_best.dt[
+       , sub('^.*(R|F)$', '\\1', pr_id)]
+     if (verbose) {
+        cat('* Forward primer best direction: ', fwd_primer_best_dir, fill=T)
+     }
+
+     # Is this primer marked as "forward" ? This would not happen in the
+     # case where forward and reverse reads are swapped (or the primers)
+     # so we want to catch both cases.
+     if (fwd_primer_best_dir == 'F') {
+       # OK first one is already F, so find R among the others
+       rev_primer_best.dt = primer_alignments.dt[
+         rev_pct_bin==sort(rev_pct_bin, decreasing=T)[1] & grepl('R$', pr_id)]
+
+       if (nrow(rev_primer_best.dt[grepl('R$', pr_id)]) > 0) {
+         rev_primer_best.dt = rev_primer_best.dt[grepl('R$', pr_id)][1]
+       } else {
+         rev_primer_best.dt = rev_primer_best.dt[1]
+       }
+     } else if (fwd_primer_best_dir == 'R') {
+       rev_primer_best.dt = primer_alignments.dt[
+         rev_pct_bin==sort(rev_pct_bin, decreasing=T)[1] & grepl('F$', pr_id)]
+
+       if (nrow(rev_primer_best.dt[grepl('F$', pr_id)]) > 0) {
+         rev_primer_best.dt = rev_primer_best.dt[grepl('F$', pr_id)][1]
+       } else {
+         rev_primer_best.dt = rev_primer_best.dt[1]
+       }
+     } else {
+       # fwd_primer_best_dir == 'NA' ?
+     }
+     rev_primer_best_dir = rev_primer_best.dt[
+       , sub('^[^RF]+([RF])$', '\\1', pr_id)]
+     if (verbose) {
+       cat('* Reverse primer best direction: ', rev_primer_best_dir, fill=T)
+     }
+
+     if (verbose) {
+       cat('* Primers with highest % of hits:', fill=T)
+       cat('  Forward: ', fwd_primer_best.dt[, pr_id],
+           'in', sub('^.*_(3|5)to(3|5)$', '\\1\\\' -> \\2\\\'',
+                     fwd_primer_best.dt[, seq_id]), fill=T)
+       cat('  Reverse: ', rev_primer_best.dt[, pr_id],
+           'in', sub('^.*_(3|5)to(3|5)$', '\\1\\\' -> \\2\\\'',
+                     rev_primer_best.dt[, seq_id]), fill=T)
+
+       cat('', fill=T)
+     }
+     if (
+       (fwd_primer_best_dir=='F' & rev_primer_best_dir=='R') |
+       (fwd_primer_best_dir=='R' & rev_primer_best_dir=='F')
+     ) {
+       most_likely_region = paste0(
+         fwd_primer_best.dt[, sub('(F|R)', '', pr_id)],
+         '-',
+         rev_primer_best.dt[, sub('(F|R)', '', pr_id)]
+       )
+       if (verbose) {
+         cat('* Detected: ', most_likely_region, 'region.', fill=T)
+       }
+     } else {
+       most_likely_region = NA
+       if (verbose) {
+         cat('* No known region in the database with these primers.', fill=T)
+       }
+     }
+
+     return(most_likely_region)
+   }
+
+}
 
 
 
