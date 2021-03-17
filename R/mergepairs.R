@@ -64,8 +64,18 @@ merge_pairs = Vectorize(function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_
 
   # Load reads using ShortRead::FastqStreamer
   m(paste0('Loading FASTQ reads: ', basename(fq_fwd), ', ', basename(fq_rev), ' ...'))
-  f_fwd = ShortRead::FastqStreamer(fq_fwd)
-  f_rev = ShortRead::FastqStreamer(fq_rev)
+  f_fwd = tryCatch(
+    ShortRead::FastqStreamer(fq_fwd),
+    error = function (x) NA
+  )
+  f_rev = tryCatch(
+    ShortRead::FastqStreamer(fq_rev),
+    error = function (x) NA
+  )
+  if (is.na(f_fwd) | is.na(f_rev)) {
+    m('Warning: corrupted files. Skipping.')
+    return(list('total'=NA, 'low_pct_sim'=NA, 'low_aln_len'=NA))
+  }
   # Go through each read entry, do alignment
   r_fwd = ShortRead::yield(f_fwd)
   if (length(r_fwd) == 0) break
@@ -267,7 +277,7 @@ detect_overlap_length = function (
           append=TRUE, fill=fill)
     }
   }
-  m('-------- Detect forward/reverse overlap lengths --------')
+  m('---- Detect forward/reverse overlap lengths ----')
   min_aln_lens = seq(minalnlen_min, minalnlen_max, minalnlen_step)
   out = parallel::mcmapply(function(fqf, fqr) {
     # Load files fqf and fqr
