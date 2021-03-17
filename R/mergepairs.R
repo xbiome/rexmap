@@ -86,7 +86,10 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
         ShortRead::yield(f_fwd),
         error = function (x) NA
       )
-      if (length(r_fwd) == 0) break
+      if (length(r_fwd) == 0) {
+        m('Warning: No reads in the forward file found. Skipping.')
+        return(list('total'=NA, 'low_pct_sim'=NA, 'low_aln_len'=NA))
+      }
       if (rc_reverse) {
         r_rev = tryCatch(
           ShortRead::reverseComplement(ShortRead::yield(f_rev)),
@@ -308,7 +311,10 @@ detect_overlap_length = function (
     f_rev = ShortRead::FastqStreamer(fqr)
     # Go through each read entry, do alignment
     r_fwd = ShortRead::yield(f_fwd)
-    if (length(r_fwd) == 0) break
+    if (length(r_fwd) == 0) {
+      m('Warning: corrupted files. Skipping.')
+      return(NA)
+    }
     if (rc_reverse) {
       r_rev = ShortRead::reverseComplement(ShortRead::yield(f_rev))
     } else {
