@@ -425,14 +425,14 @@ remove_pcr_primers = function (
       return(empty_result)
     }
     # Check if output folder exist, and if not create them
-    output_folder = dirname(fq_out)
+    output_folder = dirname(fq_out_i)
     if (!dir.exists(output_folder)) {
         m2(' Create dir.')
         dir.create(output_folder, recursive=T)
     }
 
     # Load file
-    in_fq = sfastq_reader(fq_in)
+    in_fq = sfastq_reader(fq_in_i)
     m2(' Load.')
 
 
