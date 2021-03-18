@@ -409,7 +409,7 @@ remove_pcr_primers = function (
     #   }
     # }
     if (ncpu == 1) {
-      m('* ', basename(fq_in_i), ':', time_stamp=T, fill=F, verbose=verbose)
+      m('*', basename(fq_in_i), ':', time_stamp=T, fill=F, verbose=verbose)
     } else {
       m_buffer = paste0(m_buffer, '* ', basename(fq_in_i), ':')
     }
