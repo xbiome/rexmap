@@ -41,7 +41,7 @@ blast_out_to_best_cp = function (
     if (!file.exists(ref_cp)) stop('blast: reference copy number table file missing.')
   }
 
-  if (verbose) cat('* blast out: ')
+  # if (verbose) cat('* blast out: ')
   blast_out.dt = data.table::fread(blast_output)
   names(blast_out.dt) = strsplit(blast_out_fmt, ' ')[[1]]
   # Calculate BLAST scores.
@@ -60,7 +60,8 @@ blast_out_to_best_cp = function (
 
   # Filter out alignments with large gaps at beginning or the end
   # blast_out.dt = blast_out.dt[qstart <= 2 & qend >= qlen-1]
-  if (verbose) cat('OK. blast best: ')
+  m(' Load.', fill=F, time_stamp=F, verbose=verbose)
+  # if (verbose) cat('OK. blast best: ')
 
   # For each dada2 sequence, keep only the best matches by bitscore
   blast_best.dt = blast_best_seq_matches(
@@ -82,7 +83,8 @@ blast_out_to_best_cp = function (
     return(list(blast_best.dt, data.table()))
   }
 
-  if (verbose) cat('OK. copy number table: ')
+  # if (verbose) cat('OK. copy number table: ')
+  m(' Best.', fill=F, time_stamp=F, verbose=verbose)
   cp.dt = data.table::fread(ref_cp, colClasses=c('character', 'character', 'integer'))
 
   # Prepare copy number table columns
@@ -108,29 +110,31 @@ blast_out_to_best_cp = function (
 
   # Sort by strain_id, then by
   cp.dt = cp.dt[order(strain_id, variant_id)]
-  if (verbose) cat('OK.\n')
+  m(' Copy#.', fill=F, time_stamp=F, verbose=verbose)
+  # if (verbose) cat('OK.\n')
   # Merge with blast hits
   # First do perfect matches
 
-  if (verbose) cat('merge: ')
+  # if (verbose) cat('merge: ')
   blast_best.dt = merge(blast_best.dt, cp.dt[, .(variant_id, strain, copy_number)],
                         by='variant_id', allow.cartesian=T)
-  if (verbose) cat('OK. Fix overhang differences:')
+  m(' Merge.', fill=F, time_stamp=F, verbose=verbose)
+  # if (verbose) cat('OK. Fix overhang differences:')
   hang_diff_qseqids = blast_best.dt[pctsim==100, 1, by=qseqid][, unique(qseqid)]
   for (q in hang_diff_qseqids) {
     vids = blast_best.dt[pctsim==100 & qseqid==q, sort(unique(variant_id))]
     blast_best.dt[pctsim==100 & qseqid==q, variant_id := paste(vids, collapse=variant_sep)]
     cp.dt[variant_id %in% vids, variant_id := paste(vids, collapse=variant_sep)]
   }
-  if (verbose) cat('.')
+  # if (verbose) cat('.')
   blast_best.dt[pctsim==100, copy_number := sum(copy_number), by=.(variant_id, strain)]
   blast_best.dt = unique(blast_best.dt)
-
-  if (verbose) cat('.')
+  m(' Best.', fill=F, time_stamp=F, verbose=verbose)
+  # if (verbose) cat('.')
   # Add up copy numbers for strain that differ in the undetected overhang
   cp.dt[, copy_number := sum(copy_number), by=.(variant_id, strain_id)]
   cp.dt = unique(cp.dt)
-  if (verbose) cat('OK. ')
+  # if (verbose) cat('OK. ')
 
 
   # Recalculate rrn_uniq after re-numerating variant_ids (b/c the slightly shorter sequence now has the same
@@ -158,7 +162,8 @@ blast_out_to_best_cp = function (
   cp.dt[, species := gsub('^([^_]+)_([^_]+)_.*', '\\1_\\2', strain)]
   # Count unique number of species per OSU
   # cp.dt[, no_species_in_osu := length(unique(species)), by=osu_id]
-  if (verbose) cat('OK.\n')
+  # if (verbose) cat('OK.\n')
+  m(' Done.', fill=F, time_stamp=F, verbose=verbose)
   return(list(blast_best.dt, cp.dt))
 }
 
@@ -273,11 +278,14 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
   # an abundance data table (output from sequence abundance) or a character vector
   # that is a list of sequences.
 
+  start_time = Sys.time()
   # If blast_output is not given, then we will generate it, so mark it for cleanup
   cleanup_blast_output = FALSE
   if (is.null(blast_output)) {
     cleanup_blast_output = TRUE
   }
+
+  m('* BLAST:', fill=F, time_stamp=T, verbose=verbose)
 
   sequences_type = NULL
   if ('data.table' %in% class(sequences)) {
@@ -288,7 +296,8 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
       rand_id = sample(LETTERS, 10)
       fasta_file = file.path(temp_dir, paste(c('blast_', rand_id, '.fasta'), collapse=''))
       sequences_to_fasta(sequences, fasta_file)
-      if (verbose) cat('* blast input type: abundance table', fill=T)
+      # if (verbose) cat('* blast input type: abundance table', fill=T)
+      m(' ab_tab.', fill=F, time_stamp=F, verbose=verbose)
     } else {
       stop('blast: input abundance table does not have \"sequence\" column.')
     }
@@ -302,7 +311,8 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
         fasta_file = file.path(temp_dir, paste(c('blast_', rand_id, '.fasta'), collapse=''))
         sequences_to_fasta(data.table(qseqid=1:length(sequences),
                                       sequence=sequences), fasta_file)
-        if (verbose) cat('* blast input type: character vector', fill=T)
+        # if (verbose) cat('* blast input type: character vector', fill=T)
+        m(' chr vec.', fill=F, time_stamp=F, verbose=verbose)
       } else {
         if (grepl('[ACGTN]+', sequences)) {
           # Looks like a single sequence
@@ -311,14 +321,16 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
           fasta_file = file.path(temp_dir, paste(c('blast_', rand_id, '.fasta'), collapse=''))
           sequences_to_fasta(data.table(qseqid=1:length(sequences),
                                         sequence=sequences), fasta_file)
-          if (verbose) cat('* blast input type: character vector', fill=T)
+          # if (verbose) cat('* blast input type: character vector', fill=T)
+          m(' chr vec.', fill=F, time_stamp=F, verbose=verbose)
         } else {
           # Looks like a FASTA file. Just check that it exists.
           if (!grepl('\\.f[n]?a|\\.fasta', sequences)) stop('blast: file needs to be in FASTA format. If it is, use normal file extensions: .fa and .fasta.')
           if (!file.exists(sequences)) stop('blast: sequence FASTA file does not exits.')
           fasta_file = sequences
           sequences_type = 'fasta'
-          if (verbose) cat('* blast input type: FASTA file', fill=T)
+          # if (verbose) cat('* blast input type: FASTA file', fill=T)
+          m(' FASTA.', fill=F, time_stamp=F, verbose=verbose)
         }
       }
     } else {
@@ -335,10 +347,12 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
     rand_id = sample(LETTERS, 10)
     blast_output = file.path(temp_dir, paste(c('blast_output_', rand_id, '.txt'),
                                               collapse=''))
-    if (verbose) {
-      cat('* blast output temp: ', blast_output, fill=T)
-    }
+    # if (verbose) {
+    #   cat('* blast output temp: ', blast_output, fill=T)
+    # }
+    m(' Tmp:', blast_output, fill=F, time_stamp=F, verbose=verbose)
   }
+  m(' Align:', fill=F, time_stamp=F, verbose=verbose)
   if (!is.null(region)) {
     blast_status = blastn(fasta_file, blast_output, region=region,
                           max_target_seqs=max_target_seqs,
@@ -354,6 +368,8 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
   # Load BLAST results (can take a while if there are lots of sequences and max_target_seqs
   # is large.
   if (!file.exists(blast_output)) stop('blast: ', blast_output, ' file does not exist.')
+  m(' OK.', fill=F, time_stamp=F, verbose=verbose)
+
   if (!is.null(region)) {
     blast_cp = blast_out_to_best_cp(blast_output, region=region,
                                     show_alignment=show_alignment, verbose=verbose)
@@ -397,7 +413,7 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
     blast_cp$sequences,
     unique(sequences[, .(qseqid, sequence)]),
     by='qseqid', all.x=T)
-
+  m(' Finalized.', fill=F, time_stamp=F, verbose=verbose)
 
   # If we made a temp fasta file, remove it
   if (sequences_type %in% c('dt', 'DNA')) {
@@ -409,7 +425,13 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
     if (file.exists(blast_output)) {
       file.remove(blast_output)
     }
+    m(' Cleanup.', fill=F, time_stamp=F, verbose=verbose)
   }
+
+  end_time = Sys.time()
+  dt = end_time - start_time
+  m(' [', round(dt, 1), ' ', attr(dt, 'units'), ']', fill=T, time_stamp=F,
+    verbose=verbose)
   return(as(blast_cp, 'blast'))
 }
 
@@ -464,9 +486,10 @@ blastn = function (
   }
 
   if (output_err != F) cat(paste(blast_args, sep=' '), fill=T)
-  if (verbose) {
-    cat('blastn: ', paste0(blast_args, collapse=' '), '\n')
-  }
+  # if (verbose) {
+  #   cat('blastn: ', paste0(blast_args, collapse=' '), '\n')
+  # }
   x = system2(blast_path, args=blast_args, stdout=output, stderr=output_err)
+  m(' Blastn.', fill=F, time_stamp=F, verbose=verbose)
   return(x)
 }
