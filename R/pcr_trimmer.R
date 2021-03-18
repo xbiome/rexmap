@@ -443,7 +443,7 @@ remove_pcr_primers = function (
       if (ncpu > 1) {
         m_buffer = paste0(m_buffer, ' Create dir.')
       } else {
-        m(' Create dir.', fill=F, verbose=verbose)
+        m(' Create dir.', fill=F, verbose=verbose, time_stamp=F)
       }
     }
 
@@ -452,7 +452,7 @@ remove_pcr_primers = function (
     if (ncpu > 1) {
       m_buffer = paste0(m_buffer, ' Load.')
     } else {
-      m(' Load.', fill=F, verbose=verbose)
+      m(' Load.', fill=F, verbose=verbose, time_stamp=F)
     }
 
 
@@ -468,7 +468,7 @@ remove_pcr_primers = function (
     if (ncpu > 1) {
       m_buffer = paste0(m_buffer, ' Trim.')
     } else {
-      m(' Trim.', fill=F, verbose=verbose)
+      m(' Trim.', fill=F, verbose=verbose, time_stamp=F)
     }
     # if (verbose) cat('OK.', fill=T)
 
@@ -492,7 +492,8 @@ remove_pcr_primers = function (
       )
       m(m_buffer, time_stamp=T, fill=T, verbose=verbose)
     } else {
-      m(' [', round(dt, 1), ' ', attr(dt, 'units'), ']', fill=F, verbose=verbose)
+      m(' [', round(dt, 1), ' ', attr(dt, 'units'), ']', fill=F, verbose=verbose,
+        time_stamp=F)
     }
 
     # if (verbose) cat('OK.', fill=T)
@@ -511,13 +512,14 @@ remove_pcr_primers = function (
 
   out.dt = rbindlist(lapply(out_per_sample, function (x) {
     return(data.table(
+      fq_in=fq_in_i,
       total=x$total, both_trim=x$both_trim, any_trim=x$any_trim,
       fwd_trim=x$fwd_trim, rev_trim=x$rev_trim
     ))
   }))
-  out.dt[, fq_in := fq_in_i]
-  setcolorder(out.dt, x('fq_in', 'total', 'both_trim', 'any_trim',
-                        'fwd_trim', 'rev_trim'))
+  # out.dt[, fq_in := fq_in_i]
+  # setcolorder(out.dt, x('fq_in', 'total', 'both_trim', 'any_trim',
+  #                       'fwd_trim', 'rev_trim'))
   return(out.dt[])
 }
 
