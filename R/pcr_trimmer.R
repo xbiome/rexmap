@@ -297,7 +297,6 @@ detect_pcr_primers = function (fq, verbose=T, debug=F,
 #' all available CPU cores are used (\code{parallel::detectCores()}).
 #' @param max_mismatch Maximum allowed number of mismatches for each PCR primer,
 #' ignoring any ambiguous nucleotides (not A,C,G or T).
-#' @param timing Display run-time at the end of trimming (default: FALSE).
 #' @param overwrite Overwrite target files if they exist (default: TRUE)
 #'
 #' @export
@@ -313,6 +312,7 @@ remove_pcr_primers = function (
   #
   empty_result = list('fwd_trim'=0, 'rev_trim'=0)
 
+  m_buffer = ''
   m2 = function (..., fill=F, time_stamp=F) {
     if (ncpu == 1) {
       m(..., fill=fill, time_stamp=time_stamp)
