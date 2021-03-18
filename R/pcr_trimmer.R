@@ -399,15 +399,20 @@ remove_pcr_primers = function (
     # Check if input file exists
     start_time = Sys.time()
     m_buffer = ''
-    m2 = function (..., fill=F, time_stamp=F, verbose=verbose) {
-      if (ncpu == 1) {
-        m(..., fill=fill, time_stamp=time_stamp, verbose=verbose)
-      } else {
-        m_buffer = paste0(m_buffer, ...)
-      }
-    }
+    # m2 = function (..., fill=F, time_stamp=F, verbose=verbose) {
+    #   if (ncpu == 1) {
+    #     m(..., fill=fill, time_stamp=time_stamp, verbose=verbose)
+    #   } else {
+    #     m_buffer = paste0(m_buffer, ...)
+    #   }
+    # }
     cat('Step 1\n')
-    m2('* ', basename(fq_in_i), ':', time_stamp=T, fill=F)
+    if (ncpu == 1) {
+      m2('* ', basename(fq_in_i), ':', time_stamp=T, fill=F)
+    } else {
+      m_buffer = paste0(m_buffer, '* ', basename(fq_in_i), ':')
+    }
+
     if (!file.exists(fq_in_i)) {
       return(empty_result)
     }
