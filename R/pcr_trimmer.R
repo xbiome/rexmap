@@ -406,7 +406,7 @@ remove_pcr_primers = function (
         m_buffer = paste0(m_buffer, ...)
       }
     }
-
+    cat('Step 1\n')
     m2('* ', basename(fq_in_i), ':', time_stamp=T, fill=F)
     if (!file.exists(fq_in_i)) {
       return(empty_result)
@@ -433,6 +433,7 @@ remove_pcr_primers = function (
 
     # Load file
     in_fq = sfastq_reader(fq_in_i)
+    cat('Step 2\n')
     m2(' Load.')
 
 
@@ -444,6 +445,7 @@ remove_pcr_primers = function (
       fastq_trimmer, in_fq[['meta']], in_fq[['seqs']], in_fq[['qual']],
       mc.cores=ncpus, SIMPLIFY=F, USE.NAMES=F
     )
+    cat('Step 3\n')
     m2(' Trim.')
     # if (verbose) cat('OK.', fill=T)
 
@@ -453,6 +455,7 @@ remove_pcr_primers = function (
     # Save results in a new file
     fastq_list_writer(out_trimmed, fq_out_i, ncpu=ncpu_sample)
     pct_trimmed = 100*sum(fwd_trimmed | rev_trimmed)/length(out_trimmed)
+    cat('Step 4\n')
     m2(' Saved', round(pct_trimmed, 1), '% any trimmed.')
     end_time = Sys.time()
     dt = end_time - start_time
