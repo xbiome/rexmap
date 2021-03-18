@@ -312,7 +312,7 @@ remove_pcr_primers = function (
   #
   empty_result = list('fwd_trim'=0, 'rev_trim'=0)
 
-  m('------- PCR primer removal ------', time_stamp=T, fill=T)
+  m('------- PCR primer removal ------', time_stamp=T, fill=T, verbose=verbose)
 
   if (is.null(region) & (is.null(pr_fwd) | is.null(pr_rev))) {
     stop('PCR primer remover: either region of pr_fwd and pr_rev need to be specified.')
@@ -328,10 +328,12 @@ remove_pcr_primers = function (
       rexmap_option('blast_dbs')[Hypervariable_region==region, Primer2_sequence_3to5]
     )
     m('* Using REGION', region,
-       paste0('(fwd: ', pr_fwd, ', rev: ', pr_rev, ')'), fill=T, time_stamp=T)
+      paste0('(fwd: ', pr_fwd, ', rev: ', pr_rev, ')'), fill=T, time_stamp=T,
+      verbose=verbose)
   } else {
     m('* Using PRIMERS',
-       paste0('(fwd: ', r_fwd, ', rev: ', pr_rev, ')'), fill=T, time_stamp=T)
+      paste0('(fwd: ', r_fwd, ', rev: ', pr_rev, ')'), fill=T, time_stamp=T,
+      verbose=verbose)
 
   }
   # Count extended DNA symbols
@@ -406,9 +408,8 @@ remove_pcr_primers = function (
     #     m_buffer = paste0(m_buffer, ...)
     #   }
     # }
-    cat('Step 1\n')
     if (ncpu == 1) {
-      m2('* ', basename(fq_in_i), ':', time_stamp=T, fill=F)
+      m('* ', basename(fq_in_i), ':', time_stamp=T, fill=F, verbose=verbose)
     } else {
       m_buffer = paste0(m_buffer, '* ', basename(fq_in_i), ':')
     }
@@ -421,25 +422,39 @@ remove_pcr_primers = function (
       # are too noisy and have been filtered out in the merging step, if we were
       # unable to merge anything.
       # file.create(fq_out)
-      m2(' (0 file size, skipping).', fill=T)
+      if (ncpu > 1) {
+        m(m_buffer, time_stamp=T, fill=F, verbose=verbose)
+      }
+      m(' (0 file size, skipping).', fill=T, verbose=verbose)
       return(empty_result)
     }
     if (!overwrite & file.exists(fq_out_i)) {
       # We are not overwriting files and output already exists
-      m2(' (Output file exist, skipping).', fill=T)
+      if (ncpu > 1) {
+        m(m_buffer, time_stamp=T, fill=F, verbose=verbose)
+      }
+      m(' (Output file exist, skipping).', fill=T, verbose=verbose)
       return(empty_result)
     }
     # Check if output folder exist, and if not create them
     output_folder = dirname(fq_out_i)
     if (!dir.exists(output_folder)) {
-        m2(' Create dir.')
-        dir.create(output_folder, recursive=T)
+      dir.create(output_folder, recursive=T)
+      if (ncpu > 1) {
+        m_buffer = paste0(m_buffer, ' Create dir.')
+      } else {
+        m(' Create dir.', fill=F, verbose=verbose)
+      }
     }
 
     # Load file
     in_fq = sfastq_reader(fq_in_i)
-    cat('Step 2\n')
-    m2(' Load.')
+    if (ncpu > 1) {
+      m_buffer = paste0(m_buffer, ' Load.')
+    } else {
+      m(' Load.', fill=F, verbose=verbose)
+    }
+
 
 
     # seq = in_fq[['seqs']][1]
@@ -450,8 +465,11 @@ remove_pcr_primers = function (
       fastq_trimmer, in_fq[['meta']], in_fq[['seqs']], in_fq[['qual']],
       mc.cores=ncpus, SIMPLIFY=F, USE.NAMES=F
     )
-    cat('Step 3\n')
-    m2(' Trim.')
+    if (ncpu > 1) {
+      m_buffer = paste0(m_buffer, ' Trim.')
+    } else {
+      m(' Trim.', fill=F, verbose=verbose)
+    }
     # if (verbose) cat('OK.', fill=T)
 
     fwd_trimmed = sum(sapply(out_trimmed, function (x) x$trim_fwd))
@@ -460,14 +478,23 @@ remove_pcr_primers = function (
     # Save results in a new file
     fastq_list_writer(out_trimmed, fq_out_i, ncpu=ncpu_sample)
     pct_trimmed = 100*sum(fwd_trimmed | rev_trimmed)/length(out_trimmed)
-    cat('Step 4\n')
-    m2(' Saved', round(pct_trimmed, 1), '% any trimmed.')
+    if (ncpu > 1) {
+      m_buffer = paste0(m_buffer, ' Saved', round(pct_trimmed, 1), '% any trimmed.')
+    } else {
+      m(' Saved', round(pct_trimmed, 1), '% any trimmed.', fill=F, verbose=verbose)
+    }
+
     end_time = Sys.time()
     dt = end_time - start_time
-    m2(' [', round(dt, 1), ' ', attr(dt, 'units'), ']', fill=T, time_stamp=F)
     if (ncpu > 1) {
-      m(m_buffer, verbose=verbose)
+      m_buffer = paste0(
+        m_buffer, ' [', round(dt, 1), ' ', attr(dt, 'units'), ']'
+      )
+      m(m_buffer, time_stamp=T, fill=T, verbose=verbose)
+    } else {
+      m(' [', round(dt, 1), ' ', attr(dt, 'units'), ']', fill=F, verbose=verbose)
     }
+
     # if (verbose) cat('OK.', fill=T)
     # if (timing) {
     #   end_time = Sys.time()
