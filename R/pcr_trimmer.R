@@ -451,7 +451,7 @@ remove_pcr_primers = function (
     rev_trimmed = sum(sapply(out_trimmed, function (x) x$trim_rev))
 
     # Save results in a new file
-    fastq_list_writer(out_trimmed, fq_out, ncpu=ncpu_sample)
+    fastq_list_writer(out_trimmed, fq_out_i, ncpu=ncpu_sample)
     pct_trimmed = 100*sum(fwd_trimmed | rev_trimmed)/length(out_trimmed)
     m2(' Saved', round(pct_trimmed, 1), '% any trimmed.')
     end_time = Sys.time()
