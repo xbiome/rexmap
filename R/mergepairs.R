@@ -279,7 +279,13 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
       if (length(final_seqs) > 1) {
         ShortRead::writeFastq(merged_sread, fq_mer_i, compress = F)
       } else {
-        m(' (No reads merged!) ', fill=F, time_stamp=F)
+        # m(' (No reads merged!) ', fill=F, time_stamp=F)
+        if (ncpu == 1) {
+          m(' (No reads merged) ', fill=F, time_stamp=F)
+        } else {
+          m_buffer = paste0(m_buffer, ' (No reads merged!)')
+        }
+
       }
       # m(' OK.\n')
       end_time = Sys.time()
