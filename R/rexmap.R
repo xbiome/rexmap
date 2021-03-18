@@ -1113,30 +1113,42 @@ sequence_abundance = function (dada_result, remove_bimeras=T, collapse_sequences
                                verbose=T, remove_bimeras_method='consensus',
                                remove_bimeras_oneoff=T, fq_prefix_split='.',
                                fq_prefix_split_n=1,
-                               ncpu=TRUE) {
+                               ncpu=TRUE, debug=F) {
   # Extract sequences and their counts from the dada class result
-  if (verbose) cat('* generating sequence table...')
+  # if (verbose) cat('* generating sequence table...')
+  start_time = Sys.time()
+  m('* DadaToTab.', fill=F, time_stamp=T, verbose=verbose)
   ab_tab = dada2::makeSequenceTable(dada_result)
-  if (verbose) cat(' OK.', fill=T)
+  # if (verbose) cat(' OK.', fill=T)
   if (remove_bimeras) {
-    if (verbose) cat('* removing bimeras...')
+    # if (verbose) cat('* removing bimeras...')
     ab_tab_nochim = dada2::removeBimeraDenovo(
       ab_tab, method=remove_bimeras_method, allowOneOff=remove_bimeras_oneoff,
       # multithread=ie(rexmap_option('ncpu') > 1, T, F),
       multithread=ncpu,
       verbose=verbose)
-    if (verbose) cat(' OK.', fill=T)
+    m(' DeBimered.', fill=F, time_stamp=F, verbose=verbose)
+    # if (verbose) cat(' OK.', fill=T)
   } else {
     ab_tab_nochim = ab_tab
   }
   if (collapse_sequences) {
-    if (verbose) cat('* adding together sequences that differ in shifts on lengths...')
-    ab_tab_nochim_coll = collapse(ab_tab_nochim, verbose=verbose)
-    if (verbose) cat(' OK.', fill=T)
+    # if (verbose) cat('* adding together sequences that differ in shifts on lengths...')
+    ab_tab_nochim_coll = collapse(ab_tab_nochim, verbose=F)
+    # if (verbose) cat(' OK.', fill=T)
+    m(' Collapsed.', fill=F, time_stamp=F, verbose=debug)
   }
-  else ab_tab_nochim_coll = ab_tab_nochim
-  return(ab_mat_to_dt(ab_tab_nochim_coll, fq_prefix_split=fq_prefix_split,
-                      fq_prefix_split_n=fq_prefix_split_n))
+  else {
+    ab_tab_nochim_coll = ab_tab_nochim
+  }
+  seq.dt = ab_mat_to_dt(ab_tab_nochim_coll, fq_prefix_split=fq_prefix_split,
+                        fq_prefix_split_n=fq_prefix_split_n)
+  m(' Tabulated.', fill=F, time_stamp=F, verbose=verbose)
+  end_time = Sys.time()
+  dt = end_time - start_time
+  m(' [', round(dt, 1), ' ', attr(dt, 'units'), ']', fill=T, time_stamp=F,
+    verbose=verbose)
+  return(seq.dt)
 }
 
 #' Generate a table with sequences assigned to each OSU
