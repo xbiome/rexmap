@@ -472,12 +472,16 @@ remove_pcr_primers = function (
     }
     # if (verbose) cat('OK.', fill=T)
 
-    fwd_trimmed = sum(sapply(out_trimmed, function (x) x$trim_fwd))
-    rev_trimmed = sum(sapply(out_trimmed, function (x) x$trim_rev))
+    fwd_trimmed_list = sapply(out_trimmed, function (x) x$trim_fwd)
+    rev_trimmed_list = sapply(out_trimmed, function (x) x$trim_rev)
+    fwd_trimmed = sum(fwd_trimmed_list)
+    rev_trimmed = sum(rev_trimmed_list)
+    any_trimmed = sum(fwd_trimmed_list | rev_trimmed_list)
+    both_trimmed = sum(fwd_trimmed_list & rev_trimmed_list)
 
     # Save results in a new file
     fastq_list_writer(out_trimmed, fq_out_i, ncpu=ncpu_sample)
-    pct_trimmed = 100*sum(fwd_trimmed | rev_trimmed)/length(out_trimmed)
+    pct_trimmed = 100*any_trimmed/length(fwd_trimmed_list)
     if (ncpu > 1) {
       m_buffer = paste0(m_buffer, ' Saved', round(pct_trimmed, 1), '% any trimmed.')
     } else {
@@ -507,9 +511,10 @@ remove_pcr_primers = function (
     return(list(
       'fq_in'=basename(fq_in_i),
       'total'=length(out_trimmed),
-      'both_trim'=sum(fwd_trimmed & rev_trimmed),
-      'any_trim'=sum(fwd_trimmed | rev_trimmed),
-      'fwd_trim'=fwd_trimmed, 'rev_trim'=rev_trimmed))
+      'both_trim'=both_trimmed,
+      'any_trim'=any_trimmed,
+      'fwd_trim'=fwd_trimmed,
+      'rev_trim'=rev_trimmed))
 
   }, fq_in, fq_out, SIMPLIFY=F, USE.NAMES=F, mc.cores=ncpu)
 
