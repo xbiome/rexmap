@@ -481,7 +481,8 @@ remove_pcr_primers = function (
     if (ncpu > 1) {
       m_buffer = paste0(m_buffer, ' Saved', round(pct_trimmed, 1), '% any trimmed.')
     } else {
-      m(' Saved', round(pct_trimmed, 1), '% any trimmed.', fill=F, verbose=verbose)
+      m(' Saved', round(pct_trimmed, 1), '% any trimmed.', fill=F, verbose=verbose,
+        time_stamp=F)
     }
 
     end_time = Sys.time()
@@ -492,7 +493,7 @@ remove_pcr_primers = function (
       )
       m(m_buffer, time_stamp=T, fill=T, verbose=verbose)
     } else {
-      m(' [', round(dt, 1), ' ', attr(dt, 'units'), ']', fill=F, verbose=verbose,
+      m(' [', round(dt, 1), ' ', attr(dt, 'units'), ']', fill=T, verbose=verbose,
         time_stamp=F)
     }
 
