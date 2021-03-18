@@ -56,7 +56,9 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
   #     m(.., fill=fill, time_stamp=time_stamp, verbose=verbose)
   #   }
   # }
-  empty_result = list('total'=NA, 'merged'=NA, 'low_pct_sim'=NA, 'low_aln_len'=NA)
+  empty_result = data.table(
+    fq_fwd=NA, fq_rev=NA,
+    total=NA, merged=NA, low_pct_sim=NA, low_aln_len=NA)
 
   out_per_sample = parallel::mcmapply(
     function (fq_fwd_i, fq_rev_i, fq_mer_i) {
@@ -250,11 +252,12 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
 
 
       # Generate statistics for filtered-out reads
-      stats = list(
-        'total'=length(merged_aln_filter),
-        'merged'=sum(merged_aln_filter),
-        'low_pct_sim'=length(merged_aln_filter) - sum(as.logical(merged_list[3, ])),
-        'low_aln_len'=length(merged_aln_filter) - sum(as.logical(merged_list[4, ]))
+      stats = data.table(
+        fq_fwd=fq_fwd_i, fq_rev=fq_rev_i,
+        total=length(merged_aln_filter),
+        merged=sum(merged_aln_filter),
+        low_pct_sim=length(merged_aln_filter) - sum(as.logical(merged_list[3, ])),
+        low_aln_len=length(merged_aln_filter) - sum(as.logical(merged_list[4, ]))
       )
 
       # Sometimes there are no sequences left, in which case just return
@@ -307,17 +310,15 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
       #     round(as.numeric(diff_time)%%60, 1), ' s.\n')
       # }
       return(stats)
-    }, fq_fwd, fq_rev, fq_mer, SIMPLIFY=F, USE.NAMES=T, mc.cores=ncpu
+    }, fq_fwd, fq_rev, fq_mer, SIMPLIFY=F, USE.NAMES=F, mc.cores=ncpu
   )
-  out.dt = rbindlist(lapply(out_per_sample, function (x) {
-    return(data.table(total=x$total, merged=x$merged,
-                      low_pct_sim=x$low_pct_sim,
-                      low_aln_len=x$low_aln_len))
-  }))
-  out.dt[, fq_fwd := fq_fwd]
-  out.dt[, fq_rev := fq_rev]
-  setcolorder(out.dt, c('fq_fwd', 'fq_rev', 'total', 'merged', 'low_pct_sim', 'low_aln_len'))
-  return(out.dt[])
+  out.dt = rbindlist(out_per_sample)
+  # fq_fwd_processed = names(fq_fwd)
+  # processed_filter = sapply(fq_fwd, function (x) x %in% fq_fwd_processed)
+  # out.dt[, fq_fwd := basename(fq_fwd[processed_filter])]
+  # out.dt[, fq_rev := basename(fq_rev[processed_filter])]
+  # setcolorder(out.dt, c('fq_fwd', 'fq_rev', 'total', 'merged', 'low_pct_sim', 'low_aln_len'))
+  return(out.dt)
 }
 
 #' Convert mergestats table to a normal data.table
@@ -553,6 +554,9 @@ detect_overlap_length = function (
     return(pct_merged.dt)
 
   }, fq_fwd, fq_rev, mc.cores=1, SIMPLIFY=F, USE.NAMES=F)
+  if (class(out) == 'logical') {
+    if (is.na(out)) return(empty_result)
+  }
   min_aln_lens_best = sapply(out, function (pm.dt) {
     max_pct_merged = pm.dt[, max(pct_merged)]
     max2_pct_merged = (1-minalnlen_drop_pct/100)*max_pct_merged
@@ -562,7 +566,7 @@ detect_overlap_length = function (
     ][, max(min_aln_len)]
     return(best_min_aln_len)
   })
-  min_aln_len_best = round(mean(min_aln_lens_best))
+  min_aln_len_best = round(mean(min_aln_lens_best, na.rm=T))
   m(' * min_aln_len with largest overlap: ', min_aln_len_best)
 
   return(min_aln_len_best)
