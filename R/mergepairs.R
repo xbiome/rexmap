@@ -380,10 +380,65 @@ detect_overlap_length = function (
   }
   m('---- Detect forward/reverse overlap lengths ----')
   min_aln_lens = seq(minalnlen_min, minalnlen_max, minalnlen_step)
+  empty_result = NA
   out = parallel::mcmapply(function(fqf, fqr) {
     # Load files fqf and fqr
     m(paste0('Loading FASTQ reads: ', basename(fqf), ', ', basename(fqr), ' ...'),
       fill=F)
+
+    f_fwd = tryCatch(
+      ShortRead::FastqStreamer(fqf),
+      error = function (x) NA
+    )
+    f_rev = tryCatch(
+      ShortRead::FastqStreamer(fqr),
+      error = function (x) NA
+    )
+    if (class(f_fwd) != 'FastqStreamer') {
+      if (is.na(f_fwd)) {
+        m('Warning: corrupted FWD file', basename(fqf), ': Skipping.')
+        return(empty_result)
+      }
+    }
+    if (class(f_rev) != 'FastqStreamer') {
+      if (is.na(f_rev)) {
+        m('Warning: corrupted FWD file', basename(fqf), ': Skipping.')
+        return(empty_result)
+      }
+    }
+    # Go through each read entry, do alignment
+    r_fwd = tryCatch(
+      ShortRead::yield(f_fwd),
+      error = function (x) NA
+    )
+    if (length(r_fwd) == 0) {
+      m('Warning: No reads in the forward file ', basename(fqf), 'found. Skipping.')
+      return(empty_result)
+    }
+    if (rc_reverse) {
+      r_rev = tryCatch(
+        ShortRead::reverseComplement(ShortRead::yield(f_rev)),
+        error = function (x) NA
+      )
+    } else {
+      r_rev = tryCatch(
+        ShortRead::yield(f_rev),
+        error = function (x) NA
+      )
+    }
+    if (class(r_fwd) != 'ShortReadQ') {
+      if (is.na(r_fwd)) {
+        m('Warning: corrupted FWD file', fqf, ': Skipping.')
+        return(empty_result)
+      }
+    }
+    if (class(r_rev) != 'ShortReadQ') {
+      if (is.na(r_rev)) {
+        m('Warning: corrupted REV file', fqr, ': Skipping.')
+        return(empty_result)
+      }
+    }
+
     f_fwd = ShortRead::FastqStreamer(fqf)
     f_rev = ShortRead::FastqStreamer(fqr)
     # Go through each read entry, do alignment
