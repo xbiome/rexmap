@@ -17,10 +17,14 @@ ie = function(test, yes, no) {
 m = function (..., fill=TRUE, time_stamp=TRUE, verbose=TRUE) {
    if (verbose) {
       if (!time_stamp) {
-         cat(..., fill=fill)
+         out_str = paste(..., collapse=' ')
       } else {
-         cat(as.character(as.POSIXlt(Sys.time())), ' | ', ..., fill=fill)
+         out_str = paste(as.character(as.POSIXlt(Sys.time())), ' | ', ..., collapse=' ')
       }
+      if (fill) {
+         out_str = paste0(out_str, '\n')
+      }
+      cat(out_str)
    }
 }
 
