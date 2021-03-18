@@ -503,16 +503,18 @@ remove_pcr_primers = function (
     #   cat('Finished in ', round(as.numeric(diff_time)/60), ' m ',
     #       round(as.numeric(diff_time)%%60, 1), ' s.\n')
     # }
-    return(list('total'=length(out_trimmed),
-                'both_trim'=sum(fwd_trimmed & rev_trimmed),
-                'any_trim'=sum(fwd_trimmed | rev_trimmed),
-                'fwd_trim'=fwd_trimmed, 'rev_trim'=rev_trimmed))
+    return(list(
+      'fq_in'=basename(fq_in_i),
+      'total'=length(out_trimmed),
+      'both_trim'=sum(fwd_trimmed & rev_trimmed),
+      'any_trim'=sum(fwd_trimmed | rev_trimmed),
+      'fwd_trim'=fwd_trimmed, 'rev_trim'=rev_trimmed))
 
   }, fq_in, fq_out, SIMPLIFY=F, USE.NAMES=F, mc.cores=ncpu)
 
   out.dt = rbindlist(lapply(out_per_sample, function (x) {
     return(data.table(
-      fq_in=fq_in_i,
+      fq_in=x$fq_in,
       total=x$total, both_trim=x$both_trim, any_trim=x$any_trim,
       fwd_trim=x$fwd_trim, rev_trim=x$rev_trim
     ))
