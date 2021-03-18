@@ -312,15 +312,6 @@ remove_pcr_primers = function (
   #
   empty_result = list('fwd_trim'=0, 'rev_trim'=0)
 
-  m_buffer = ''
-  m2 = function (..., m_buffer, fill=F, time_stamp=F, verbose=verbose) {
-    if (ncpu == 1) {
-      m(..., fill=fill, time_stamp=time_stamp, verbose=verbose)
-      return(NA)
-    } else {
-      return(paste0(m_buffer, ...))
-    }
-  }
   m('------- PCR primer removal ------', time_stamp=T, fill=T)
 
   if (is.null(region) & (is.null(pr_fwd) | is.null(pr_rev))) {
@@ -408,7 +399,15 @@ remove_pcr_primers = function (
     # Check if input file exists
     start_time = Sys.time()
     m_buffer = ''
-    m_buffer = m2('* ', basename(fq_in_i), ':', m_buffer=m_buffer, time_stamp=T, fill=F)
+    m2 = function (..., fill=F, time_stamp=F, verbose=verbose) {
+      if (ncpu == 1) {
+        m(..., fill=fill, time_stamp=time_stamp, verbose=verbose)
+      } else {
+        m_buffer = paste0(m_buffer, ...)
+      }
+    }
+
+    m2('* ', basename(fq_in_i), ':', time_stamp=T, fill=F)
     if (!file.exists(fq_in_i)) {
       return(empty_result)
     }
@@ -417,24 +416,24 @@ remove_pcr_primers = function (
       # are too noisy and have been filtered out in the merging step, if we were
       # unable to merge anything.
       # file.create(fq_out)
-      m_buffer = m2(' (0 file size, skipping).', m_buffer=m_buffer, fill=T)
+      m2(' (0 file size, skipping).', fill=T)
       return(empty_result)
     }
     if (!overwrite & file.exists(fq_out_i)) {
       # We are not overwriting files and output already exists
-      m_buffer = m2(' (Output file exist, skipping).', m_buffer=m_buffer, fill=T)
+      m2(' (Output file exist, skipping).', fill=T)
       return(empty_result)
     }
     # Check if output folder exist, and if not create them
     output_folder = dirname(fq_out_i)
     if (!dir.exists(output_folder)) {
-        m_buffer = m2(' Create dir.', m_buffer=m_buffer)
+        m2(' Create dir.')
         dir.create(output_folder, recursive=T)
     }
 
     # Load file
     in_fq = sfastq_reader(fq_in_i)
-    m_buffer = m2(' Load.', m_buffer=m_buffer)
+    m2(' Load.')
 
 
     # seq = in_fq[['seqs']][1]
@@ -445,7 +444,7 @@ remove_pcr_primers = function (
       fastq_trimmer, in_fq[['meta']], in_fq[['seqs']], in_fq[['qual']],
       mc.cores=ncpus, SIMPLIFY=F, USE.NAMES=F
     )
-    m_buffer = m2(' Trim.', m_buffer=m_buffer)
+    m2(' Trim.')
     # if (verbose) cat('OK.', fill=T)
 
     fwd_trimmed = sum(sapply(out_trimmed, function (x) x$trim_fwd))
@@ -454,7 +453,7 @@ remove_pcr_primers = function (
     # Save results in a new file
     fastq_list_writer(out_trimmed, fq_out_i, ncpu=ncpu_sample)
     pct_trimmed = 100*sum(fwd_trimmed | rev_trimmed)/length(out_trimmed)
-    m_buffer = m2(' Saved', round(pct_trimmed, 1), '% any trimmed.', m_buffer=m_buffer)
+    m2(' Saved', round(pct_trimmed, 1), '% any trimmed.')
     end_time = Sys.time()
     dt = end_time - start_time
     m2(' [', round(dt, 1), ' ', attr(dt, 'units'), ']', fill=T, time_stamp=F)
