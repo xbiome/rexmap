@@ -81,7 +81,7 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
       if (ncpu == 1) {
         m(paste0('* ', basename(fq_fwd_i), '+', basename(fq_rev_i), ':'), fill=F)
       } else {
-        m_buffer = paste0(m_buffer, '*', basename(fq_fwd_i), '+', basename(fq_rev_i), ':')
+        m_buffer = paste0(m_buffer, '* ', basename(fq_fwd_i), '+', basename(fq_rev_i), ':')
       }
 
       f_fwd = tryCatch(
@@ -143,8 +143,12 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
       qual_fwd = as.character(Biostrings::quality(Biostrings::quality(r_fwd)))
       qual_rev = as.character(Biostrings::quality(Biostrings::quality(r_rev)))
       ids = gsub('^([^ ]+) .*', '\\1', as.character(ShortRead::id(r_fwd)))
-      m('  Loaded.', fill=F, time_stamp=F)
-
+      # m('  Loaded.', fill=F, time_stamp=F)
+      if (ncpu == 1) {
+        m(' Loaded.', fill=F, time_stamp=F)
+      } else {
+        m_buffer = paste0(m_buffer, ' Loaded.')
+      }
       # Filter out useless/invalid reads at this point before sending it to C++
       # function.
       if (length(read_fwd) != length(read_rev)) {
@@ -283,9 +287,9 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
 
 
       if (ncpu == 1) {
-        m('[', round(dt, 1), ' ', attr(dt, 'units'), ']', fill=T, time_stamp=F)
+        m(' [', round(dt, 1), ' ', attr(dt, 'units'), ']', fill=T, time_stamp=F)
       } else {
-        m_buffer = paste0(m_buffer, '[', round(dt, 1), ' ', attr(dt, 'units'), ']')
+        m_buffer = paste0(m_buffer, ' [', round(dt, 1), ' ', attr(dt, 'units'), ']')
         m(m_buffer)
       }
 
