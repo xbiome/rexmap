@@ -23,7 +23,7 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
                               ncpu=rexmap_option('ncpu'),
                               ncpu_samples=1,
                               force=FALSE,
-                              verbose=FALSE, timing=FALSE
+                              verbose=TRUE, timing=FALSE
                               ) {
   # fq_fwd = vector of filenames (incl. paths) to forward reads
   # fq_rev = vector of filenames (incl. paths) to reverse reads
@@ -44,21 +44,29 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
   #  quality scores for posterior probabilities for read merging
   #  output from mergepairs_generate_posterior_probabilities.py
 
+  m('------ Merge reads -------')
+  m('Running with parameters:')
+  m('Min % sim:', 100*min_sim, '|', 'Min aln len:', min_aln_len, 'RC reverse: ', rc_reverse)
+  m('Run', ncpu, 'threads/samples in parallel with', ncpu_samples, 'threads per sample.')
+
+  # m2 = function (..., fill=TRUE, time_stamp=TRUE, verbose=TRUE) {
+  #   if (ncpu > 1) {
+  #
+  #   } else {
+  #     m(.., fill=fill, time_stamp=time_stamp, verbose=verbose)
+  #   }
+  # }
+  empty_result = list('total'=NA, 'merged'=NA, 'low_pct_sim'=NA, 'low_aln_len'=NA)
+
   out_per_sample = parallel::mcmapply(
     function (fq_fwd_i, fq_rev_i, fq_mer_i) {
-      if (timing) start_time = Sys.time()
+      start_time = Sys.time()
 #
 #       if (is.na(ncpu) | ncpu == 0) {
 #         # If we can't figure out number of threads, set it to 2 or just stop?
 #         ncpu = 2
 #         stop('Merge pairs: invalid number of CPU threads.')
 #       }
-      m = function (...) {
-        # Print message if verbose is enabled.
-        if (verbose) {
-          cat(..., fill=F)
-        }
-      }
 
       # Does output folder exist?
       output_folders = unique(dirname(fq_mer_i))
@@ -67,8 +75,15 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
       }
 
       # Load reads using ShortRead::FastqStreamer
-      m(paste0('Loading FASTQ reads: ', basename(fq_fwd_i), ', ',
-               basename(fq_rev_i), ' ...'))
+      # m(paste0('Loading FASTQ reads: ', basename(fq_fwd_i), ', ',
+      #          basename(fq_rev_i), ' ...'))
+      m_buffer = ''
+      if (ncpu == 1) {
+        m(paste0('* ', basename(fq_fwd_i), '+', basename(fq_rev_i), ':'), fill=F)
+      } else {
+        m_buffer = paste0(m_buffer, '*', basename(fq_fwd_i), '+', basename(fq_rev_i), ':')
+      }
+
       f_fwd = tryCatch(
         ShortRead::FastqStreamer(fq_fwd_i),
         error = function (x) NA
@@ -77,9 +92,17 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
         ShortRead::FastqStreamer(fq_rev_i),
         error = function (x) NA
       )
-      if (is.na(f_fwd) | is.na(f_rev)) {
-        m('Warning: corrupted files. Skipping.')
-        return(list('total'=NA, 'low_pct_sim'=NA, 'low_aln_len'=NA))
+      if (class(f_fwd) != 'FastqStreamer') {
+        if (is.na(f_fwd)) {
+          m('Warning: corrupted FWD file', basename(fq_fwd_i), ': Skipping.')
+          return(empty_result)
+        }
+      }
+      if (class(f_rev) != 'FastqStreamer') {
+        if (is.na(f_rev)) {
+          m('Warning: corrupted FWD file', basename(fq_fwd_i), ': Skipping.')
+          return(empty_result)
+        }
       }
       # Go through each read entry, do alignment
       r_fwd = tryCatch(
@@ -87,8 +110,8 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
         error = function (x) NA
       )
       if (length(r_fwd) == 0) {
-        m('Warning: No reads in the forward file found. Skipping.')
-        return(list('total'=NA, 'low_pct_sim'=NA, 'low_aln_len'=NA))
+        m('Warning: No reads in the forward file ', basename(fq_fwd_i), 'found. Skipping.')
+        return(empty_result)
       }
       if (rc_reverse) {
         r_rev = tryCatch(
@@ -101,9 +124,17 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
           error = function (x) NA
         )
       }
-      if (is.na(r_fwd) | is.na(r_rev)) {
-        m('Warning: corrupted files. Skipping.')
-        return(list('total'=NA, 'low_pct_sim'=NA, 'low_aln_len'=NA))
+      if (class(r_fwd) != 'ShortReadQ') {
+        if (is.na(r_fwd)) {
+          m('Warning: corrupted FWD file', fq_fwd_i, ': Skipping.')
+          return(empty_result)
+        }
+      }
+      if (class(r_rev) != 'ShortReadQ') {
+        if (is.na(r_rev)) {
+          m('Warning: corrupted REV file', fq_rev_i, ': Skipping.')
+          return(empty_result)
+        }
       }
 
       # Process chunk
@@ -112,19 +143,19 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
       qual_fwd = as.character(Biostrings::quality(Biostrings::quality(r_fwd)))
       qual_rev = as.character(Biostrings::quality(Biostrings::quality(r_rev)))
       ids = gsub('^([^ ]+) .*', '\\1', as.character(ShortRead::id(r_fwd)))
-      m(' OK.\n')
+      m('  Loaded.', fill=F, time_stamp=F)
 
       # Filter out useless/invalid reads at this point before sending it to C++
       # function.
       if (length(read_fwd) != length(read_rev)) {
-        m(' * Error: Unequal number of reads in forward and reverse files.\n')
+        m(' * Error: Unequal number of reads in forward and reverse files.')
         m('   Forward file: ', length(read_fwd), ' reads | Reverse file: ',
-          length(read_rev), ' reads.\n')
+          length(read_rev), ' reads.')
         if (!force) {
           m('   Stop.\n')
-          return(list('total'=NA, 'low_pct_sim'=NA, 'low_aln_len'=NA))
+          return()
         } else {
-          m('   Proceeding by ignoring extra reads.\n')
+          m('   Proceeding by ignoring extra reads.')
           read_cap = min(length(read_fwd), length(read_rev))
           read_fwd = read_fwd[1:read_cap]
           read_rev = read_rev[1:read_cap]
@@ -136,7 +167,7 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
       }
 
 
-      m('Removing invalid reads...')
+      # m('Removing invalid reads...')
       # NNNNN reads
       n_mask = grepl('^[N]+$', read_fwd) & grepl('^[N]+$', read_rev)
       if (sum(n_mask) > 0) {
@@ -156,7 +187,11 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
         qual_rev = qual_rev[!x_mask]
         ids = ids[!x_mask]
       }
-      m(' OK.\n')
+      if (ncpu == 1) {
+        m(' QC.', fill=F, time_stamp=F)
+      } else {
+        m_buffer = paste0(m_buffer, ' QC.')
+      }
 
       # print(head(read_fwd))
       # print(head(read_rev))
@@ -165,7 +200,7 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
 
 
       # Apply mergepairs
-      m('Merging pairs...')
+      # m('Merging pairs...')
       merged_list = parallel::mcmapply(C_mergepairs, read_fwd, read_rev, qual_fwd, qual_rev,
                                        match=match, mismatch=mismatch, gap_p=gap_p,
                                        min_pct_sim=min_sim, min_aln_len=min_aln_len,
@@ -173,27 +208,38 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
                                        posterior_mismatch_file=rexmap_option('mergepairs_mismatchqs'),
                                        mc.cores=ncpu_samples
       )
-      m(' OK.\n')
+      if (ncpu == 1) {
+        m(' Merged ', fill=F, time_stamp=F)
+      } else {
+        m_buffer = paste0(m_buffer, ' Merged ')
+      }
 
       # Filter out low % sim and low aln length alignments
       merged_aln_filter = as.logical(unname(merged_list[3, ])) &
         as.logical(unname(merged_list[4, ]))
 
+      pct_merged = 100*sum(merged_aln_filter)/length(merged_aln_filter)
+      if (ncpu == 1) {
+        m(round(pct_merged, 1), '%', fill=F, time_stamp=F)
+      } else {
+        m_buffer = paste0(m_buffer, round(pct_merged, 1), '%')
+      }
+
       # Free memory
       close(f_fwd)
       close(f_rev)
       rm(read_fwd, read_rev, qual_fwd, qual_rev, f_fwd, f_rev, r_fwd, r_rev)
-      m('Writing output files')
+      # m('Writing output files')
       # sequences
       final_seqs = unname(merged_list[1, merged_aln_filter])
-      m('.')
+      # m('.')
       final_qual = unname(merged_list[2, merged_aln_filter])
-      m('.')
+      # m('.')
       final_ids  = ids[merged_aln_filter]
-      m('.')
+      # m('.')
 
       final_filter = !is.null(final_seqs) & !is.null(final_qual)
-      if (!all(final_filter)) m('.')
+      # if (!all(final_filter)) m('.')
       final_seqs = final_seqs[final_filter]
       final_qual = final_qual[final_filter]
       final_ids  = final_ids[final_filter]
@@ -202,6 +248,7 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
       # Generate statistics for filtered-out reads
       stats = list(
         'total'=length(merged_aln_filter),
+        'merged'=sum(merged_aln_filter),
         'low_pct_sim'=length(merged_aln_filter) - sum(as.logical(merged_list[3, ])),
         'low_aln_len'=length(merged_aln_filter) - sum(as.logical(merged_list[4, ]))
       )
@@ -228,19 +275,39 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
       if (length(final_seqs) > 1) {
         ShortRead::writeFastq(merged_sread, fq_mer_i, compress = F)
       } else {
-        m(' (No reads merged!) ')
+        m(' (No reads merged!) ', fill=F, time_stamp=F)
       }
-      m(' OK.\n')
-      if (timing) {
-        end_time = Sys.time()
-        diff_time = difftime(end_time, start_time, units='secs')
-        m('Finished in ', round(as.numeric(diff_time)/60), ' m ',
-          round(as.numeric(diff_time)%%60, 1), ' s.\n')
+      # m(' OK.\n')
+      end_time = Sys.time()
+      dt = end_time - start_time
+
+
+      if (ncpu == 1) {
+        m('[', round(dt, 1), ' ', attr(dt, 'units'), ']', fill=T, time_stamp=F)
+      } else {
+        m_buffer = paste0(m_buffer, '[', round(dt, 1), ' ', attr(dt, 'units'), ']')
+        m(m_buffer)
       }
+
+
+      # if (timing) {
+      #   end_time = Sys.time()
+      #   diff_time = difftime(end_time, start_time, units='secs')
+      #   m('Finished in ', round(as.numeric(diff_time)/60), ' m ',
+      #     round(as.numeric(diff_time)%%60, 1), ' s.\n')
+      # }
       return(stats)
     }, fq_fwd, fq_rev, fq_mer, SIMPLIFY=F, USE.NAMES=T, mc.cores=ncpu
   )
-  return(mergeout_to_table(out_per_sample))
+  out.dt = rbindlist(lapply(out_per_sample, function (x) {
+    return(data.table(total=x$total, merged=x$merged,
+                      low_pct_sim=x$low_pct_sim,
+                      low_aln_len=x$low_aln_len))
+  }))
+  out.dt[, fq_fwd := fq_fwd]
+  out.dt[, fq_rev := fq_rev]
+  setcolorder(out.dt, c('fq_fwd', 'fq_rev', 'total', 'merged', 'low_pct_sim', 'low_aln_len'))
+  return(out.dt[])
 }
 
 #' Convert mergestats table to a normal data.table

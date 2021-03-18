@@ -13,6 +13,17 @@ ie = function(test, yes, no) {
   else no
 }
 
+#' Message reporting function
+m = function (..., fill=TRUE, time_stamp=TRUE, verbose=TRUE) {
+   if (verbose) {
+      if (!time_stamp) {
+         cat(..., append=TRUE, fill=fill)
+      } else {
+         cat(as.character(as.POSIXlt(Sys.time())), ' | ', ...,
+             append=TRUE, fill=fill)
+      }
+   }
+}
 
 lu = function (x) length(unique(x))
 
