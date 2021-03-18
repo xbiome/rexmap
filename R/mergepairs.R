@@ -46,8 +46,8 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
 
   m('------ Merge reads -------')
   m('Running with parameters:')
-  m('Min % sim:', 100*min_sim, '|', 'Min aln len:', min_aln_len, 'RC reverse: ', rc_reverse)
-  m('Run', ncpu, 'threads/samples in parallel with', ncpu_samples, 'threads per sample.')
+  m('Min % sim:', 100*min_sim, '|', 'Min aln len:', min_aln_len, '| RC reverse:', rc_reverse)
+  m('Run', ncpu, 'files in parallel, ', ncpu_samples, 'threads/file.')
 
   # m2 = function (..., fill=TRUE, time_stamp=TRUE, verbose=TRUE) {
   #   if (ncpu > 1) {
@@ -79,7 +79,7 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
       #          basename(fq_rev_i), ' ...'))
       m_buffer = ''
       if (ncpu == 1) {
-        m(paste0('* ', basename(fq_fwd_i), '+', basename(fq_rev_i), ':'), fill=F)
+        m(paste0('* ', basename(fq_fwd_i), '+', basename(fq_rev_i), ':'), fill=F, time_stamp=F)
       } else {
         m_buffer = paste0(m_buffer, '* ', basename(fq_fwd_i), '+', basename(fq_rev_i), ':')
       }
@@ -224,9 +224,9 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
 
       pct_merged = 100*sum(merged_aln_filter)/length(merged_aln_filter)
       if (ncpu == 1) {
-        m(round(pct_merged, 1), '%', fill=F, time_stamp=F)
+        m(round(pct_merged, 1), '%.', fill=F, time_stamp=F)
       } else {
-        m_buffer = paste0(m_buffer, round(pct_merged, 1), '%')
+        m_buffer = paste0(m_buffer, round(pct_merged, 1), '%.')
       }
 
       # Free memory

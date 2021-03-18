@@ -17,10 +17,9 @@ ie = function(test, yes, no) {
 m = function (..., fill=TRUE, time_stamp=TRUE, verbose=TRUE) {
    if (verbose) {
       if (!time_stamp) {
-         cat(..., append=TRUE, fill=fill)
+         cat(..., fill=fill)
       } else {
-         cat(as.character(as.POSIXlt(Sys.time())), ' | ', ...,
-             append=TRUE, fill=fill)
+         cat(as.character(as.POSIXlt(Sys.time())), ' | ', ..., fill=fill)
       }
    }
 }
