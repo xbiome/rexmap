@@ -301,39 +301,30 @@ detect_pcr_primers = function (fq, verbose=T, debug=F,
 #' @param overwrite Overwrite target files if they exist (default: TRUE)
 #'
 #' @export
-remove_pcr_primers = Vectorize(function (fq_in, fq_out, region=NULL,
-                              pr_fwd=NULL,
-                              pr_rev=NULL,
-                              pr_fwd_maxoff=35, pr_rev_maxoff=35,
-                              return_noprimer=T,
-                              ncpu=rexmap_option('ncpu'), max_mismatch=2,
-                              timing=F, verbose=rexmap_option('verbose'),
-                              overwrite=TRUE) {
+remove_pcr_primers = function (
+  fq_in, fq_out, region=NULL,
+  pr_fwd=NULL, pr_rev=NULL, pr_fwd_maxoff=35, pr_rev_maxoff=35, max_mismatch=2,
+  return_noprimer=T, ncpu=1, ncpu_sample=rexmap_option('ncpu'),
+  verbose=rexmap_option('verbose'), overwrite=TRUE) {
   # fq_in = input fastq file
   # fq_out = output fastq file (without primers)
   # pr_fwd = forward primer 5'->3'
   # pr_rev = reverse primer 5'->3'
   #
-  if (verbose) cat('FASTQ input: ', fq_in, fill=T)
-  if (file.size(fq_in) == 0) {
-    # Input file has zero size, so no sequences. This can happen if all the reads
-    # are too noisy and have been filtered out in the merging step, if we were
-    # unable to merge anything.
-    file.create(fq_out)
-    return(c('fwd_trim'=0, 'rev_trim'=0))
-  }
+  empty_result = list('fwd_trim'=0, 'rev_trim'=0)
 
-  # Check input
-  if (!all_exist(fq_in)) stop('PCR primer remover: some input files are missing.')
+  m2 = function (..., fill=F, time_stamp=F) {
+    if (ncpu == 1) {
+      m(..., fill=fill, time_stamp=time_stamp)
+    } else {
+      m_buffer = paste0(m_buffer, ...)
+    }
+  }
+  m2('------- PCR primer removal ------', time_stamp=T, fill=T)
+
   if (is.null(region) & (is.null(pr_fwd) | is.null(pr_rev))) {
     stop('PCR primer remover: either region of pr_fwd and pr_rev need to be specified.')
   }
-
-  if (!overwrite & file.exists(fq_out)) {
-    # We are not overwriting files and output already exists
-    return(c('fwd_trim'=NA, 'rev_trim'=NA))
-  }
-
   # if region is specified, check that primers exist in the reference table
   if (!is.null(region)) {
     if (nrow(rexmap_option('blast_dbs')[Hypervariable_region==region]) == 0) {
@@ -344,36 +335,18 @@ remove_pcr_primers = Vectorize(function (fq_in, fq_out, region=NULL,
     pr_rev = reverse_complement(
       rexmap_option('blast_dbs')[Hypervariable_region==region, Primer2_sequence_3to5]
     )
-    if (verbose) cat('* PCR primer remover mode: region', region, paste0('(fwd: ',
-      pr_fwd, ', rev: ', pr_rev, ')'), fill=T)
+    m2('* Using REGION', region,
+       paste0('(fwd: ', pr_fwd, ', rev: ', pr_rev, ')'), fill=T, time_stamp=T)
   } else {
-    if (verbose) cat('* PCR primer remover mode: primers', paste0('(fwd: ',
-      pr_fwd, ', rev: ', pr_rev, ')'), fill=T)
+    m2('* Using PRIMERS',
+       paste0('(fwd: ', r_fwd, ', rev: ', pr_rev, ')'), fill=T, time_stamp=T)
 
   }
-
-  # Check if all output folders exist, and if not create them
-  output_folders = unique(dirname(fq_out))
-  for (out_f in output_folders) {
-    if (!dir.exists(out_f)) {
-      if (verbose) cat('* created output folder.', fill=T)
-      dir.create(out_f, recursive=T)
-    }
-  }
-
-  # Load Input FASTQ file
-  if (timing) start_time = Sys.time()
   # Count extended DNA symbols
   # Ignore any extended DNA symbols. Shouldn't have too many of them anyway.
   pr_fwd = gsub('[^ACGT-]', 'N', pr_fwd)
   pr_rev = gsub('[^ACGT-]', 'N', pr_rev)
-  if (verbose) cat('* loading file...')
-  in_fq = sfastq_reader(fq_in)
-  if (verbose) cat('OK.', fill=T)
-  # max_mismatch = 2
 
-  seq = in_fq[['seqs']][1]
-  qual = in_fq[['qual']][1]
 
   fastq_trimmer = function (meta, seq, qual, return_noprimer=return_noprimer) {
 
@@ -427,32 +400,88 @@ remove_pcr_primers = Vectorize(function (fq_in, fq_out, region=NULL,
                 'trim_rev' = pr_rev_found))
   }
 
-  # Apply fastq_trimmer() to each sequence in this file
-  if (verbose) cat('* removing primers...')
-  ncpus = min(ncpu, length(seq))
-  out_trimmed = unname(
-    parallel::mcmapply(
+
+  out_per_sample = parallel::mcmapply(function (fq_in_i, fq_out_i) {
+
+    # Various checks
+    # Check if input file exists
+    start_time = Sys.time()
+    m_buffer = ''
+    m2('* ', basename(fq_in_i), ':', time_stamp=T, fill=F)
+    if (!file.exists(fq_in_i)) {
+      return(empty_result)
+    }
+    if (file.size(fq_in_i) == 0) {
+      # Input file has zero size, so no sequences. This can happen if all the reads
+      # are too noisy and have been filtered out in the merging step, if we were
+      # unable to merge anything.
+      # file.create(fq_out)
+      m2(' (0 file size, skipping).', fill=T)
+      return(empty_result)
+    }
+    if (!overwrite & file.exists(fq_out_i)) {
+      # We are not overwriting files and output already exists
+      m2(' (Output file exist, skipping).', fill=T)
+      return(empty_result)
+    }
+    # Check if output folder exist, and if not create them
+    output_folder = dirname(fq_out)
+    if (!dir.exists(output_folder)) {
+        m2(' Create dir.')
+        dir.create(output_folder, recursive=T)
+    }
+
+    # Load file
+    in_fq = sfastq_reader(fq_in)
+    m2(' Load.')
+
+
+    # seq = in_fq[['seqs']][1]
+    # qual = in_fq[['qual']][1]
+    ncpus = min(ncpu_sample, length(in_fq[['seqs']]))
+
+    out_trimmed = parallel::mcmapply(
       fastq_trimmer, in_fq[['meta']], in_fq[['seqs']], in_fq[['qual']],
-      mc.cores=ncpus, SIMPLIFY=FALSE
+      mc.cores=ncpus, SIMPLIFY=F, USE.NAMES=F
     )
-  )
-  if (verbose) cat('OK.', fill=T)
+    m2(' Trim.')
+    # if (verbose) cat('OK.', fill=T)
 
-  fwd_trimmed = sum(sapply(out_trimmed, function (x) x$trim_fwd))
-  rev_trimmed = sum(sapply(out_trimmed, function (x) x$trim_rev))
+    fwd_trimmed = sum(sapply(out_trimmed, function (x) x$trim_fwd))
+    rev_trimmed = sum(sapply(out_trimmed, function (x) x$trim_rev))
 
-  # Save results in a new file
-  if (verbose) cat('* saving output...')
-  fastq_list_writer(out_trimmed, fq_out, ncpu=ncpu)
-  if (verbose) cat('OK.', fill=T)
-  if (timing) {
+    # Save results in a new file
+    fastq_list_writer(out_trimmed, fq_out, ncpu=ncpu_sample)
+    pct_trimmed = 100*sum(fwd_trimmed | rev_trimmed)/length(out_trimmed)
+    m2(' Saved', round(pct_trimmed, 1), '% any trimmed.')
     end_time = Sys.time()
-    diff_time = difftime(end_time, start_time, units='secs')
-    cat('Finished in ', round(as.numeric(diff_time)/60), ' m ',
-      round(as.numeric(diff_time)%%60, 1), ' s.\n')
-  }
-  return(c('fwd_trim'=fwd_trimmed, 'rev_trim'=rev_trimmed))
-}, vectorize.args=c('fq_in', 'fq_out'))
+    dt = end_time - start_time
+    m2(' [', round(dt, 1), ' ', attr(dt, 'units'), ']', fill=T, time_stamp=F)
+    # if (verbose) cat('OK.', fill=T)
+    # if (timing) {
+    #   end_time = Sys.time()
+    #   diff_time = difftime(end_time, start_time, units='secs')
+    #   cat('Finished in ', round(as.numeric(diff_time)/60), ' m ',
+    #       round(as.numeric(diff_time)%%60, 1), ' s.\n')
+    # }
+    return(list('total'=length(out_trimmed),
+                'both_trim'=sum(fwd_trimmed & rev_trimmed),
+                'any_trim'=sum(fwd_trimmed | rev_trimmed),
+                'fwd_trim'=fwd_trimmed, 'rev_trim'=rev_trimmed))
+
+  }, SIMPLIFY=F, USE.NAMES=F, mc.cores=ncpu)
+
+  out.dt = rbindlist(lapply(out_per_sample, function (x) {
+    return(data.table(
+      total=x$total, both_trim=x$both_trim, any_trim=x$any_trim,
+      fwd_trim=x$fwd_trim, rev_trim=x$rev_trim
+    ))
+  }))
+  out.dt[, fq_in := fq_in_i]
+  setcolorder(out.dt, x('fq_in', 'total', 'both_trim', 'any_trim',
+                        'fwd_trim', 'rev_trim'))
+  return(out.dt[])
+}
 
 
 
