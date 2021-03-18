@@ -313,9 +313,9 @@ remove_pcr_primers = function (
   empty_result = list('fwd_trim'=0, 'rev_trim'=0)
 
   m_buffer = ''
-  m2 = function (..., fill=F, time_stamp=F) {
+  m2 = function (..., fill=F, time_stamp=F, verbose=verbose) {
     if (ncpu == 1) {
-      m(..., fill=fill, time_stamp=time_stamp)
+      m(..., fill=fill, time_stamp=time_stamp, verbose=verbose)
     } else {
       m_buffer = paste0(m_buffer, ...)
     }
@@ -457,6 +457,9 @@ remove_pcr_primers = function (
     end_time = Sys.time()
     dt = end_time - start_time
     m2(' [', round(dt, 1), ' ', attr(dt, 'units'), ']', fill=T, time_stamp=F)
+    if (ncpu > 1) {
+      m(m_buffer, verbose=verbose)
+    }
     # if (verbose) cat('OK.', fill=T)
     # if (timing) {
     #   end_time = Sys.time()
