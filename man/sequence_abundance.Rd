@@ -13,7 +13,8 @@ sequence_abundance(
   remove_bimeras_oneoff = T,
   fq_prefix_split = ".",
   fq_prefix_split_n = 1,
-  ncpu = TRUE
+  ncpu = TRUE,
+  debug = F
 )
 }
 \arguments{

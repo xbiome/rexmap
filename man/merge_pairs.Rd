@@ -15,7 +15,9 @@ merge_pairs(
   gap_p = -7L,
   rc_reverse = TRUE,
   ncpu = rexmap_option("ncpu"),
-  verbose = FALSE,
+  ncpu_samples = 1,
+  force = FALSE,
+  verbose = TRUE,
   timing = FALSE
 )
 }
@@ -39,6 +41,8 @@ merge_pairs(
 \item{rc_reverse}{TRUE/FALSE Reverse complement reverse reads? (default: TRUE)}
 
 \item{ncpu}{Number of CPU threads to use for multithreading.}
+
+\item{force}{Do not stop merging on fatal errors. (default: FALSE)}
 
 \item{verbose}{TRUE/FALSE Display of status messages.}
 

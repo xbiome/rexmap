@@ -10,12 +10,12 @@ remove_pcr_primers(
   region = NULL,
   pr_fwd = NULL,
   pr_rev = NULL,
-  pr_fwd_maxoff = 10,
-  pr_rev_maxoff = 10,
-  return_noprimer = T,
-  ncpu = rexmap_option("ncpu"),
+  pr_fwd_maxoff = 35,
+  pr_rev_maxoff = 35,
   max_mismatch = 2,
-  timing = F,
+  return_noprimer = T,
+  ncpu = 1,
+  ncpu_sample = rexmap_option("ncpu"),
   verbose = rexmap_option("verbose"),
   overwrite = TRUE
 )
@@ -41,13 +41,11 @@ forward PCR primer. Primers aligned further into the read ignored.}
 
 \item{pr_rev_maxoff}{Same but for reverse PCR primer, from the 3' end.}
 
-\item{ncpu}{Number of CPU cores (threads) to use for multithreading. By default
-all available CPU cores are used (\code{parallel::detectCores()}).}
-
 \item{max_mismatch}{Maximum allowed number of mismatches for each PCR primer,
 ignoring any ambiguous nucleotides (not A,C,G or T).}
 
-\item{timing}{Display run-time at the end of trimming (default: FALSE).}
+\item{ncpu}{Number of CPU cores (threads) to use for multithreading. By default
+all available CPU cores are used (\code{parallel::detectCores()}).}
 
 \item{overwrite}{Overwrite target files if they exist (default: TRUE)}
 }
