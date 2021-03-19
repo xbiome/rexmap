@@ -13,6 +13,7 @@ blast(
   max_target_seqs = rexmap_option("blast_max_seqs"),
   word_size = rexmap_option("blast_word_size"),
   verbose = rexmap_option("verbose"),
+  debug = FALSE,
   show_args = F,
   output_error = F,
   show_alignment = F,
