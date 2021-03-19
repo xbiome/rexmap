@@ -627,6 +627,9 @@ abundance = function (abundance_table, blast_object,
 
   setcolorder(osu_ab.dt, c('sample_id', 'osu_id', 'osu_count', 'pctsim', 'species'))
   setorder(osu_ab.dt, sample_id, -osu_count)
+  end_time = Sys.time()
+  dt = end_time - t0
+  m(' [', round(dt, 1), ' ', attr(dt, 'units'), ']', fill=T, time_stamp=F, verbose=verbose)
   if (verbose) cat('Abundance estimation complete.\n')
   return(osu_ab.dt)
 }
