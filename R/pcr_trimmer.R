@@ -7,15 +7,17 @@
 #' Returns a most likely hypervariable region as a character string.
 #'
 #' @export
-detect_pcr_primers = function (fq, verbose=T, debug=F,
+detect_pcr_primers = function (fq,
+                               # pr_fwd=NULL, pr_rev=NULL,
                                pr_fwd_maxoff=35, pr_rev_maxoff=35, max_mismatch=3,
                                nseqs=1000, nseqs_seed=42, min_seqs_pct=5,
-                               ncpu=1, ncpu_seqs=4
+                               ncpu=1, ncpu_seqs=4,
+                               verbose=T, debug=F
                                ) {
    # Detect PCR primers in a single or multiple FASTQ files, given as an input
    # character vector 'fq'
    # - nseqs: Randomly sample nseqs from the input fastq files
-   if (verbose) {
+   if (debug) {
       cat('------- Detect PCR primers -------', fill=T)
    }
 
@@ -24,7 +26,7 @@ detect_pcr_primers = function (fq, verbose=T, debug=F,
    fq_exist = file.exists(fq)
    fq_good = fq[fq_exist]
    if (sum(!fq_exist) > 0) {
-      if (verbose) {
+      if (debug) {
          cat('* Warning: Files: ', paste(fq[!fq_exist], collapse=','),
              ' do not exist.')
       }
@@ -34,29 +36,38 @@ detect_pcr_primers = function (fq, verbose=T, debug=F,
    }
 
    #------------------- Prepare primer table ---------------------------------
-   primers.dt = rexmap_option('blast_dbs')[
-      , .(Primer1, Primer2, `Primer1_sequence_5to3`, `Primer2_sequence_3to5`,
-          Primer1_reg=sub('^(V[0-9])[_]?(V[0-9])?.*$', '\\1', Hypervariable_region),
-          Primer2_reg=sub('^(V[0-9])[-]?(V[0-9])?.*$', '\\2', Hypervariable_region))]
-   primers.dt[Primer2_reg=='', Primer2_reg := Primer1_reg]
-   primers.dt = unique(primers.dt[Primer1 != ''])
-   primers.dt[, Primer1_sequence_3to5 := sapply(Primer1_sequence_5to3, reverse_complement)]
-   primers.dt[, Primer2_sequence_5to3 := sapply(Primer2_sequence_3to5, reverse_complement)]
+   # if (is.null(pr_fwd) & is.null(pr_rev)) {
+     primers.dt = rexmap_option('blast_dbs')[
+       , .(Primer1, Primer2, `Primer1_sequence_5to3`, `Primer2_sequence_3to5`,
+           Primer1_reg=sub('^(V[0-9])[_]?(V[0-9])?.*$', '\\1', Hypervariable_region),
+           Primer2_reg=sub('^(V[0-9])[-]?(V[0-9])?.*$', '\\2', Hypervariable_region))]
+     primers.dt[Primer2_reg=='', Primer2_reg := Primer1_reg]
+     primers.dt = unique(primers.dt[Primer1 != ''])
+     primers.dt[, Primer1_sequence_3to5 := sapply(Primer1_sequence_5to3, reverse_complement)]
+     primers.dt[, Primer2_sequence_5to3 := sapply(Primer2_sequence_3to5, reverse_complement)]
 
-   pr_m.dt = melt(
-     primers.dt,
-     measure.vars=list(
-       c('Primer1', 'Primer2'),
-       c('Primer1_sequence_5to3', 'Primer2_sequence_5to3'),
-       c('Primer1_sequence_3to5', 'Primer2_sequence_3to5'),
-       c('Primer1_reg', 'Primer2_reg'))
-    )
-   pr_m.dt[, variable := NULL]
-   names(pr_m.dt) = c('pr_name', 'pr_5to3', 'pr_3to5', 'pr_lab')
-   pr_m.dt[, pr_id := paste(pr_lab, sub('^[^RF]+([RF])$', '\\1', pr_name), sep='')]
-   pr.dt = unique(melt(pr_m.dt, id.vars='pr_id', measure.vars=c('pr_5to3', 'pr_3to5'),
-                       variable.name='pr_dir', value.name='seq_ext'))
-   pr.dt[, seq_id := paste(pr_id, sub('pr_', '', pr_dir), sep='_')]
+     pr_m.dt = melt(
+       primers.dt,
+       measure.vars=list(
+         c('Primer1', 'Primer2'),
+         c('Primer1_sequence_5to3', 'Primer2_sequence_5to3'),
+         c('Primer1_sequence_3to5', 'Primer2_sequence_3to5'),
+         c('Primer1_reg', 'Primer2_reg'))
+     )
+     pr_m.dt[, variable := NULL]
+     names(pr_m.dt) = c('pr_name', 'pr_5to3', 'pr_3to5', 'pr_lab')
+     pr_m.dt[, pr_id := paste(pr_lab, sub('^[^RF]+([RF])$', '\\1', pr_name), sep='')]
+     pr.dt = unique(melt(pr_m.dt, id.vars='pr_id', measure.vars=c('pr_5to3', 'pr_3to5'),
+                         variable.name='pr_dir', value.name='seq_ext'))
+     pr.dt[, seq_id := paste(pr_id, sub('pr_', '', pr_dir), sep='_')]
+   # } else {
+   #   pr.dt = data.table(
+   #      pr_id=c('fwd_primer', 'rev_primer'),
+   #      pr_dir=c('pr_5to3', 'pr_5to3'),
+   #      seq_ext=c(pr_fwd, pr_rev),
+   #      seq_id=c('fwd_primer_5to3', 'rev_primer_5to3')
+   #   )
+   # }
 
 
    # Load the files 'fq_good'
@@ -72,7 +83,7 @@ detect_pcr_primers = function (fq, verbose=T, debug=F,
    seqs_all = unlist(lapply(fq_list, function (x) x$seqs))
    nseqs_max = min(nseqs, length(seqs_all))
    seqs_sampled = sample(seqs_all, nseqs_max)
-   if (verbose) {
+   if (debug) {
      cat('* Sampled: ', nseqs_max, 'sequences.', fill=T)
    }
 
@@ -175,13 +186,13 @@ detect_pcr_primers = function (fq, verbose=T, debug=F,
 
 
    if (nrow(good_alignments.dt) == 0) {
-     if (verbose) {
+     if (debug) {
        cat('* No primer alignments found.', fill=T)
      }
      return(NA)
    } else {
 
-     if (verbose) {
+     if (debug) {
        cat('* Found the following primer alignments:', fill=T)
        print(good_alignments.dt)
      }
@@ -213,9 +224,10 @@ detect_pcr_primers = function (fq, verbose=T, debug=F,
      # Extract F or R for the primer detected to be the forward
      fwd_primer_best_dir = fwd_primer_best.dt[
        , sub('^.*(R|F)$', '\\1', pr_id)]
-     if (verbose) {
+     if (debug) {
         cat('* Forward primer best direction: ', fwd_primer_best_dir, fill=T)
      }
+     if (is.na(fwd_primer_best_dir)) return(NA)
 
      # Is this primer marked as "forward" ? This would not happen in the
      # case where forward and reverse reads are swapped (or the primers)
@@ -231,6 +243,8 @@ detect_pcr_primers = function (fq, verbose=T, debug=F,
          rev_primer_best.dt = rev_primer_best.dt[1]
        }
      } else if (fwd_primer_best_dir == 'R') {
+       # Forward primer is one of the reverse primers
+       # This means the sequences are stored in 3' -> 5' direction
        rev_primer_best.dt = primer_alignments.dt[
          rev_pct_bin==sort(rev_pct_bin, decreasing=T)[1] & grepl('F$', pr_id)]
 
@@ -244,11 +258,12 @@ detect_pcr_primers = function (fq, verbose=T, debug=F,
      }
      rev_primer_best_dir = rev_primer_best.dt[
        , sub('^[^RF]+([RF])$', '\\1', pr_id)]
-     if (verbose) {
+     if (debug) {
        cat('* Reverse primer best direction: ', rev_primer_best_dir, fill=T)
      }
+     if (is.na(rev_primer_best_dir)) return(NA)
 
-     if (verbose) {
+     if (debug) {
        cat('* Primers with highest % of hits:', fill=T)
        cat('  Forward: ', fwd_primer_best.dt[, pr_id],
            'in', sub('^.*_(3|5)to(3|5)$', '\\1\\\' -> \\2\\\'',
@@ -273,12 +288,12 @@ detect_pcr_primers = function (fq, verbose=T, debug=F,
            rev_primer_best.dt[, sub('(F|R)', '', pr_id)]
          )
        }
-       if (verbose) {
+       if (debug) {
          cat('* Detected: ', most_likely_region, 'region.', fill=T)
        }
      } else {
        most_likely_region = NA
-       if (verbose) {
+       if (debug) {
          cat('* No known region in the database with these primers.', fill=T)
        }
      }
