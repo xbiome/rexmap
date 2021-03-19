@@ -497,11 +497,11 @@ remove_pcr_primers = function (
               meta=meta_i, seq=seqs_i, qual=qual_i,
               pr_fwd=pr_rev_rc, pr_rev=pr_fwd_rc)
           #}
-        }
-        # Take the alignment that managed to get better result
-        if (sum(c(result$trim_fwd, result$trim_rev)) <=
-            sum(c(result2$trim_fwd, result2$trim_rev))) {
-          result = result2
+            # Take the alignment that managed to get better result
+            if (sum(c(result$trim_fwd, result$trim_rev)) <=
+                sum(c(result2$trim_fwd, result2$trim_rev))) {
+              result = result2
+            }
         }
         return(result)
       }, in_fq[['meta']], in_fq[['seqs']], in_fq[['qual']],
