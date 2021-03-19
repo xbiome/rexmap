@@ -44,10 +44,10 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
   #  quality scores for posterior probabilities for read merging
   #  output from mergepairs_generate_posterior_probabilities.py
 
-  m('------ Merge reads -------')
-  m('Running with parameters:')
-  m('Min % sim:', 100*min_sim, '|', 'Min aln len:', min_aln_len, '| RC reverse:', rc_reverse)
-  m('Run', ncpu, 'files in parallel, ', ncpu_samples, 'threads/file.')
+  m('------ Merge reads -------', verbose=verbose)
+  m('Running with parameters:', verbose=verbose)
+  m('Min % sim:', 100*min_sim, '|', 'Min aln len:', min_aln_len, '| RC reverse:', rc_reverse, verbose=verbose)
+  m('Run', ncpu, 'files in parallel, ', ncpu_samples, 'threads/file.', verbose=verbose)
 
   # m2 = function (..., fill=TRUE, time_stamp=TRUE, verbose=TRUE) {
   #   if (ncpu > 1) {
@@ -63,13 +63,6 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
   out_per_sample = parallel::mcmapply(
     function (fq_fwd_i, fq_rev_i, fq_mer_i) {
       start_time = Sys.time()
-#
-#       if (is.na(ncpu) | ncpu == 0) {
-#         # If we can't figure out number of threads, set it to 2 or just stop?
-#         ncpu = 2
-#         stop('Merge pairs: invalid number of CPU threads.')
-#       }
-
       # Does output folder exist?
       output_folders = unique(dirname(fq_mer_i))
       for (out_f in output_folders) {
@@ -96,13 +89,13 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
       )
       if (class(f_fwd) != 'FastqStreamer') {
         if (is.na(f_fwd)) {
-          m('Warning: corrupted FWD file', basename(fq_fwd_i), ': Skipping.')
+          m('Warning: corrupted FWD file', basename(fq_fwd_i), ': Skipping.', verbose=verbose)
           return(empty_result)
         }
       }
       if (class(f_rev) != 'FastqStreamer') {
         if (is.na(f_rev)) {
-          m('Warning: corrupted FWD file', basename(fq_fwd_i), ': Skipping.')
+          m('Warning: corrupted FWD file', basename(fq_fwd_i), ': Skipping.', verbose=verbose)
           return(empty_result)
         }
       }
@@ -112,7 +105,7 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
         error = function (x) NA
       )
       if (length(r_fwd) == 0) {
-        m('Warning: No reads in the forward file ', basename(fq_fwd_i), 'found. Skipping.')
+        m('Warning: No reads in the forward file ', basename(fq_fwd_i), 'found. Skipping.', verbose=verbose)
         return(empty_result)
       }
       if (rc_reverse) {
@@ -128,13 +121,13 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
       }
       if (class(r_fwd) != 'ShortReadQ') {
         if (is.na(r_fwd)) {
-          m('Warning: corrupted FWD file', fq_fwd_i, ': Skipping.')
+          m('Warning: corrupted FWD file', fq_fwd_i, ': Skipping.', verbose=verbose)
           return(empty_result)
         }
       }
       if (class(r_rev) != 'ShortReadQ') {
         if (is.na(r_rev)) {
-          m('Warning: corrupted REV file', fq_rev_i, ': Skipping.')
+          m('Warning: corrupted REV file', fq_rev_i, ': Skipping.', verbose=verbose)
           return(empty_result)
         }
       }
@@ -147,21 +140,21 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
       ids = gsub('^([^ ]+) .*', '\\1', as.character(ShortRead::id(r_fwd)))
       # m('  Loaded.', fill=F, time_stamp=F)
       if (ncpu == 1) {
-        m(' Loaded.', fill=F, time_stamp=F)
+        m(' Loaded.', fill=F, time_stamp=F, verbose=verbose)
       } else {
         m_buffer = paste0(m_buffer, ' Loaded.')
       }
       # Filter out useless/invalid reads at this point before sending it to C++
       # function.
       if (length(read_fwd) != length(read_rev)) {
-        m(' * Error: Unequal number of reads in forward and reverse files.')
+        m(' * Error: Unequal number of reads in forward and reverse files.', verbose=verbose)
         m('   Forward file: ', length(read_fwd), ' reads | Reverse file: ',
-          length(read_rev), ' reads.')
+          length(read_rev), ' reads.', verbose=verbose)
         if (!force) {
-          m('   Stop.\n')
+          m('   Stop.\n', verbose=verbose)
           return()
         } else {
-          m('   Proceeding by ignoring extra reads.')
+          m('   Proceeding by ignoring extra reads.', verbose=verbose)
           read_cap = min(length(read_fwd), length(read_rev))
           read_fwd = read_fwd[1:read_cap]
           read_rev = read_rev[1:read_cap]
@@ -194,7 +187,7 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
         ids = ids[!x_mask]
       }
       if (ncpu == 1) {
-        m(' QC.', fill=F, time_stamp=F)
+        m(' QC.', fill=F, time_stamp=F, verbose=verbose)
       } else {
         m_buffer = paste0(m_buffer, ' QC.')
       }
@@ -215,7 +208,7 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
                                        mc.cores=ncpu_samples
       )
       if (ncpu == 1) {
-        m(' Merged ', fill=F, time_stamp=F)
+        m(' Merged ', fill=F, time_stamp=F, verbose=verbose)
       } else {
         m_buffer = paste0(m_buffer, ' Merged ')
       }
@@ -226,7 +219,7 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
 
       pct_merged = 100*sum(merged_aln_filter)/length(merged_aln_filter)
       if (ncpu == 1) {
-        m(round(pct_merged, 1), '%.', fill=F, time_stamp=F)
+        m(round(pct_merged, 1), '%.', fill=F, time_stamp=F, verbose=verbose)
       } else {
         m_buffer = paste0(m_buffer, round(pct_merged, 1), '%.')
       }
@@ -284,7 +277,7 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
       } else {
         # m(' (No reads merged!) ', fill=F, time_stamp=F)
         if (ncpu == 1) {
-          m(' (No reads merged) ', fill=F, time_stamp=F)
+          m(' (No reads merged) ', fill=F, time_stamp=F, verbose=verbose)
         } else {
           m_buffer = paste0(m_buffer, ' (No reads merged!)')
         }
@@ -296,7 +289,7 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
 
 
       if (ncpu == 1) {
-        m(' [', round(dt, 1), ' ', attr(dt, 'units'), ']', fill=T, time_stamp=F)
+        m(' [', round(dt, 1), ' ', attr(dt, 'units'), ']', fill=T, time_stamp=F, verbose=verbose)
       } else {
         m_buffer = paste0(m_buffer, ' [', round(dt, 1), ' ', attr(dt, 'units'), ']')
         m(m_buffer)
