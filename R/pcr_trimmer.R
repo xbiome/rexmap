@@ -1,5 +1,14 @@
+#' Auto-detect PCR primers in a merged FASTQ file
+#'
+#' Samples `nseqs` from an input FASTQ file with merged forward and reverse
+#' reads `fq`, then aligns all combinations of primer pairs from RExMapDB.
+#' These can be seen using `rexmap_option('blast_dbs')`.
+#'
+#' Returns a most likely hypervariable region as a character string.
+#'
+#' @export
 detect_pcr_primers = function (fq, verbose=T, debug=F,
-                               pr_fwd_maxoff=35, pr_rev_maxoff=35, max_mismatch=2,
+                               pr_fwd_maxoff=35, pr_rev_maxoff=35, max_mismatch=3,
                                nseqs=1000, nseqs_seed=42, min_seqs_pct=5,
                                ncpu=1, ncpu_seqs=4
                                ) {
@@ -254,11 +263,16 @@ detect_pcr_primers = function (fq, verbose=T, debug=F,
        (fwd_primer_best_dir=='F' & rev_primer_best_dir=='R') |
        (fwd_primer_best_dir=='R' & rev_primer_best_dir=='F')
      ) {
-       most_likely_region = paste0(
-         fwd_primer_best.dt[, sub('(F|R)', '', pr_id)],
-         '-',
-         rev_primer_best.dt[, sub('(F|R)', '', pr_id)]
-       )
+       if (fwd_primer_best.dt[, sub('(F|R)', '', pr_id)] ==
+           rev_primer_best.dt[, sub('(F|R)', '', pr_id)]) {
+         most_likely_region = fwd_primer_best.dt[, sub('(F|R)', '', pr_id)]
+       } else {
+         most_likely_region = paste0(
+           fwd_primer_best.dt[, sub('(F|R)', '', pr_id)],
+           '-',
+           rev_primer_best.dt[, sub('(F|R)', '', pr_id)]
+         )
+       }
        if (verbose) {
          cat('* Detected: ', most_likely_region, 'region.', fill=T)
        }
@@ -268,7 +282,6 @@ detect_pcr_primers = function (fq, verbose=T, debug=F,
          cat('* No known region in the database with these primers.', fill=T)
        }
      }
-
      return(most_likely_region)
    }
 
