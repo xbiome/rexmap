@@ -360,7 +360,7 @@ remove_pcr_primers = function (
       verbose=verbose)
   } else {
     m('* Using PRIMERS',
-      paste0('(fwd: ', r_fwd, ', rev: ', pr_rev, ')'), fill=T, time_stamp=T,
+      paste0('(fwd: ', pr_fwd, ', rev: ', pr_rev, ')'), fill=T, time_stamp=T,
       verbose=verbose)
 
   }
