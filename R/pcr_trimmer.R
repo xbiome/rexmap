@@ -481,8 +481,6 @@ remove_pcr_primers = function (
       m(' Load.', fill=F, verbose=verbose, time_stamp=F)
     }
 
-
-
     # seq = in_fq[['seqs']][1]
     # qual = in_fq[['qual']][1]
     ncpus = min(ncpu_sample, length(in_fq[['seqs']]))
