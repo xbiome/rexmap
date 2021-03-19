@@ -325,12 +325,14 @@ detect_pcr_primers = function (fq,
 #' all available CPU cores are used (\code{parallel::detectCores()}).
 #' @param max_mismatch Maximum allowed number of mismatches for each PCR primer,
 #' ignoring any ambiguous nucleotides (not A,C,G or T).
+#' @param check_rc Check reverse complements of primer pairs? (default: FALSE)
 #' @param overwrite Overwrite target files if they exist (default: TRUE)
 #'
 #' @export
 remove_pcr_primers = function (
   fq_in, fq_out, region=NULL,
-  pr_fwd=NULL, pr_rev=NULL, pr_fwd_maxoff=35, pr_rev_maxoff=35, max_mismatch=2,
+  pr_fwd=NULL, pr_rev=NULL, pr_fwd_maxoff=35, pr_rev_maxoff=35,
+  max_mismatch=2, check_rc=FALSE,
   return_noprimer=T, ncpu=1, ncpu_sample=rexmap_option('ncpu'),
   verbose=rexmap_option('verbose'), overwrite=TRUE) {
   # fq_in = input fastq file
@@ -369,8 +371,14 @@ remove_pcr_primers = function (
   pr_fwd = gsub('[^ACGT-]', 'N', pr_fwd)
   pr_rev = gsub('[^ACGT-]', 'N', pr_rev)
 
+  pr_fwd_rc = reverse_complement(pr_fwd)
+  pr_rev_rc = reverse_complement(pr_rev)
 
-  fastq_trimmer = function (meta, seq, qual, return_noprimer=return_noprimer) {
+
+  fastq_trimmer = function (
+    meta, seq, qual, pr_fwd, pr_rev,
+    return_noprimer=return_noprimer
+    ) {
 
     # Search for forward primer.
     aln = C_nwalign(pr_fwd, seq, match=1, mismatch=-1, indel=-1)
@@ -394,7 +402,6 @@ remove_pcr_primers = function (
     if (pr_fwd_left < pr_fwd_maxoff & aln_stat[2]+aln_stat[3]+aln_stat[4]-pr_fwd_n <= max_mismatch) {
       pr_fwd_found = TRUE
     }
-
     # Search for reverse primer
     aln2 = C_nwalign(pr_rev, seq, match=1, mismatch=-1, indel=-1)
     pr_rev_left = regexpr('[^-]', aln2[1])[1]
@@ -426,22 +433,13 @@ remove_pcr_primers = function (
   out_per_sample = parallel::mcmapply(function (fq_in_i, fq_out_i) {
 
     # Various checks
-    # Check if input file exists
     start_time = Sys.time()
     m_buffer = ''
-    # m2 = function (..., fill=F, time_stamp=F, verbose=verbose) {
-    #   if (ncpu == 1) {
-    #     m(..., fill=fill, time_stamp=time_stamp, verbose=verbose)
-    #   } else {
-    #     m_buffer = paste0(m_buffer, ...)
-    #   }
-    # }
     if (ncpu == 1) {
       m('*', basename(fq_in_i), ':', time_stamp=T, fill=F, verbose=verbose)
     } else {
       m_buffer = paste0(m_buffer, '* ', basename(fq_in_i), ':')
     }
-
     if (!file.exists(fq_in_i)) {
       return(empty_result)
     }
@@ -490,7 +488,18 @@ remove_pcr_primers = function (
     ncpus = min(ncpu_sample, length(in_fq[['seqs']]))
 
     out_trimmed = parallel::mcmapply(
-      fastq_trimmer, in_fq[['meta']], in_fq[['seqs']], in_fq[['qual']],
+      function (meta_i, seqs_i, qual_i) {
+        result = fastq_trimmer(meta=meta_i, seq=seqs_i, qual=qual_i,
+                               pr_fwd=pr_fwd, pr_rev=pr_rev)
+        if (check_rc) {
+          if (!result$trim_fwd & !result$trim_rev) {
+            # Check RC of primer pair if we couldnt find any
+            result = fastq_trimmer(meta=meta_i, seq=seqs_i, qual=qual_i,
+                                   pr_fwd=pr_fwd_rc, pr_rev=pr_rev_rc)
+          }
+        }
+        return(result)
+      }, in_fq[['meta']], in_fq[['seqs']], in_fq[['qual']],
       mc.cores=ncpus, SIMPLIFY=F, USE.NAMES=F
     )
     if (ncpu > 1) {
