@@ -487,14 +487,21 @@ remove_pcr_primers = function (
 
     out_trimmed = parallel::mcmapply(
       function (meta_i, seqs_i, qual_i) {
-        result = fastq_trimmer(meta=meta_i, seq=seqs_i, qual=qual_i,
-                               pr_fwd=pr_fwd, pr_rev=pr_rev)
+        result = fastq_trimmer(
+          meta=meta_i, seq=seqs_i, qual=qual_i,
+          pr_fwd=pr_fwd, pr_rev=pr_rev)
         if (check_rc) {
-          if (!result$trim_fwd & !result$trim_rev) {
+          #if (!result$trim_fwd & !result$trim_rev) {
             # Check RC of primer pair if we couldnt find any
-            result = fastq_trimmer(meta=meta_i, seq=seqs_i, qual=qual_i,
-                                   pr_fwd=pr_fwd_rc, pr_rev=pr_rev_rc)
-          }
+            result2 = fastq_trimmer(
+              meta=meta_i, seq=seqs_i, qual=qual_i,
+              pr_fwd=pr_rev_rc, pr_rev=pr_fwd_rc)
+          #}
+        }
+        # Take the alignment that managed to get better result
+        if (sum(c(result$trim_fwd, result$trim_rev)) <=
+            sum(c(result2$trim_fwd, result2$trim_rev))) {
+          result = result2
         }
         return(result)
       }, in_fq[['meta']], in_fq[['seqs']], in_fq[['qual']],
