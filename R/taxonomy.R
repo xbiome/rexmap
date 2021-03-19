@@ -80,25 +80,30 @@ taxonomy = function (osu_table, verbose=rexmap_option('verbose'), show_count=TRU
     col_str = ','
     fin_str = ''
   }
-
-  if (verbose) cat('* load taxonomy...')
+  start_time = Sys.time()
+  m('* Taxonomy: ', fill=F, time_stamp=T, verbose=verbose)
+  # if (verbose) cat('* load taxonomy...')
   taxonomy.dt = load_taxonomy()
-  if (verbose) cat('OK.\n* generating unique ranks...')
+  m(' Load.', fill=F, time_stamp=F, verbose=verbose)
+  # if (verbose) cat('OK.\n* generating unique ranks...')
   taxonomy.dt[, c('tax_id', 'species') := NULL]
   taxonomy.dt = unique(taxonomy.dt)
   tax_family.dt = unique(taxonomy.dt[, .(superkingdom, phylum, class, order, family)])
   tax_order.dt = unique(taxonomy.dt[, .(superkingdom, phylum, class, order, family=NA)])
   tax_class.dt = unique(taxonomy.dt[, .(superkingdom, phylum, class, order=NA, family=NA)])
   tax_phylum.dt = unique(taxonomy.dt[, .(superkingdom, phylum, class=NA, order=NA, family=NA)])
-  if (verbose) cat('OK.\n* extracting genus/species from OSU table...')
+  # if (verbose) cat('OK.\n* extracting genus/species from OSU table...')
+
   osu_abundance_table = unique(osu_table[, .(osu_id, pctsim, species)])
   osu_ab_g.dt = osuab_genuses(osu_abundance_table, ws=ws, split_char=split_char)
-  if (verbose) cat('OK.\n* matching genus...')
+  m(' Preprocessed. Match: ', fill=F, time_stamp=F, verbose=verbose)
+  # if (verbose) cat('OK.\n* matching genus...')
   osu_ab_g2.dt = merge(osu_ab_g.dt, taxonomy.dt, by='genus', all.x=T) # Genus matches
   col_order = c('osu_id', 'strain_count', 'pctsim', 'superkingdom', 'phylum',
                 'class', 'order', 'family', 'genus')
   setcolorder(osu_ab_g2.dt, col_order)
-  if (verbose) cat('OK.\n* matching family...')
+  m(' Genus,', fill=F, time_stamp=F, verbose=verbose)
+  # if (verbose) cat('OK.\n* matching family...')
   osu_ab_g2.dt[is.na(superkingdom) & genus %in% taxonomy.dt[, family],
                c('superkingdom', 'phylum', 'class', 'order', 'family', 'genus') := {
                  dt = merge(.SD[, .(osu_id, genus)],
@@ -107,7 +112,8 @@ taxonomy = function (osu_table, verbose=rexmap_option('verbose'), show_count=TRU
                  list(dt[, superkingdom], dt[, phylum], dt[, class], dt[, order],
                       dt[, genus], NA)
                }]
-  if (verbose) cat('OK.\n* matching order...')
+  m(' Family,', fill=F, time_stamp=F, verbose=verbose)
+  # if (verbose) cat('OK.\n* matching order...')
   osu_ab_g2.dt[is.na(superkingdom) & genus %in% taxonomy.dt[, order],
                c('superkingdom', 'phylum', 'class', 'order', 'family', 'genus') := {
                  dt = merge(.SD[, .(osu_id, genus)],
@@ -116,7 +122,8 @@ taxonomy = function (osu_table, verbose=rexmap_option('verbose'), show_count=TRU
                  list(dt[, superkingdom], dt[, phylum], dt[, class], dt[, genus],
                       NA, NA)
                }]
-  if (verbose) cat('OK.\n* matching class...')
+  # if (verbose) cat('OK.\n* matching class...')
+  m(' Order,', fill=F, time_stamp=F, verbose=verbose)
   osu_ab_g2.dt[is.na(superkingdom) & genus %in% taxonomy.dt[, class],
                c('superkingdom', 'phylum', 'class', 'order', 'family', 'genus') := {
                  dt = merge(.SD[, .(osu_id, genus)],
@@ -125,7 +132,8 @@ taxonomy = function (osu_table, verbose=rexmap_option('verbose'), show_count=TRU
                  list(dt[, superkingdom], dt[, phylum], dt[, genus],
                       NA, NA, NA)
                }]
-  if (verbose) cat('OK.\n* matching phylum...')
+  # if (verbose) cat('OK.\n* matching phylum...')
+  m(' Class,', fill=F, time_stamp=F, verbose=verbose)
   osu_ab_g2.dt[is.na(superkingdom) & genus %in% taxonomy.dt[, phylum],
                c('superkingdom', 'phylum', 'class', 'order', 'family', 'genus') := {
                  dt = merge(.SD[, .(osu_id, genus)],
@@ -135,7 +143,8 @@ taxonomy = function (osu_table, verbose=rexmap_option('verbose'), show_count=TRU
                       NA, NA, NA, NA)
                }]
   # Now count unique taxonomic ranks for each osu_id
-  if (verbose) cat('OK.\n* counting uniques...')
+  # if (verbose) cat('OK.\n* counting uniques...')
+  m(' Phylum.', fill=F, time_stamp=F, verbose=verbose)
   if (show_count) {
      osu_ab_ranks.dt = osu_ab_g2.dt[, {
         kingdom_num = .SD[!is.na(superkingdom), .(kingdom_num = sum(strain_count)),
@@ -204,7 +213,7 @@ taxonomy = function (osu_table, verbose=rexmap_option('verbose'), show_count=TRU
   osu_ab_ranks.dt[!(grepl('^[A-Z]', order)), order := NA]
   osu_ab_ranks.dt[!(grepl('^[A-Z]', family)), family := NA]
   osu_ab_ranks.dt[!(grepl('^[A-Z]', genus)), genus := NA]
-  if (verbose) cat('OK.\n* Done.\n')
+  # if (verbose) cat('OK.\n* Done.\n')
   return(osu_ab_ranks.dt[])
 }
 
