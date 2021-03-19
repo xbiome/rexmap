@@ -82,7 +82,7 @@ collapse = function (ab_in, verbose=rexmap_option('verbose'),
                         output=blast_out, max_target_seqs=max_target_seqs,
                         outfmt=paste0('6 ', rexmap_option('blast_coll_fmt')),
                         perc_identity=100, word_size=ws, ncpu=ncpu)
-  cat('blast status: ', blast_status, fill=T)
+  if (verbose) cat('blast status: ', blast_status, fill=T)
   if (blast_status != 0) {
      stop('\nError in BLAST alignment step.')
   }

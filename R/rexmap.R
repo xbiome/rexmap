@@ -677,7 +677,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
   osu_offset = rexmap_option('osu_offset')
 
 
-  if (verbose) cat('Preparing blast tables...')
+  m('  Preparing blast tables...', fill=F, time_stamp=T, verbose=verbose)
   var_count.dt = unique(osu_data_m.dt[, .(variant_id, raw_count, sample_id)])
   common_variant_ids = var_count.dt[
     , if (all(raw_count > 0)) .SD, by=variant_id][, unique(variant_id)]
@@ -686,9 +686,8 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
                            species=print_strains(strain, raw=raw)), by=qseqid]
   t1 = Sys.time()
   t1mt0 = t1-t0
-  if (verbose) {
-    cat('OK. [', round(t1mt0, 1), ' ', attr(t1mt0, 'units'), ']\n', sep='')
-  }
+  m(paste0('OK. [', round(t1mt0, 1), ' ', attr(t1mt0, 'units'), ']'),
+    fill=T, time_stamp=F, verbose=verbose)
 
   if (debug) {
     # cat('DEBUG: var_count.dt \n')
@@ -706,7 +705,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
     (t(eps) %*% eps) + ((x0^2) %*% H(x))
   }
 
-  if (verbose) cat('Preparing initial OSU tables...')
+  m('  Preparing initial OSU tables...', fill=F, time_stamp=T, verbose=verbose)
   if (nrow(osu_data_m.dt[raw_count > 0]) > 0) {
     osu_data_m_single.dt = unique(
       osu_data_m.dt[,
@@ -732,10 +731,10 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
   }
   t3 = Sys.time()
   t3mt1 = t3 - t1
-  if (verbose) {
-    cat('OK. [', round(t3mt1, 1), ' ', attr(t3mt1, 'units'), ']\n', sep='')
-  }
-  if (verbose) cat('Calculating abundances (', ncpu, ' threads)...\n', sep='')
+  m(paste0('OK. [', round(t3mt1, 1), ' ', attr(t3mt1, 'units'), ']'),
+    fill=T, time_stamp=F, verbose=verbose)
+  m(paste0('  Calculating abundances (', ncpu, ' threads)'),
+    fill=T, time_stamp=T, verbose=verbose)
 
   all_abs.dt = data.table::rbindlist(parallel::mclapply(sample_ids, function (s) {
 
@@ -1086,17 +1085,19 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
 
     data.table::setcolorder(all_ab.dt, c('sample_id', 'osu_id', 'osu_count', 'species',
                              'pctsim'))
-    if (verbose) cat('- sample_id:', s, ' completed.\n')
+    # if (verbose) cat('- sample_id:', s, ' completed.\n')
     t09 = Sys.time()
     t09mt08 = t09 - t08
     debug_print('OK. [', round(t09mt08, 1), ' ', attr(t09mt08, 'units'), ']\n',
                 sep='')
-
+    dt_total = t09 - t00
+    m('  Sample', s, 'OK. [', round(dt_total), ' ', attr(dt_total, 'units'),
+      ']', fill=T, time_stamp=T, verbose=verbose)
     return(all_ab.dt[osu_count>0])
 
   }, mc.cores=ncpu))
 
-  if (verbose) cat('OK.\n')
+  m('  Done.', fill=T, time_stamp=T, verbose=verbose)
   return(unique(all_abs.dt))
 }
 
