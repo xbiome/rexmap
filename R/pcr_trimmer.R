@@ -525,9 +525,18 @@ remove_pcr_primers = function (
     fastq_list_writer(out_trimmed, fq_out_i, ncpu=ncpu_sample)
     pct_trimmed = 100*both_trimmed/length(fwd_trimmed_list)
     if (ncpu > 1) {
-      m_buffer = paste0(m_buffer, ' Saved ', round(pct_trimmed, 1), '% both trimmed.')
+      m_buffer = paste0(m_buffer, ' OK. Trimmed: ',
+                        round(pct_trimmed), '%|',
+                        round(100*fwd_trimmed/length(fwd_trimmed_list)), '%|',
+                        round(100*rev_trimmed/length(fwd_trimmed_list)), '% both|fwd|rev ')
     } else {
-      m(' Saved', round(pct_trimmed, 1), '% both trimmed.', fill=F, verbose=verbose,
+      m(' OK. Trimmed: ',
+        paste0(
+          round(pct_trimmed), '|',
+          round(100*fwd_trimmed/length(fwd_trimmed_list)), '%|',
+          round(100*rev_trimmed/length(fwd_trimmed_list)), '% both|fwd|rev '
+        ),
+        fill=F, verbose=verbose,
         time_stamp=F)
     }
 
@@ -535,11 +544,11 @@ remove_pcr_primers = function (
     dt = end_time - start_time
     if (ncpu > 1) {
       m_buffer = paste0(
-        m_buffer, ' [', round(dt, 1), ' ', attr(dt, 'units'), ']'
+        m_buffer, ' [', round(dt), ' ', attr(dt, 'units'), ']'
       )
       m(m_buffer, time_stamp=T, fill=T, verbose=verbose)
     } else {
-      m(' [', round(dt, 1), ' ', attr(dt, 'units'), ']', fill=T, verbose=verbose,
+      m(' [', round(dt), ' ', attr(dt, 'units'), ']', fill=T, verbose=verbose,
         time_stamp=F)
     }
 
