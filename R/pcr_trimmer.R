@@ -523,11 +523,11 @@ remove_pcr_primers = function (
 
     # Save results in a new file
     fastq_list_writer(out_trimmed, fq_out_i, ncpu=ncpu_sample)
-    pct_trimmed = 100*any_trimmed/length(fwd_trimmed_list)
+    pct_trimmed = 100*both_trimmed/length(fwd_trimmed_list)
     if (ncpu > 1) {
-      m_buffer = paste0(m_buffer, ' Saved ', round(pct_trimmed, 1), '% any trimmed.')
+      m_buffer = paste0(m_buffer, ' Saved ', round(pct_trimmed, 1), '% both trimmed.')
     } else {
-      m(' Saved', round(pct_trimmed, 1), '% any trimmed.', fill=F, verbose=verbose,
+      m(' Saved', round(pct_trimmed, 1), '% both trimmed.', fill=F, verbose=verbose,
         time_stamp=F)
     }
 
