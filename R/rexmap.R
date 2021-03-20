@@ -390,7 +390,7 @@ dada_denoise = function (fastq_trimmed, fastq_untrimmed,
       list(dada2::derepFastq(fq)),
       error = function (e) NA)
     if (class(dada_derep) == 'logical') {
-      if (is.na(dada_resp)) {
+      if (is.na(dada_derep)) {
         m(' Error in derepFastq. Skipping.', fill=T, time_stamp=F, verbose=verbose)
         next
       }
@@ -410,8 +410,8 @@ dada_denoise = function (fastq_trimmed, fastq_untrimmed,
                     multithread=multithread)))),
       error = function (e) NA
     )
-    if (class(dada_rep) == 'logical') {
-      if (is.na(dada_rep)) {
+    if (class(dada_res) == 'logical') {
+      if (is.na(dada_res)) {
         m(' Error in dada. Skipping.', fill=T, time_stamp=F, verbose=verbose)
         next
       }
