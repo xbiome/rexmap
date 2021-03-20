@@ -336,22 +336,26 @@ dada_denoise = function (fastq_trimmed, fastq_untrimmed,
   # Load 1 sample at a time, process it, then combine
 
   # Time execution
-  if (timing) start_time = Sys.time()
+  start_time = Sys.time()
 
   # Learn errors
-  if (verbose) cat('* learn errors')
-
+  #if (verbose) cat('* learn errors')
+  m('  Learn errors...', fill=F, time_stamp=T, verbose=verbose)
   #dada_derep = dada2::derepFastq(
   #  fastq_trimmed[1:min(length(fastq_trimmed), error_estimation_nsamples)])
   #if (class(dada_derep) != 'list') dada_derep = list(dada_derep)
-  if (verbose) cat('...')
+  #if (verbose) cat('...')
 
   # Get or calculate the Bonferroni adjusted p-value
   if (is.null(pvalue_adjusted)) {
     # Find the maximum number of unique sequences across all samples
     max_num_uniques = max(unlist(
-      parallel::mclapply(fastq_trimmed, function (f) length(dada2::derepFastq(f)$uniques),
-               mc.cores=multithread)
+      parallel::mclapply(
+        fastq_trimmed,
+        function (f) {
+          l = length(suppressMessages(suppressWarnings(dada2::derepFastq(f)$uniques)))
+          return(l)
+        }, mc.cores=multithread)
     ))
     pvalue_adjusted_calc = pvalue/max_num_uniques^2
   } else {
@@ -364,18 +368,33 @@ dada_denoise = function (fastq_trimmed, fastq_untrimmed,
       fastq_trimmed, multithread=multithread, OMEGA_A=pvalue_adjusted_calc
     ))
   } else {
-    cat(' loading pre-existing error file... ')
+    # cat(' loading pre-existing error file... ')
+    m(' (loaded exiting)', fill=F, time_stamp=F, verbose=verbose)
     dada_errors = readRDS(dada_errors_path)
   }
-  if (verbose) cat(' OK.', fill=T)
+  # if (verbose) cat(' OK.', fill=T)
+  m(' OK.', fill=T, time_stamp=F, verbose=verbose)
   dada_results = list()
+  dada_empty_result = NA
 
   # Iterate over each sample sequentially
   for (i in 1:length(fastq_trimmed)) {
+    start_time_i = Sys.time()
     fq = fastq_trimmed[i]
     fqt = fastq_untrimmed[i]
-    if (verbose) cat('* processing ', basename(fq), fill=T)
-    dada_derep = list(dada2::derepFastq(fq))
+    # if (verbose) cat('* processing ', basename(fq), fill=T)
+    m('  -', basename(fq), fill=F, time_stamp=T, verbose=verbose)
+    # Try loading the file
+
+    dada_derep = tryCatch(
+      list(dada2::derepFastq(fq)),
+      error = function (e) NA)
+    if (class(dada_derep) == 'logical') {
+      if (is.na(dada_resp)) {
+        m(' Error in derepFastq. Skipping.', fill=T, time_stamp=F, verbose=verbose)
+        next
+      }
+    }
     pvalue_adjusted_calc = ie(is.null(pvalue_adjusted),
                               pvalue/length(dada_derep[[1]]$uniques)^2,
                               pvalue_adjusted)
@@ -385,9 +404,20 @@ dada_denoise = function (fastq_trimmed, fastq_untrimmed,
     # } else {
     #   pvalue_adjusted_calc = pvalue_adjusted
     # }
-    dada_res = list(suppressWarnings(dada2::dada(dada_derep, err=dada_errors,
-                                                 OMEGA_A=pvalue_adjusted_calc,
-                                                 multithread=multithread)))
+    dada_res = tryCatch(
+      list(suppressMessages(suppressWarnings(
+        dada2::dada(dada_derep, err=dada_errors, OMEGA_A=pvalue_adjusted_calc,
+                    multithread=multithread)))),
+      error = function (e) NA
+    )
+    if (class(dada_rep) == 'logical') {
+      if (is.na(dada_rep)) {
+        m(' Error in dada. Skipping.', fill=T, time_stamp=F, verbose=verbose)
+        next
+      }
+    }
+
+
     # Extract length to which reads have been truncated
     trunclen = nchar(dada_res[[1]]$sequence[1])
     #dada_res = add_consensus(dada_res, dada_derep, fqt, fq, truncLen=trunclen,
@@ -396,14 +426,20 @@ dada_denoise = function (fastq_trimmed, fastq_untrimmed,
     # Add the dada2 denoised object of this sample to the list
     dada_results[[length(dada_results)+1]] = dada_res[[1]]
     names(dada_results)[length(dada_results)] = basename(fq)
+    end_time_i = Sys.time()
+    dt_i = end_time_i - start_time_i
+    m(' OK. [', round(dt_i, 1), ' ', attr(dt_i, 'units'), ']', fill=T,
+      time_stamp=F, verbose=verbose)
   }
 
-  if (timing) {
-    end_time = Sys.time()
-    diff_time = difftime(end_time, start_time, units='secs')
-    cat('Finished in ', round(as.numeric(diff_time)/60), ' m ',
-      round(as.numeric(diff_time)%%60, 1), ' s.\n')
-  }
+  end_time = Sys.time()
+  dt = end_time - start_time
+  m('  Done. [', round(dt, 1), ' ', attr(dt, 'units'), ']', fill=T,
+    time_stamp=T, verbose=verbose)
+  # diff_time = difftime(end_time, start_time, units='secs')
+  #   cat('Finished in ', round(as.numeric(diff_time)/60), ' m ',
+  #     round(as.numeric(diff_time)%%60, 1), ' s.\n')
+  # }
 
   return(dada_results)
 }
