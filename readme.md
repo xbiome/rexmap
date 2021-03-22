@@ -24,6 +24,8 @@ In R, install devtools package, then use `install_github` to install the package
 install.packages('devtools')
 devtools::install_github('benjjneb/dada2')
 # Select 1 when prompted to install biocLite
+# Quadprogg
+devtools::install_github("fnoorian/quadprogpp")
 devtools::install_github('taolonglab/rexmap')
 ```
 
@@ -46,10 +48,11 @@ install.packages('devtools')
 source('http://bioconductor.org/biocLite.R')
 biocLite('GenomeInfoDbData', suppressUpdates=T)
 
-
 # DADA2
 devtools::install_github('benjjneb/dada2')
 
+# Quadprogg
+devtools::install_github("fnoorian/quadprogpp")
 # Finally install RExMap
 devtools::install_github('taolonglab/rexmap')
 ```
