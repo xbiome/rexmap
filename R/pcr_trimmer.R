@@ -88,7 +88,7 @@ detect_pcr_primers = function (fq,
    }
 
    # Search of any primer, 5'->3' or 3'->5' directions
-   primer_alignments.dt = rbindlist(parallel::mcmapply(
+   primer_alignments.dt = data.table::rbindlist(parallel::mcmapply(
      function (seq_ext, seq_id, pr_id) {
        # Convert seq_ext -> seq_ext_n (replace all extd nt codes w/ N )
        # Align seq_ext_n vs each of the sequences seqs_sampled
