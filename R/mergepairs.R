@@ -305,7 +305,7 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
       return(stats)
     }, fq_fwd, fq_rev, fq_mer, SIMPLIFY=F, USE.NAMES=F, mc.cores=ncpu
   )
-  out.dt = rbindlist(out_per_sample)
+  out.dt = data.table::rbindlist(out_per_sample)
   # fq_fwd_processed = names(fq_fwd)
   # processed_filter = sapply(fq_fwd, function (x) x %in% fq_fwd_processed)
   # out.dt[, fq_fwd := basename(fq_fwd[processed_filter])]
