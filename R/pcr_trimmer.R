@@ -46,7 +46,7 @@ detect_pcr_primers = function (fq,
      primers.dt[, Primer1_sequence_3to5 := sapply(Primer1_sequence_5to3, reverse_complement)]
      primers.dt[, Primer2_sequence_5to3 := sapply(Primer2_sequence_3to5, reverse_complement)]
 
-     pr_m.dt = melt(
+     pr_m.dt = data.table::melt(
        primers.dt,
        measure.vars=list(
          c('Primer1', 'Primer2'),
