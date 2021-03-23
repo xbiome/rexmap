@@ -569,7 +569,7 @@ remove_pcr_primers = function (
 
   }, fq_in, fq_out, SIMPLIFY=F, USE.NAMES=F, mc.cores=ncpu)
 
-  out.dt = rbindlist(lapply(out_per_sample, function (x) {
+  out.dt = data.table::rbindlist(lapply(out_per_sample, function (x) {
     return(data.table(
       fq_in=x$fq_in,
       total=x$total, both_trim=x$both_trim, any_trim=x$any_trim,
