@@ -57,7 +57,7 @@ detect_pcr_primers = function (fq,
      pr_m.dt[, variable := NULL]
      names(pr_m.dt) = c('pr_name', 'pr_5to3', 'pr_3to5', 'pr_lab')
      pr_m.dt[, pr_id := paste(pr_lab, sub('^[^RF]+([RF])$', '\\1', pr_name), sep='')]
-     pr.dt = unique(melt(pr_m.dt, id.vars='pr_id', measure.vars=c('pr_5to3', 'pr_3to5'),
+     pr.dt = unique(data.table::melt(pr_m.dt, id.vars='pr_id', measure.vars=c('pr_5to3', 'pr_3to5'),
                          variable.name='pr_dir', value.name='seq_ext'))
      pr.dt[, seq_id := paste(pr_id, sub('pr_', '', pr_dir), sep='_')]
    # } else {
