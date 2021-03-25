@@ -177,6 +177,8 @@ himap_setoption = rexmap_setoption
 
 #' Run this when the package is loaded and attached in R
 .onAttach = function (libname, pkgname) {
+
+  start_time = Sys.time()
   options('datatable.prettyprint.char'=rexmap_option('string_maxwidth'))
 
   # Check if the blastn and makeblastdb executable files are missing for the running
@@ -228,8 +230,11 @@ himap_setoption = rexmap_setoption
     startup_message, '\n',
     startup_msg_topbotframe, '+'
   )
+  end_time = Sys.time()
+  dt = end_time - start_time
 
   packageStartupMessage(startup_message_full)
+  # print(dt)
 }
 
 #' Show RExMap database version based on the last modification date
@@ -377,6 +382,8 @@ dada_denoise = function (fastq_trimmed, fastq_untrimmed,
   dada_results = list()
   dada_empty_result = NA
 
+  # Keep track of
+
   # Iterate over each sample sequentially
   for (i in 1:length(fastq_trimmed)) {
     start_time_i = Sys.time()
@@ -384,14 +391,18 @@ dada_denoise = function (fastq_trimmed, fastq_untrimmed,
     fqt = fastq_untrimmed[i]
     # if (verbose) cat('* processing ', basename(fq), fill=T)
     m('  -', basename(fq), fill=F, time_stamp=T, verbose=verbose)
-    # Try loading the file
 
+    # Processed i/length(fastq_trimmed) files,
+    # pct_processed = round(100*i/length(fastq_trimmed), 1)
+
+    # Try loading the file
     dada_derep = tryCatch(
       list(dada2::derepFastq(fq)),
       error = function (e) NA)
     if (class(dada_derep) == 'logical') {
       if (is.na(dada_derep)) {
-        m(' Error in derepFastq. Skipping.', fill=T, time_stamp=F, verbose=verbose)
+        m(' Error in derepFastq. Skipping.', fill=T, time_stamp=F,
+          verbose=verbose)
         next
       }
     }
@@ -637,7 +648,7 @@ abundance = function (abundance_table, blast_object,
     cp.dt=blast_object$cp,
     ab_tab_nochim_m.dt=abundance_table[, 1:3],
     # ab_tab_nochim_m.dt=abundance_table,
-    ncpu=ncpu,
+    ncpu=max(ncpu, ncpu_sample),
     verbose=verbose
   )
   t1 = Sys.time()
@@ -804,7 +815,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
 
       t01 = Sys.time()
       t01mt00 = t01 - t00
-      debug_print(' OK. [', round(t01mt00), ' ', attr(t01mt00, 'units'), ']\n',
+      debug_print(' OK. [', round(t01mt00, 1), ' ', attr(t01mt00, 'units'), ']\n',
                   sep='')
 
       # Solve
@@ -843,7 +854,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
       }
       t02 = Sys.time()
       t02mt01 = t02 - t01
-      debug_print('  Done. [', round(t02mt01), ' ', attr(t02mt01, 'units'), ']\n',
+      debug_print('  Done. [', round(t02mt01, 1), ' ', attr(t02mt01, 'units'), ']\n',
                   sep='')
 
 
@@ -903,7 +914,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
       g = as.undirected(g)
       t03 = Sys.time()
       t03mt02 = t03 - t02
-      debug_print(' OK. [', round(t03mt02), ' ', attr(t03mt02, 'units'), ']\n',
+      debug_print(' OK. [', round(t03mt02, 1), ' ', attr(t03mt02, 'units'), ']\n',
                   sep='')
 
 
@@ -918,7 +929,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
       t04 = Sys.time()
       t04mt03 = t04 - t03
       debug_print(' OK. ', length(cls), ' clusters found. [',
-                  round(t04mt03), ' ', attr(t04mt03, 'units'), ']\n',
+                  round(t04mt03, 1), ' ', attr(t04mt03, 'units'), ']\n',
                   sep='')
 
       # For each cluster i
@@ -1012,7 +1023,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
         }, mc.cores=ncpu_sample)
         t05 = Sys.time()
         t05mt04 = t05 - t04
-        debug_print(' OK. [', round(t05mt04), ' ', attr(t05mt04, 'units'), ']\n',
+        debug_print(' OK. [', round(t05mt04, 1), ' ', attr(t05mt04, 'units'), ']\n',
                     sep='')
 
         debug_print('  Merging tables...')
@@ -1026,7 +1037,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
         }
         t06 = Sys.time()
         t06mt05 = t06 - t05
-        debug_print(' OK. [', round(t06mt05), ' ', attr(t06mt05, 'units'), ']\n',
+        debug_print(' OK. [', round(t06mt05, 1), ' ', attr(t06mt05, 'units'), ']\n',
                     sep='')
 
 
@@ -1066,12 +1077,12 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
 
       if (exists('t06')) {
         t07mt06 = t06 - t04
-        debug_print(' OK. [', round(t05mt04), ' ', attr(t05mt04, 'units'), ']\n',
+        debug_print(' OK. [', round(t05mt04, 1), ' ', attr(t05mt04, 'units'), ']\n',
                     sep='')
 
       } else {
         t07mt06 = t05 - t04
-        debug_print(' OK. [', round(t05mt04), ' ', attr(t05mt04, 'units'), ']\n',
+        debug_print(' OK. [', round(t05mt04, 1), ' ', attr(t05mt04, 'units'), ']\n',
                     sep='')
       }
 
@@ -1127,7 +1138,7 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
     debug_print('OK. [', round(t09mt08, 1), ' ', attr(t09mt08, 'units'), ']\n',
                 sep='')
     dt_total = t09 - t00
-    m('  Sample', s, 'OK. [', round(dt_total), ' ', attr(dt_total, 'units'),
+    m('  Sample', s, 'OK. [', round(dt_total, 1), ' ', attr(dt_total, 'units'),
       ']', fill=T, time_stamp=T, verbose=verbose)
     return(all_ab.dt[osu_count>0])
 

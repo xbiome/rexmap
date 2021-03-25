@@ -288,6 +288,7 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
   m('* BLAST:', fill=F, time_stamp=T, verbose=verbose)
 
   sequences_type = NULL
+  nseqs = 0
   if ('data.table' %in% class(sequences)) {
     if ('sequence' %in% names(sequences)) {
       # It's an abundance table. Create temporary FASTA file to run BLAST then
@@ -297,6 +298,7 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
       fasta_file = file.path(temp_dir, paste(c('blast_', rand_id, '.fasta'), collapse=''))
       sequences_to_fasta(sequences, fasta_file)
       # if (verbose) cat('* blast input type: abundance table', fill=T)
+      nseqs = sequences[, length(unique(qseqid))]
       m(' ab_tab.', fill=F, time_stamp=F, verbose=verbose)
     } else {
       stop('blast: input abundance table does not have \"sequence\" column.')
@@ -312,6 +314,7 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
         sequences_to_fasta(data.table(qseqid=1:length(sequences),
                                       sequence=sequences), fasta_file)
         # if (verbose) cat('* blast input type: character vector', fill=T)
+        nseqs = length(unique(sequences))
         m(' chr vec.', fill=F, time_stamp=F, verbose=verbose)
       } else {
         if (grepl('[ACGTN]+', sequences)) {
@@ -322,11 +325,16 @@ blast = function (sequences, blast_output=NULL, region=NULL, ref_db=NULL,
           sequences_to_fasta(data.table(qseqid=1:length(sequences),
                                         sequence=sequences), fasta_file)
           # if (verbose) cat('* blast input type: character vector', fill=T)
+          nseqs = 1
           m(' chr vec.', fill=F, time_stamp=F, verbose=verbose)
         } else {
           # Looks like a FASTA file. Just check that it exists.
-          if (!grepl('\\.f[n]?a|\\.fasta', sequences)) stop('blast: file needs to be in FASTA format. If it is, use normal file extensions: .fa and .fasta.')
-          if (!file.exists(sequences)) stop('blast: sequence FASTA file does not exits.')
+          if (!grepl('\\.f[n]?a|\\.fasta', sequences)) {
+            stop('blast: file needs to be in FASTA format. If it is, use normal file extensions: .fa and .fasta.')
+          }
+          if (!file.exists(sequences)) {
+            stop('blast: sequence FASTA file does not exits.')
+          }
           fasta_file = sequences
           sequences_type = 'fasta'
           # if (verbose) cat('* blast input type: FASTA file', fill=T)
