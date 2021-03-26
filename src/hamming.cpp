@@ -91,8 +91,8 @@ IntegerVector compare_alignment_ext (std::string s1, std::string s2) {
   s2_p = 0;
   // Main loop with comparisons
   for (size_t i=0; i<len; i++) {
-    s1_i = nt2int[s1.at(i)];
-    s2_i = nt2int[s2.at(i)];
+    s1_i = nt2intext[s1.at(i)];
+    s2_i = nt2intext[s2.at(i)];
     if (s1_i == 5) { // letter is -
       if (s1_p == 5) gapextend++;
       else gapopen++;
