@@ -342,6 +342,7 @@ remove_pcr_primers = function (
   # pr_rev = reverse primer 5'->3'
   #
   empty_result = list('fwd_trim'=0, 'rev_trim'=0)
+  nts = ifelse(extended_code_alignment, 'ACGTYRWSKMDVHBX', 'ACGT')
 
   m('------- PCR primer removal ------', time_stamp=T, fill=T, verbose=verbose)
 
@@ -369,13 +370,10 @@ remove_pcr_primers = function (
   }
   # Count extended DNA symbols
   # Ignore any extended DNA symbols. Shouldn't have too many of them anyway.
-  if (extended_code_alignment) {
-    pr_fwd = gsub('[^ACGTYRWSKMDVHBXN-]', 'N', pr_fwd)
-    pr_rev = gsub('[^ACGTYRWSKMDVHBXN-]', 'N', pr_rev)
-  } else {
-    pr_fwd = gsub('[^ACGT-]', 'N', pr_fwd)
-    pr_rev = gsub('[^ACGT-]', 'N', pr_rev)
-  }
+  pr_fwd = gsub(paste0('[^', nts, '-]'), 'N', pr_fwd)
+  pr_rev = gsub(paste0('[^', nts, '-]'), 'N', pr_rev)
+    # pr_fwd = gsub('[^ACGT-]', 'N', pr_fwd)
+    # pr_rev = gsub('[^ACGT-]', 'N', pr_rev)
 
   pr_fwd_rc = reverse_complement(pr_fwd)
   pr_rev_rc = reverse_complement(pr_rev)
@@ -385,7 +383,7 @@ remove_pcr_primers = function (
     meta, seq, qual, pr_fwd, pr_rev,
     return_noprimer=return_noprimer,
     extended_code_alignment=extended_code_alignment
-    ) {
+  ) {
 
     # Search for forward primer.
     aln = C_nwalign(pr_fwd, seq, match=1, mismatch=-1, indel=-1)
@@ -419,8 +417,10 @@ remove_pcr_primers = function (
     # Search for reverse primer
     aln2 = C_nwalign(pr_rev, seq, match=1, mismatch=-1, indel=-1)
     pr_rev_left = regexpr('[^-]', aln2[1])[1]
-    pr_rev_right = min(regexpr('[ACGTN][^ACGTN]*$', aln2[1])[1],
-                       regexpr('[ACGTN][^ACGTN]*$', aln2[2])[1])
+    # pr_rev_right = min(regexpr('[ACGTN][^ACGTN]*$', aln2[1])[1],
+    #                    regexpr('[ACGTN][^ACGTN]*$', aln2[2])[1])
+    pr_rev_right = min(regexpr(paste0('[', nts, 'N][^', nts, 'N]*$'), aln2[1])[1],
+                       regexpr(paste0('[', nts, 'N][^', nts, 'N]*$'), aln2[2])[1])
     if (extended_code_alignment) {
       aln2_stat = compare_alignment_ext(
         str_sub(aln2[1], start=pr_rev_left, end=pr_rev_right),
@@ -450,7 +450,7 @@ remove_pcr_primers = function (
                 'trim_rev' = pr_rev_found))
   }
 
-
+  m('  Processing samples:', fill=T, time_stamp=T, verbose=verbose)
   out_per_sample = parallel::mcmapply(function (fq_in_i, fq_out_i) {
 
     # Various checks
@@ -510,8 +510,7 @@ remove_pcr_primers = function (
       function (meta_i, seqs_i, qual_i) {
         result = fastq_trimmer(
           meta=meta_i, seq=seqs_i, qual=qual_i,
-          pr_fwd=pr_fwd, pr_rev=pr_rev,
-          extended_code_alignment=extended_code_alignment
+          pr_fwd=pr_fwd, pr_rev=pr_rev
         )
         if (check_rc) {
           #if (!result$trim_fwd & !result$trim_rev) {
