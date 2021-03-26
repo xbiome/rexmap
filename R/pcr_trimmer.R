@@ -381,8 +381,7 @@ remove_pcr_primers = function (
 
   fastq_trimmer = function (
     meta, seq, qual, pr_fwd, pr_rev,
-    return_noprimer=return_noprimer,
-    extended_code_alignment=extended_code_alignment
+    return_noprimer=return_noprimer
   ) {
 
     # Search for forward primer.
