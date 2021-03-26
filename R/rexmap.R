@@ -785,362 +785,372 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
 
   all_abs.dt = data.table::rbindlist(parallel::mclapply(sample_ids, function (s) {
 
-    # if (debug) print()
-    # Numbers of rows for optimized and non-optimized OSUs
-    n_opt = 0
-    n_non = 0
-    t00 = Sys.time()
-    debug_print('sample_id: ', s, '\n')
+    all_ab.dt = tryCatch({
+      # if (debug) print()
+      # Numbers of rows for optimized and non-optimized OSUs
+      n_opt = 0
+      n_non = 0
+      t00 = Sys.time()
+      debug_print('sample_id: ', s, '\n')
 
-    # First prepare < 100% matches
-    debug_print('  Preparing matrices for 100% matches...')
-    if (nrow(osu_data_m.dt[sample_id==s & raw_count > 0]) > 0) {
+      # First prepare < 100% matches
+      debug_print('  Preparing matrices for 100% matches...')
+      if (nrow(osu_data_m.dt[sample_id==s & raw_count > 0]) > 0) {
 
-      Ab.dt = dcast(
-         osu_data_m.dt[sample_id==s], variant_id ~ osu_id,
-         value.var='copy_number', fill=0
-      )
-      Ab.dt = merge(
-         Ab.dt,
-         unique(osu_data_m.dt[sample_id==s, .(variant_id, raw_count)]),
-         by='variant_id'
-      )
-
-      A = as.matrix(Ab.dt[, 2:(ncol(Ab.dt)-1)])
-      dimnames(A)[[1]] = Ab.dt[, variant_id]
-
-      # Generate a matrix with B coefficients
-      B = as.matrix(Ab.dt[, raw_count])
-      dimnames(B)[[1]] = Ab.dt[, variant_id]
-
-      t01 = Sys.time()
-      t01mt00 = t01 - t00
-      debug_print(' OK. [', round(t01mt00, 1), ' ', attr(t01mt00, 'units'), ']\n',
-                  sep='')
-
-      # Solve
-      debug_print('  Solving linear model:\n')
-      if (debug) {
-        saveRDS(A, paste0(s, '_matrix_A.Rdata'))
-        saveRDS(B, paste0(s, '_matrix_B.Rdata'))
-        saveRDS(Ab.dt, paste0(s, '_Ab.dt.Rdata'))
-        saveRDS(osu_data_m.dt, paste0(s, '_osu_data_m.dt.Rdata'))
-      }
-      if (lm_solver == 'lsei') {
-        debug_print('  - Using limSolve::lsei() as least square solver.\n')
-        sol = tryCatch(
-          lsei(A, B, fulloutput=T, G=diag(ncol(A)), H=matrix(c(0), nrow=ncol(A),
-                                                             ncol=1), type=2),
-          error = function (x) NA
+        Ab.dt = dcast(
+           osu_data_m.dt[sample_id==s], variant_id ~ osu_id,
+           value.var='copy_number', fill=0
         )
-      } else if (lm_solver == 'quadprogpp') {
-        debug_print('  - Using quadprogpp as least square solver.\n')
-        t01a = Sys.time()
-        debug_print('  - Transforming matrices... ')
-        dvec = crossprod(A, B)
-        Dmat = crossprod(A, A)
-        diag(Dmat) = diag(Dmat) + 1e-8
-        Amat = t(diag(ncol(A)))
-        bvec = matrix(c(0), nrow=ncol(A), ncol=1)
-        t01b = Sys.time()
-        t01bmt01a = t01b - t01a
-        debug_print(' OK. [', round(t01bmt01a), ' ', attr(t01bmt01a, 'units'), ']\n')
-        sol_vector = tryCatch(
-          quadprogpp::quadprog.solve.QP(Dmat, dvec, Amat, bvec),
-          error = function (x) NA
+        Ab.dt = merge(
+           Ab.dt,
+           unique(osu_data_m.dt[sample_id==s, .(variant_id, raw_count)]),
+           by='variant_id'
         )
-        sol = list(X=sol_vector$solution)
-        names(sol$X) = colnames(A)
-      }
-      t02 = Sys.time()
-      t02mt01 = t02 - t01
-      debug_print('  Done. [', round(t02mt01, 1), ' ', attr(t02mt01, 'units'), ']\n',
-                  sep='')
 
+        A = as.matrix(Ab.dt[, 2:(ncol(Ab.dt)-1)])
+        dimnames(A)[[1]] = Ab.dt[, variant_id]
 
-      if (class(sol) == 'logical') {
-        debug_print('  Linear model failed. [class(sol) == logical]')
-        if (is.na(sol)) {
-          # Least square model failed for some reason; in which case just
-          # return an empty data table. Likely problematic inpjut sequene counts.
-          return(data.table())
-        }
-      }
+        # Generate a matrix with B coefficients
+        B = as.matrix(Ab.dt[, raw_count])
+        dimnames(B)[[1]] = Ab.dt[, variant_id]
 
-      debug_print('  Generating graph from the Ar matrix...')
-
-      osu_th = 1e-1
-      osu_ab = sol$X
-      osu_count = as.integer(osu_ab[which(osu_ab > osu_th)])
-      osu_ids   = as.integer(names(osu_ab[which(osu_ab > osu_th)]))
-      osu_ab.dt = data.table(osu_id=osu_ids, osu_count=osu_count)
-      data.table::setorder(osu_ab.dt, osu_id)
-
-      # Try optimizing the full table first?
-      x0 = osu_ab.dt[, osu_count]
-      A_columns = as.character(osu_ab.dt[, osu_id])
-      Ar = A[, A_columns, drop=F]
-      Ar = Ar[setdiff(names(rowSums(Ar) > 0), names(B[B==0,])), , drop=F]
-      Br = B[rownames(Ar), , drop=F]
-
-      # Generate a graph from Ar matrix, then identify all
-      # connected clusters.
-      g = make_empty_graph()
-      A_rows = rownames(Ar)
-      # Add vertices like this
-      #    1  2  3
-      # 4  .  .  .
-      # 5  .  .  .
-      # 6  .  .  .
-      #  nrow=3, ncol=4
-      g = add_vertices(g, ncol(Ar))
-      g = add_vertices(g, nrow(Ar))
-      vxs = c(colnames(Ar), rownames(Ar))
-      for (j in 1:ncol(Ar)) {
-         g = add_vertices(g, 1)
-      }
-      for (i in seq(ncol(Ar)+1, ncol(Ar)+1+nrow(Ar))) {
-         g = add_vertices(g, 1)
-      }
-      for (i in 1:nrow(Ar)) {
-         for (j in 1:ncol(Ar)) {
-            if (Ar[i,j] > 0) {
-               # cat('add: ', i+ncol(Ar), '-', j, '\n')
-               g = add_edges(g, c(i+ncol(Ar), j))
-               g = add_edges(g, c(j, i+ncol(Ar)))
-            }
-         }
-      }
-      g = as.undirected(g)
-      t03 = Sys.time()
-      t03mt02 = t03 - t02
-      debug_print(' OK. [', round(t03mt02, 1), ' ', attr(t03mt02, 'units'), ']\n',
-                  sep='')
-
-
-      debug_print('  Finding connected clusters...')
-      # Find all connected clusters
-      cls = parallel::mclapply(
-        groups(clusters(g)),
-        function (x) if (length(x[x<=ncol(Ar)]) > 1) x else NA,
-        mc.cores=ncpu_sample)
-      cls = cls[!is.na(cls)]
-      osu_ab2.dt = copy(osu_ab.dt)
-      t04 = Sys.time()
-      t04mt03 = t04 - t03
-      debug_print(' OK. ', length(cls), ' clusters found. [',
-                  round(t04mt03, 1), ' ', attr(t04mt03, 'units'), ']\n',
-                  sep='')
-
-      # For each cluster i
-      if (length(cls) > 0) {
-        debug_print('  Solving individual clusters\n')
-        # for (i in 1:length(cls)) {
-        osu_ab3_list = parallel::mclapply(1:length(cls), function (i) {
-          # Add back any osu with a single variant_id
-          # Sometimes, optimization will omit osu_ids with mapping to single
-          # variant_ids so we bring those back here manually.
-          debug_print('  cluster #', i, '\n')
-          cl = cls[i][[1]]
-          osu_ids = vxs[cl[cl<=ncol(Ar)]]
-          variant_ids = vxs[cl[cl>ncol(Ar)]]
-          debug_print('  - osu_ids:', paste(osu_ids, collapse=','), '\n')
-          debug_print('  - variant_ids: ', paste(variant_ids, collapse=','), '\n')
-          # osu_ids = c(osu_ids, osu_data_m_single.dt[variant_id %in% variant_ids][, osu_id])
-          # variant_ids = c(variant_ids, osu_data_m_single.dt[variant_id %in% variant_ids][, osu_id])
-          Ar2 = Ar[variant_ids, osu_ids, drop=F]
-          Br2 = Br[variant_ids, drop=F]
-
-          if (nrow(osu_data_m_single.dt[variant_id %in% variant_ids]) > 0) {
-            # If we have any that need to be added
-            x = as.matrix(dcast(osu_data_m_single.dt[variant_id %in% variant_ids],
-                                variant_id ~ as.character(osu_id), value.var='copy_number')[, -1])
-            rownames(x) = osu_data_m_single.dt[variant_id %in% variant_ids, variant_id]
-            x[is.na(x)] = 0
-            Ar3.dt = merge(as.data.table(Ar2, keep.rownames=T),
-                           as.data.table(x, keep.rownames=T), all.x=T)
-            Ar3.dt[is.na(Ar3.dt)] = 0
-            Ar3 = as.matrix(Ar3.dt[, -1])
-            Ar3 = Ar3[, order(as.integer(colnames(Ar3)))]
-            rownames(Ar3) = Ar3.dt[, rn]
-          } else {
-            # If not just use the Ar2 matrix
-            Ar3 = Ar2
-          }
-
-          Br3 = as.matrix(B[rownames(Ar3),])
-          debug_print('  - osu_ab3.dt creation:\n')
-          debug_print_head(osu_ab.dt)
-
-          osu_ab3.dt = merge(osu_ab.dt,
-                             data.table(osu_id=as.integer(colnames(Ar3))),
-                             by='osu_id', all.y=T)
-          osu_ab3.dt[is.na(osu_count), osu_count := 0L]
-          debug_print_head(osu_ab3.dt)
-          # setorder(osu_ab3.dt, osu_id)
-
-          x0 = osu_ab3.dt[, osu_count]
-
-          x0_w = rep(0.3, length(x0))
-          # x0_w = x0
-
-          ar3 = copy(Ar3)
-          for (r in 1:nrow(Ar3)) ar3[r,] = ar3[r,] / Br3[r]
-          debug_print('  - pso running...')
-          tmp = lapply(1:pso_n, function (it) {
-            pso = psoptim(
-              rep(0, length(x0)),
-              f, lower=rep(0, length(x0)), upper=rep(max(Br3), length(x0)),
-              A=ar3, B=rep(1, nrow(ar3)),
-              x0 = as.numeric(x0_w),
-              control=list('maxit'=10,
-                           'vectorize'=T
-                           # 'hybrid'=F, 'rand.order'=F
-              ))
-            list(round(pso$par, 2),
-                 pso$value)
-          })
-          res = tmp[which.min(sapply(tmp, function (x) x[[2]]))]
-          debug_print(' OK.\n')
-          osu_ab3.dt[, osu_count := as.integer(res[[1]][[1]])]
-          # osu_ab2.dt = merge(
-          #   osu_ab2.dt[!(osu_id %in% colnames(Ar3))],
-          #   osu_ab3.dt,
-          #   all=T,
-          #   by=names(osu_ab3.dt)
-          # )
-
-          # rm(Ar2, ar3, tmp, osu_ab3.dt, Ar3.dt)
-          if (exists('Ar2')) rm(Ar2)
-          if (exists('ar3')) rm(ar3)
-          if (exists('tmp')) rm(tmp)
-          # if (exists('osu_ab3.dt')) rm(osu_ab3.dt)
-          if (exists('Ar3.dt')) rm(Ar3.dt)
-
-          # New for mclapply
-          return(list(osu_ab3.dt, colnames(Ar3)))
-
-        }, mc.cores=ncpu_sample)
-        t05 = Sys.time()
-        t05mt04 = t05 - t04
-        debug_print(' OK. [', round(t05mt04, 1), ' ', attr(t05mt04, 'units'), ']\n',
+        t01 = Sys.time()
+        t01mt00 = t01 - t00
+        debug_print(' OK. [', round(t01mt00, 1), ' ', attr(t01mt00, 'units'), ']\n',
                     sep='')
 
-        debug_print('  Merging tables...')
-        for (osu_ab3_item in osu_ab3_list) {
-          osu_ab2.dt = merge(
-            osu_ab2.dt[!(osu_id %in% osu_ab3_item[[2]])],
-            osu_ab3_item[[1]],
-            all=T,
-            by=names(osu_ab3_item[[1]])
+        # Solve
+        debug_print('  Solving linear model:\n')
+        if (debug) {
+          saveRDS(A, paste0(s, '_matrix_A.Rdata'))
+          saveRDS(B, paste0(s, '_matrix_B.Rdata'))
+          saveRDS(Ab.dt, paste0(s, '_Ab.dt.Rdata'))
+          saveRDS(osu_data_m.dt, paste0(s, '_osu_data_m.dt.Rdata'))
+        }
+        if (lm_solver == 'lsei') {
+          debug_print('  - Using limSolve::lsei() as least square solver.\n')
+          sol = tryCatch(
+            lsei(A, B, fulloutput=T, G=diag(ncol(A)), H=matrix(c(0), nrow=ncol(A),
+                                                               ncol=1), type=2),
+            error = function (x) NA
           )
+        } else if (lm_solver == 'quadprogpp') {
+          debug_print('  - Using quadprogpp as least square solver.\n')
+          t01a = Sys.time()
+          debug_print('  - Transforming matrices... ')
+          dvec = crossprod(A, B)
+          Dmat = crossprod(A, A)
+          diag(Dmat) = diag(Dmat) + 1e-8
+          Amat = t(diag(ncol(A)))
+          bvec = matrix(c(0), nrow=ncol(A), ncol=1)
+          t01b = Sys.time()
+          t01bmt01a = t01b - t01a
+          debug_print(' OK. [', round(t01bmt01a), ' ', attr(t01bmt01a, 'units'), ']\n')
+          sol_vector = tryCatch(
+            quadprogpp::quadprog.solve.QP(Dmat, dvec, Amat, bvec),
+            error = function (x) NA
+          )
+          sol = list(X=sol_vector$solution)
+          names(sol$X) = colnames(A)
         }
-        t06 = Sys.time()
-        t06mt05 = t06 - t05
-        debug_print(' OK. [', round(t06mt05, 1), ' ', attr(t06mt05, 'units'), ']\n',
+        t02 = Sys.time()
+        t02mt01 = t02 - t01
+        debug_print('  Done. [', round(t02mt01, 1), ' ', attr(t02mt01, 'units'), ']\n',
                     sep='')
 
 
-      } # end if length(cls) > 0
+        if (class(sol) == 'logical') {
+          debug_print('  Linear model failed. [class(sol) == logical]')
+          if (is.na(sol)) {
+            # Least square model failed for some reason; in which case just
+            # return an empty data table. Likely problematic inpjut sequene counts.
+            return(data.table())
+          }
+        }
 
-      if (!exists('t05')) {
-        t05 = Sys.time()
-      }
+        debug_print('  Generating graph from the Ar matrix...')
 
-      # rm(g, cls, Ar, Br, sol, A, B)
-      if (exists('g')) rm(g)
-      if (exists('cls')) rm(cls)
-      if (exists('Ar')) rm(Ar)
-      if (exists('Br')) rm(Br)
-      if (exists('sol')) rm(sol)
-      if (exists('A')) rm(A)
-      if (exists('B')) rm(B)
+        osu_th = 1e-1
+        osu_ab = sol$X
+        osu_count = as.integer(osu_ab[which(osu_ab > osu_th)])
+        osu_ids   = as.integer(names(osu_ab[which(osu_ab > osu_th)]))
+        osu_ab.dt = data.table(osu_id=osu_ids, osu_count=osu_count)
+        data.table::setorder(osu_ab.dt, osu_id)
 
-      debug_print('  Finalizing < 100% OSU table...')
-      osu_ab2.dt = osu_ab2.dt[osu_count > 0]
+        # Try optimizing the full table first?
+        x0 = osu_ab.dt[, osu_count]
+        A_columns = as.character(osu_ab.dt[, osu_id])
+        Ar = A[, A_columns, drop=F]
+        Ar = Ar[setdiff(names(rowSums(Ar) > 0), names(B[B==0,])), , drop=F]
+        Br = B[rownames(Ar), , drop=F]
 
-      # Add OSU labels (species_label from osu_sp.dt)
-      osu_ab4.dt = merge(osu_ab2.dt, osu_sp.dt, by='osu_id',
-                        all.x=T)
-      data.table::setorder(osu_ab4.dt, -osu_count)
-      osu_ab5.dt = merge(osu_ab4.dt,
-                        unique(osu_data_m.dt[, .(osu_id, pctsim=pctsim_range(pctsim))]),
-                        by='osu_id')
-
-      # Cleanup other variables
-      # rm(osu_ab.dt, osu_ab2.dt, osu_ab4.dt, Ab.dt)
-      if (exists('osu_ab.dt')) rm(osu_ab.dt)
-      if (exists('osu_ab2.dt')) rm(osu_ab2.dt)
-      if (exists('osu_ab4.dt')) rm(osu_ab4.dt)
-      if (exists('Ab.dt')) rm(Ab.dt)
-      n_opt = nrow(osu_ab5.dt)
-
-      if (exists('t06')) {
-        t07mt06 = t06 - t04
-        debug_print(' OK. [', round(t05mt04, 1), ' ', attr(t05mt04, 'units'), ']\n',
+        # Generate a graph from Ar matrix, then identify all
+        # connected clusters.
+        g = make_empty_graph()
+        A_rows = rownames(Ar)
+        # Add vertices like this
+        #    1  2  3
+        # 4  .  .  .
+        # 5  .  .  .
+        # 6  .  .  .
+        #  nrow=3, ncol=4
+        g = add_vertices(g, ncol(Ar))
+        g = add_vertices(g, nrow(Ar))
+        vxs = c(colnames(Ar), rownames(Ar))
+        for (j in 1:ncol(Ar)) {
+           g = add_vertices(g, 1)
+        }
+        for (i in seq(ncol(Ar)+1, ncol(Ar)+1+nrow(Ar))) {
+           g = add_vertices(g, 1)
+        }
+        for (i in 1:nrow(Ar)) {
+           for (j in 1:ncol(Ar)) {
+              if (Ar[i,j] > 0) {
+                 # cat('add: ', i+ncol(Ar), '-', j, '\n')
+                 g = add_edges(g, c(i+ncol(Ar), j))
+                 g = add_edges(g, c(j, i+ncol(Ar)))
+              }
+           }
+        }
+        g = as.undirected(g)
+        t03 = Sys.time()
+        t03mt02 = t03 - t02
+        debug_print(' OK. [', round(t03mt02, 1), ' ', attr(t03mt02, 'units'), ']\n',
                     sep='')
+
+
+        debug_print('  Finding connected clusters...')
+        # Find all connected clusters
+        cls = parallel::mclapply(
+          groups(clusters(g)),
+          function (x) if (length(x[x<=ncol(Ar)]) > 1) x else NA,
+          mc.cores=ncpu_sample)
+        cls = cls[!is.na(cls)]
+        osu_ab2.dt = copy(osu_ab.dt)
+        t04 = Sys.time()
+        t04mt03 = t04 - t03
+        debug_print(' OK. ', length(cls), ' clusters found. [',
+                    round(t04mt03, 1), ' ', attr(t04mt03, 'units'), ']\n',
+                    sep='')
+
+        # For each cluster i
+        if (length(cls) > 0) {
+          debug_print('  Solving individual clusters\n')
+          # for (i in 1:length(cls)) {
+          osu_ab3_list = parallel::mclapply(1:length(cls), function (i) {
+            # Add back any osu with a single variant_id
+            # Sometimes, optimization will omit osu_ids with mapping to single
+            # variant_ids so we bring those back here manually.
+            debug_print('  cluster #', i, '\n')
+            cl = cls[i][[1]]
+            osu_ids = vxs[cl[cl<=ncol(Ar)]]
+            variant_ids = vxs[cl[cl>ncol(Ar)]]
+            debug_print('  - osu_ids:', paste(osu_ids, collapse=','), '\n')
+            debug_print('  - variant_ids: ', paste(variant_ids, collapse=','), '\n')
+            # osu_ids = c(osu_ids, osu_data_m_single.dt[variant_id %in% variant_ids][, osu_id])
+            # variant_ids = c(variant_ids, osu_data_m_single.dt[variant_id %in% variant_ids][, osu_id])
+            Ar2 = Ar[variant_ids, osu_ids, drop=F]
+            Br2 = Br[variant_ids, drop=F]
+
+            if (nrow(osu_data_m_single.dt[variant_id %in% variant_ids]) > 0) {
+              # If we have any that need to be added
+              x = as.matrix(dcast(osu_data_m_single.dt[variant_id %in% variant_ids],
+                                  variant_id ~ as.character(osu_id), value.var='copy_number')[, -1])
+              rownames(x) = osu_data_m_single.dt[variant_id %in% variant_ids, variant_id]
+              x[is.na(x)] = 0
+              Ar3.dt = merge(as.data.table(Ar2, keep.rownames=T),
+                             as.data.table(x, keep.rownames=T), all.x=T)
+              Ar3.dt[is.na(Ar3.dt)] = 0
+              Ar3 = as.matrix(Ar3.dt[, -1])
+              Ar3 = Ar3[, order(as.integer(colnames(Ar3)))]
+              rownames(Ar3) = Ar3.dt[, rn]
+            } else {
+              # If not just use the Ar2 matrix
+              Ar3 = Ar2
+            }
+
+            Br3 = as.matrix(B[rownames(Ar3),])
+            debug_print('  - osu_ab3.dt creation:\n')
+            debug_print_head(osu_ab.dt)
+
+            osu_ab3.dt = merge(osu_ab.dt,
+                               data.table(osu_id=as.integer(colnames(Ar3))),
+                               by='osu_id', all.y=T)
+            osu_ab3.dt[is.na(osu_count), osu_count := 0L]
+            debug_print_head(osu_ab3.dt)
+            # setorder(osu_ab3.dt, osu_id)
+
+            x0 = osu_ab3.dt[, osu_count]
+
+            x0_w = rep(0.3, length(x0))
+            # x0_w = x0
+
+            ar3 = copy(Ar3)
+            for (r in 1:nrow(Ar3)) ar3[r,] = ar3[r,] / Br3[r]
+            debug_print('  - pso running...')
+            tmp = lapply(1:pso_n, function (it) {
+              pso = psoptim(
+                rep(0, length(x0)),
+                f, lower=rep(0, length(x0)), upper=rep(max(Br3), length(x0)),
+                A=ar3, B=rep(1, nrow(ar3)),
+                x0 = as.numeric(x0_w),
+                control=list('maxit'=10,
+                             'vectorize'=T
+                             # 'hybrid'=F, 'rand.order'=F
+                ))
+              list(round(pso$par, 2),
+                   pso$value)
+            })
+            res = tmp[which.min(sapply(tmp, function (x) x[[2]]))]
+            debug_print(' OK.\n')
+            osu_ab3.dt[, osu_count := as.integer(res[[1]][[1]])]
+            # osu_ab2.dt = merge(
+            #   osu_ab2.dt[!(osu_id %in% colnames(Ar3))],
+            #   osu_ab3.dt,
+            #   all=T,
+            #   by=names(osu_ab3.dt)
+            # )
+
+            # rm(Ar2, ar3, tmp, osu_ab3.dt, Ar3.dt)
+            if (exists('Ar2')) rm(Ar2)
+            if (exists('ar3')) rm(ar3)
+            if (exists('tmp')) rm(tmp)
+            # if (exists('osu_ab3.dt')) rm(osu_ab3.dt)
+            if (exists('Ar3.dt')) rm(Ar3.dt)
+
+            # New for mclapply
+            return(list(osu_ab3.dt, colnames(Ar3)))
+
+          }, mc.cores=ncpu_sample)
+          t05 = Sys.time()
+          t05mt04 = t05 - t04
+          debug_print(' OK. [', round(t05mt04, 1), ' ', attr(t05mt04, 'units'), ']\n',
+                      sep='')
+
+          debug_print('  Merging tables...')
+          for (osu_ab3_item in osu_ab3_list) {
+            osu_ab2.dt = merge(
+              osu_ab2.dt[!(osu_id %in% osu_ab3_item[[2]])],
+              osu_ab3_item[[1]],
+              all=T,
+              by=names(osu_ab3_item[[1]])
+            )
+          }
+          t06 = Sys.time()
+          t06mt05 = t06 - t05
+          debug_print(' OK. [', round(t06mt05, 1), ' ', attr(t06mt05, 'units'), ']\n',
+                      sep='')
+
+
+        } # end if length(cls) > 0
+
+        if (!exists('t05')) {
+          t05 = Sys.time()
+        }
+
+        # rm(g, cls, Ar, Br, sol, A, B)
+        if (exists('g')) rm(g)
+        if (exists('cls')) rm(cls)
+        if (exists('Ar')) rm(Ar)
+        if (exists('Br')) rm(Br)
+        if (exists('sol')) rm(sol)
+        if (exists('A')) rm(A)
+        if (exists('B')) rm(B)
+
+        debug_print('  Finalizing < 100% OSU table...')
+        osu_ab2.dt = osu_ab2.dt[osu_count > 0]
+
+        # Add OSU labels (species_label from osu_sp.dt)
+        osu_ab4.dt = merge(osu_ab2.dt, osu_sp.dt, by='osu_id',
+                          all.x=T)
+        data.table::setorder(osu_ab4.dt, -osu_count)
+        osu_ab5.dt = merge(osu_ab4.dt,
+                          unique(osu_data_m.dt[, .(osu_id, pctsim=pctsim_range(pctsim))]),
+                          by='osu_id')
+
+        # Cleanup other variables
+        # rm(osu_ab.dt, osu_ab2.dt, osu_ab4.dt, Ab.dt)
+        if (exists('osu_ab.dt')) rm(osu_ab.dt)
+        if (exists('osu_ab2.dt')) rm(osu_ab2.dt)
+        if (exists('osu_ab4.dt')) rm(osu_ab4.dt)
+        if (exists('Ab.dt')) rm(Ab.dt)
+        n_opt = nrow(osu_ab5.dt)
+
+        if (exists('t06')) {
+          t07mt06 = t06 - t04
+          debug_print(' OK. [', round(t05mt04, 1), ' ', attr(t05mt04, 'units'), ']\n',
+                      sep='')
+
+        } else {
+          t07mt06 = t05 - t04
+          debug_print(' OK. [', round(t05mt04, 1), ' ', attr(t05mt04, 'units'), ']\n',
+                      sep='')
+        }
+
+
 
       } else {
-        t07mt06 = t05 - t04
-        debug_print(' OK. [', round(t05mt04, 1), ' ', attr(t05mt04, 'units'), ']\n',
-                    sep='')
+        debug_print(' No < 100% matches found.\n')
+      }
+      t08 = Sys.time()
+      debug_print('  Processing < 100% matches...')
+      # Check < 100% matches
+      if (nrow(blast_best2.dt) > 0) {
+        ab_tab2.dt = merge(
+          ab_tab_nochim_m.dt[sample_id==s],
+          blast_best2.dt,
+          by='qseqid'
+        )
+        ab_tab2.dt[, osu_id := osu_offset+qseqid]
+        ab_tab2.dt[, osu_count := raw_count]
+        ab_tab2.dt[, c('raw_count', 'qseqid') := NULL]
+        n_non = nrow(ab_tab2.dt)
       }
 
+      if (n_opt > 0 & n_non > 0) {
+        # Merge OSU analysis with low sim sequences
+        # all_ab.dt = merge(osu_ab5.dt,
+        #                   ab_tab2.dt,
+        #                   by=intersect(names(osu_ab5.dt), names(ab_tab2.dt)),
+        #                   all=T)
+        all_ab.dt = data.table::rbindlist(list(
+          osu_ab5.dt[, .(osu_id, osu_count, species, pctsim)],
+          ab_tab2.dt[, .(osu_id, osu_count, species, pctsim)]
+        ))
+      } else if (n_opt == 0 & n_non > 0) {
+        all_ab.dt = ab_tab2.dt
+      } else if (n_opt > 0 & n_non == 0) {
+        all_ab.dt = osu_ab5.dt
+      } else {
+        # Both optimized and non-optimized sequences are zero
+        # Return empty data.table
+        return(data.table())
+      }
+      all_ab.dt[, sample_id := s]
+      if (debug) {
+        print(head(all_ab.dt))
+      }
 
+      data.table::setcolorder(all_ab.dt, c('sample_id', 'osu_id', 'osu_count', 'species',
+                               'pctsim'))
+      # if (verbose) cat('- sample_id:', s, ' completed.\n')
+      t09 = Sys.time()
+      t09mt08 = t09 - t08
+      debug_print('OK. [', round(t09mt08, 1), ' ', attr(t09mt08, 'units'), ']\n',
+                  sep='')
+      dt_total = t09 - t00
+      m('  Sample', s, 'OK. [', round(dt_total, 1), ' ', attr(dt_total, 'units'),
+        ']', fill=T, time_stamp=T, verbose=verbose)
 
-    } else {
-      debug_print(' No < 100% matches found.\n')
+      # Return value
+      all_ab.dt[osu_count>0]
+    }, error = function (e) {
+      m('  Sample', s, 'Failed at OSU estimation.', fill=T, time_stamp=T, verbose=verbose)
+      data.table(sample_id=NULL, osu_id=NULL, osu_count=NULL, species=NULL, pctsim=NULL)
     }
-    t08 = Sys.time()
-    debug_print('  Processing < 100% matches...')
-    # Check < 100% matches
-    if (nrow(blast_best2.dt) > 0) {
-      ab_tab2.dt = merge(
-        ab_tab_nochim_m.dt[sample_id==s],
-        blast_best2.dt,
-        by='qseqid'
-      )
-      ab_tab2.dt[, osu_id := osu_offset+qseqid]
-      ab_tab2.dt[, osu_count := raw_count]
-      ab_tab2.dt[, c('raw_count', 'qseqid') := NULL]
-      n_non = nrow(ab_tab2.dt)
-    }
+  )
 
-    if (n_opt > 0 & n_non > 0) {
-      # Merge OSU analysis with low sim sequences
-      # all_ab.dt = merge(osu_ab5.dt,
-      #                   ab_tab2.dt,
-      #                   by=intersect(names(osu_ab5.dt), names(ab_tab2.dt)),
-      #                   all=T)
-      all_ab.dt = data.table::rbindlist(list(
-        osu_ab5.dt[, .(osu_id, osu_count, species, pctsim)],
-        ab_tab2.dt[, .(osu_id, osu_count, species, pctsim)]
-      ))
-    } else if (n_opt == 0 & n_non > 0) {
-      all_ab.dt = ab_tab2.dt
-    } else if (n_opt > 0 & n_non == 0) {
-      all_ab.dt = osu_ab5.dt
-    } else {
-      # Both optimized and non-optimized sequences are zero
-      # Return empty data.table
-      return(data.table())
-    }
-    all_ab.dt[, sample_id := s]
-    if (debug) {
-      print(head(all_ab.dt))
-    }
-
-    data.table::setcolorder(all_ab.dt, c('sample_id', 'osu_id', 'osu_count', 'species',
-                             'pctsim'))
-    # if (verbose) cat('- sample_id:', s, ' completed.\n')
-    t09 = Sys.time()
-    t09mt08 = t09 - t08
-    debug_print('OK. [', round(t09mt08, 1), ' ', attr(t09mt08, 'units'), ']\n',
-                sep='')
-    dt_total = t09 - t00
-    m('  Sample', s, 'OK. [', round(dt_total, 1), ' ', attr(dt_total, 'units'),
-      ']', fill=T, time_stamp=T, verbose=verbose)
-    return(all_ab.dt[osu_count>0])
+  return(all_ab.dt)
 
   }, mc.cores=ncpu))
 
