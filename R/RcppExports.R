@@ -21,6 +21,10 @@ compare_alignment <- function(s1, s2) {
     .Call('_rexmap_compare_alignment', PACKAGE = 'rexmap', s1, s2)
 }
 
+compare_alignment_ext <- function(s1, s2) {
+    .Call('_rexmap_compare_alignment_ext', PACKAGE = 'rexmap', s1, s2)
+}
+
 load_posterior <- function(filename) {
     .Call('_rexmap_load_posterior', PACKAGE = 'rexmap', filename)
 }

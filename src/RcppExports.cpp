@@ -63,6 +63,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// compare_alignment_ext
+IntegerVector compare_alignment_ext(std::string s1, std::string s2);
+RcppExport SEXP _rexmap_compare_alignment_ext(SEXP s1SEXP, SEXP s2SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::string >::type s1(s1SEXP);
+    Rcpp::traits::input_parameter< std::string >::type s2(s2SEXP);
+    rcpp_result_gen = Rcpp::wrap(compare_alignment_ext(s1, s2));
+    return rcpp_result_gen;
+END_RCPP
+}
 // load_posterior
 std::vector< std::vector<int> > load_posterior(std::string filename);
 RcppExport SEXP _rexmap_load_posterior(SEXP filenameSEXP) {
@@ -133,6 +145,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_rexmap_consensus_sequence", (DL_FUNC) &_rexmap_consensus_sequence, 1},
     {"_rexmap_hamming", (DL_FUNC) &_rexmap_hamming, 2},
     {"_rexmap_compare_alignment", (DL_FUNC) &_rexmap_compare_alignment, 2},
+    {"_rexmap_compare_alignment_ext", (DL_FUNC) &_rexmap_compare_alignment_ext, 2},
     {"_rexmap_load_posterior", (DL_FUNC) &_rexmap_load_posterior, 1},
     {"_rexmap_nwalign_endsfree_test", (DL_FUNC) &_rexmap_nwalign_endsfree_test, 6},
     {"_rexmap_C_mergepairs", (DL_FUNC) &_rexmap_C_mergepairs, 11},

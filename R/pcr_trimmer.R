@@ -334,7 +334,8 @@ remove_pcr_primers = function (
   pr_fwd=NULL, pr_rev=NULL, pr_fwd_maxoff=35, pr_rev_maxoff=35,
   max_mismatch=2, check_rc=FALSE,
   return_noprimer=T, ncpu=1, ncpu_sample=rexmap_option('ncpu'),
-  verbose=rexmap_option('verbose'), overwrite=TRUE) {
+  verbose=rexmap_option('verbose'), overwrite=TRUE,
+  extended_code_alignment=FALSE) {
   # fq_in = input fastq file
   # fq_out = output fastq file (without primers)
   # pr_fwd = forward primer 5'->3'
@@ -368,8 +369,13 @@ remove_pcr_primers = function (
   }
   # Count extended DNA symbols
   # Ignore any extended DNA symbols. Shouldn't have too many of them anyway.
-  pr_fwd = gsub('[^ACGT-]', 'N', pr_fwd)
-  pr_rev = gsub('[^ACGT-]', 'N', pr_rev)
+  if (extended_code_alignment) {
+    pr_fwd = gsub('[^ACGTYRWSKMDVHBXN-]', 'N', pr_fwd)
+    pr_rev = gsub('[^ACGTYRWSKMDVHBXN-]', 'N', pr_rev)
+  } else {
+    pr_fwd = gsub('[^ACGT-]', 'N', pr_fwd)
+    pr_rev = gsub('[^ACGT-]', 'N', pr_rev)
+  }
 
   pr_fwd_rc = reverse_complement(pr_fwd)
   pr_rev_rc = reverse_complement(pr_rev)
@@ -377,7 +383,8 @@ remove_pcr_primers = function (
 
   fastq_trimmer = function (
     meta, seq, qual, pr_fwd, pr_rev,
-    return_noprimer=return_noprimer
+    return_noprimer=return_noprimer,
+    extended_code_alignment=extended_code_alignment
     ) {
 
     # Search for forward primer.
@@ -391,10 +398,17 @@ remove_pcr_primers = function (
     pr_fwd_n = lengths(regmatches(pr_fwd, gregexpr('N', pr_fwd)))
     pr_rev_n = lengths(regmatches(pr_rev, gregexpr('N', pr_rev)))
     # Alignment statistics: match, mismatch, gapopen, gapextend
-    aln_stat = compare_alignment(
-      str_sub(aln[1], start=pr_fwd_left, end=pr_fwd_right),
-      str_sub(aln[2], start=pr_fwd_left, end=pr_fwd_right)
-    )
+    if (extended_code_alignment) {
+      aln_stat = compare_alignment_ext(
+        str_sub(aln[1], start=pr_fwd_left, end=pr_fwd_right),
+        str_sub(aln[2], start=pr_fwd_left, end=pr_fwd_right)
+      )
+    } else {
+      aln_stat = compare_alignment(
+        str_sub(aln[1], start=pr_fwd_left, end=pr_fwd_right),
+        str_sub(aln[2], start=pr_fwd_left, end=pr_fwd_right)
+      )
+    }
     # Forward primer alignment is acceptable if it's near beginning (within first 5 nts)
     # and if it doesn't have more than 2 mismatches for non-N symbols, which includes indels.
     pr_fwd_found = FALSE
@@ -407,10 +421,17 @@ remove_pcr_primers = function (
     pr_rev_left = regexpr('[^-]', aln2[1])[1]
     pr_rev_right = min(regexpr('[ACGTN][^ACGTN]*$', aln2[1])[1],
                        regexpr('[ACGTN][^ACGTN]*$', aln2[2])[1])
-    aln2_stat = compare_alignment(
-      str_sub(aln2[1], start=pr_rev_left, end=pr_rev_right),
-      str_sub(aln2[2], start=pr_rev_left, end=pr_rev_right)
-    )
+    if (extended_code_alignment) {
+      aln2_stat = compare_alignment_ext(
+        str_sub(aln2[1], start=pr_rev_left, end=pr_rev_right),
+        str_sub(aln2[2], start=pr_rev_left, end=pr_rev_right)
+      )
+    } else {
+      aln2_stat = compare_alignment(
+        str_sub(aln2[1], start=pr_rev_left, end=pr_rev_right),
+        str_sub(aln2[2], start=pr_rev_left, end=pr_rev_right)
+      )
+    }
     if (pr_rev_left > nchar(seq)-nchar(pr_rev)-pr_rev_maxoff & aln2_stat[2]+aln2_stat[3]+aln2_stat[4]-pr_rev_n <= max_mismatch) {
       # Reverse primer found
       pr_rev_found = TRUE
@@ -489,7 +510,9 @@ remove_pcr_primers = function (
       function (meta_i, seqs_i, qual_i) {
         result = fastq_trimmer(
           meta=meta_i, seq=seqs_i, qual=qual_i,
-          pr_fwd=pr_fwd, pr_rev=pr_rev)
+          pr_fwd=pr_fwd, pr_rev=pr_rev,
+          extended_code_alignment=extended_code_alignment
+        )
         if (check_rc) {
           #if (!result$trim_fwd & !result$trim_rev) {
             # Check RC of primer pair if we couldnt find any

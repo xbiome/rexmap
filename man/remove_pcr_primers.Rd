@@ -13,6 +13,7 @@ remove_pcr_primers(
   pr_fwd_maxoff = 35,
   pr_rev_maxoff = 35,
   max_mismatch = 2,
+  check_rc = FALSE,
   return_noprimer = T,
   ncpu = 1,
   ncpu_sample = rexmap_option("ncpu"),
@@ -43,6 +44,8 @@ forward PCR primer. Primers aligned further into the read ignored.}
 
 \item{max_mismatch}{Maximum allowed number of mismatches for each PCR primer,
 ignoring any ambiguous nucleotides (not A,C,G or T).}
+
+\item{check_rc}{Check reverse complements of primer pairs? (default: FALSE)}
 
 \item{ncpu}{Number of CPU cores (threads) to use for multithreading. By default
 all available CPU cores are used (\code{parallel::detectCores()}).}

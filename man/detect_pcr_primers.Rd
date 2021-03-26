@@ -6,8 +6,6 @@
 \usage{
 detect_pcr_primers(
   fq,
-  verbose = T,
-  debug = F,
   pr_fwd_maxoff = 35,
   pr_rev_maxoff = 35,
   max_mismatch = 3,
@@ -15,7 +13,9 @@ detect_pcr_primers(
   nseqs_seed = 42,
   min_seqs_pct = 5,
   ncpu = 1,
-  ncpu_seqs = 4
+  ncpu_seqs = 4,
+  verbose = T,
+  debug = F
 )
 }
 \description{
