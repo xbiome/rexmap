@@ -11,6 +11,7 @@
 #' @param match Score for character match in the alignment (default: 5.
 #' @param mismatch Score for character mismatch in the alignment (default: -5)
 #' @param gap_p Score for gap penalty, either gap opening on gap extension (default: -7).
+#' @param rc_forward TRUE/FALSE Reverse complement forward reads? (default: FALSE)
 #' @param rc_reverse TRUE/FALSE Reverse complement reverse reads? (default: TRUE)
 #' @param ncpu Number of CPU threads to use for multithreading.
 #' @param force Do not stop merging on fatal errors. (default: FALSE)
@@ -18,13 +19,12 @@
 #' @param timing TRUE/FALSE Time merging.
 #'
 #' @export
-merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
-                              match=5L, mismatch=-5L, gap_p=-7L, rc_reverse=TRUE,
-                              ncpu=rexmap_option('ncpu'),
-                              ncpu_samples=1,
-                              force=FALSE,
-                              verbose=TRUE, timing=FALSE
-                              ) {
+merge_pairs = function (
+  fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
+  match=5L, mismatch=-5L, gap_p=-7L, rc_forward=FALSE, rc_reverse=TRUE,
+  ncpu=rexmap_option('ncpu'), ncpu_samples=1,
+  force=FALSE, verbose=TRUE, timing=FALSE
+  ) {
   # fq_fwd = vector of filenames (incl. paths) to forward reads
   # fq_rev = vector of filenames (incl. paths) to reverse reads
   # fq_mer = vector of filenames (incl. paths) to write merged reads
@@ -46,7 +46,7 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
 
   m('------ Merge reads -------', verbose=verbose)
   m('Running with parameters:', verbose=verbose)
-  m('Min % sim:', 100*min_sim, '|', 'Min aln len:', min_aln_len, '| RC reverse:', rc_reverse, verbose=verbose)
+  m('Min:', 100*min_sim, '% sim |', 'Min aln len:', min_aln_len, 'nt | RC reverse:', rc_reverse, verbose=verbose)
   m('Run', ncpu, 'files in parallel, ', ncpu_samples, 'threads/file.', verbose=verbose)
 
   # m2 = function (..., fill=TRUE, time_stamp=TRUE, verbose=TRUE) {
@@ -100,10 +100,17 @@ merge_pairs = function (fq_fwd, fq_rev, fq_mer, min_sim=0.75, min_aln_len=50,
         }
       }
       # Go through each read entry, do alignment
-      r_fwd = tryCatch(
-        ShortRead::yield(f_fwd),
-        error = function (x) NA
-      )
+      if (rc_forward) {
+        r_fwd = tryCatch(
+          ShortRead::reverseComplement(ShortRead::yield(f_fwd)),
+          error = function (x) NA
+        )
+      } else {
+        r_fwd = tryCatch(
+          ShortRead::yield(f_fwd),
+          error = function (x) NA
+        )
+      }
       if (length(r_fwd) == 0) {
         m('Warning: No reads in the forward file ', basename(fq_fwd_i), 'found. Skipping.', verbose=verbose)
         return(empty_result)
