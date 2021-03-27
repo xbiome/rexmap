@@ -349,7 +349,7 @@ detect_overlap_length = function (
   fq_fwd, fq_rev,
   min_sim=0.75,
   match=5L, mismatch=-5L, gap_p=-7L,
-  rc_forward=TRUE, rc_reverse=TRUE,
+  rc_forward=FALSE, rc_reverse=TRUE,
   ncpu = rexmap_option('ncpu'),
   nseqs=1000, nseqs_seed=42,
   minalnlen_min=10, minalnlen_max=70, minalnlen_step=5,
@@ -456,11 +456,11 @@ detect_overlap_length = function (
       m('Warning: corrupted files. Skipping.')
       return(NA)
     }
-    if (rc_reverse) {
-      r_rev = ShortRead::reverseComplement(ShortRead::yield(f_rev))
-    } else {
-      r_rev = ShortRead::yield(f_rev)
-    }
+    # if (rc_reverse) {
+    #   r_rev = ShortRead::reverseComplement(ShortRead::yield(f_rev))
+    # } else {
+    #   r_rev = ShortRead::yield(f_rev)
+    # }
 
     # Process chunk
     read_fwd = as.character(ShortRead::sread(r_fwd))
