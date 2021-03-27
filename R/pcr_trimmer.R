@@ -546,16 +546,20 @@ remove_pcr_primers = function (
     fastq_list_writer(out_trimmed, fq_out_i, ncpu=ncpu_sample)
     pct_trimmed = 100*both_trimmed/length(fwd_trimmed_list)
     if (ncpu > 1) {
-      m_buffer = paste0(m_buffer, ' OK. Trimmed: ',
-                        round(pct_trimmed), '%|',
-                        round(100*fwd_trimmed/length(fwd_trimmed_list)), '%|',
-                        round(100*rev_trimmed/length(fwd_trimmed_list)), '% both|fwd|rev ')
+      m_buffer = paste0(
+        m_buffer, ' OK. Trimmed: ',
+        sprintf('% 3d', round(pct_trimmed)),
+        '%|',
+        sprintf('% 3d', round(100*fwd_trimmed/length(fwd_trimmed_list))),
+        '%|',
+        sprintf('% 3d', round(100*rev_trimmed/length(fwd_trimmed_list))),
+        '% both|fwd|rev ')
     } else {
       m(' OK. Trimmed: ',
         paste0(
-          round(pct_trimmed), '|',
-          round(100*fwd_trimmed/length(fwd_trimmed_list)), '%|',
-          round(100*rev_trimmed/length(fwd_trimmed_list)), '% both|fwd|rev '
+          sprintf('% 3d', round(pct_trimmed)), '%|',
+          sprintf('% 3d', round(100*fwd_trimmed/length(fwd_trimmed_list))), '%|',
+          sprintf('% 3d', round(100*rev_trimmed/length(fwd_trimmed_list))), '% both|fwd|rev '
         ),
         fill=F, verbose=verbose,
         time_stamp=F)
