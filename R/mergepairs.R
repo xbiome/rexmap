@@ -448,19 +448,6 @@ detect_overlap_length = function (
       }
     }
 
-    f_fwd = ShortRead::FastqStreamer(fqf)
-    f_rev = ShortRead::FastqStreamer(fqr)
-    # Go through each read entry, do alignment
-    r_fwd = ShortRead::yield(f_fwd)
-    if (length(r_fwd) == 0) {
-      m('Warning: corrupted files. Skipping.')
-      return(NA)
-    }
-    # if (rc_reverse) {
-    #   r_rev = ShortRead::reverseComplement(ShortRead::yield(f_rev))
-    # } else {
-    #   r_rev = ShortRead::yield(f_rev)
-    # }
 
     # Process chunk
     read_fwd = as.character(ShortRead::sread(r_fwd))
