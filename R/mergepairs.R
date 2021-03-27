@@ -348,7 +348,8 @@ mergeout_to_table = function (mergestats) {
 detect_overlap_length = function (
   fq_fwd, fq_rev,
   min_sim=0.75,
-  match=5L, mismatch=-5L, gap_p=-7L, rc_reverse=TRUE,
+  match=5L, mismatch=-5L, gap_p=-7L,
+  rc_forward=TRUE, rc_reverse=TRUE,
   ncpu = rexmap_option('ncpu'),
   nseqs=1000, nseqs_seed=42,
   minalnlen_min=10, minalnlen_max=70, minalnlen_step=5,
@@ -408,10 +409,17 @@ detect_overlap_length = function (
       }
     }
     # Go through each read entry, do alignment
-    r_fwd = tryCatch(
-      ShortRead::yield(f_fwd),
-      error = function (x) NA
-    )
+    if (rc_forward) {
+      r_fwd = tryCatch(
+        ShortRead::reverseComplement(ShortRead::yield(f_fwd)),
+        error = function (x) NA
+      )
+    } else {
+      r_fwd = tryCatch(
+        ShortRead::yield(f_fwd),
+        error = function (x) NA
+      )
+    }
     if (length(r_fwd) == 0) {
       m('Warning: No reads in the forward file ', basename(fqf), 'found. Skipping.')
       return(empty_result)
