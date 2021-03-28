@@ -751,14 +751,21 @@ osu_cp_to_all_abs = function (ab_tab_nochim_m.dt,
     eps = A %*% x - B
     (t(eps) %*% eps) + ((x0^2) %*% H(x))
   }
-
+  if (debug) {
+    m('  osu_data_m.dt:', fill=T, time_stamp=T, verbose=verbose)
+    print(head(osu_data_m.dt))
+    m('  osu_data_m.dt[raw_count > 0]:', fill=T, time_stamp=T, verbose=verbose)
+    print(head(osu_data_m.dt[raw_count > 0]))
+  }
   m('  Preparing initial OSU tables...', fill=F, time_stamp=T, verbose=verbose)
   if (nrow(osu_data_m.dt[raw_count > 0]) > 0) {
-    osu_data_m_single.dt = unique(
-      osu_data_m.dt[,
-        if (length(unique(variant_id)) == 1) .SD,
-        by=osu_id][raw_count > 0, .(osu_id, variant_id, copy_number)]
-    )
+    osu_data_single.dt = osu_data_m.dt[
+      , if (length(unique(variant_id)) == 1) .SD, by=osu_id]
+    if (nrow(osu_data_single.dt) > 0) {
+      osu_data_m_single.dt = unique(
+        osu_data_single.dt[raw_count > 0, .(osu_id, variant_id, copy_number)]
+      )
+    }
   }
   t2 = Sys.time()
 
