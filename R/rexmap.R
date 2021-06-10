@@ -148,6 +148,7 @@ rexmap_setoption = function (option_name, value) {
   if (option_name == 'ncpu') {
     # Check that it is an integer
     if (!(class(value) == 'integer')) stop('ncpu must be an integer.')
+    assign('ncpu', value, env=himap_opts)
   } else if (option_name == 'string_maxwidth') {
     # Check that value is integer
     options('datatable.prettyprint.char'=value)
